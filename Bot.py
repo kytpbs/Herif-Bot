@@ -1,12 +1,8 @@
-import asyncio
 import discord
 import time
-from discord import FFmpegPCMAudio
-from discord.utils import get
 import youtube_dl
 import yt_dlp
 from Read import readFile
-from requests import get
 import os
 import Token
 
@@ -88,7 +84,8 @@ class MyClient(discord.Client):
         x = message.content
         print("Message Edited: " + x)
         print("Old Message: " + before.content)
-        # await message.reply("Mesaj Editlendi... Eskisi: " + before.content)
+        channel = discord.utils.get(client.get_all_channels(), name='boss-silinen')
+        await channel.send(embed=embed)
 
     async def on_message_delete(self, message):
         if message.author == self.user:
