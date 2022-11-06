@@ -79,11 +79,9 @@ class MyClient(discord.Client):
         if message.author == self.user:
             return
         embed = discord.Embed(title="Mesaj Düzenlendi",
-                              description=f"Silinen Kanal:  {str(message.channel)}\nSilen Kişi: {str(message.author)}\nSilinen Mesaj: {str(message.content)}",
+                              description=f"Kanal: {message.channel} \n Kişi: {message.author} \n"
+                                          f"Eski Mesaj: {before.content} \n Yeni Mesaj: {message.content}",
                               color=696969)
-        x = message.content
-        print("Message Edited: " + x)
-        print("Old Message: " + before.content)
         channel = discord.utils.get(client.get_all_channels(), name='boss-silinen')
         await channel.send(embed=embed)
 
