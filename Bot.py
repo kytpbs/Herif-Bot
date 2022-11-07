@@ -4,6 +4,7 @@ import youtube_dl
 import yt_dlp
 from Read import readFile
 import os
+from datetime import datetime
 import Token
 
 ydl_opts = {
@@ -25,6 +26,7 @@ deleted_messsages_channel = 991442142679552131
 class MyClient(discord.Client):
     async def on_ready(self):
         print('Logged on as', self.user)
+
 
     async def on_member_join(self, member):
         print(member, "Katıldı! ")
@@ -102,15 +104,21 @@ class MyClient(discord.Client):
         channel = message.channel
         guild = message.guild
         print(str(channel) + " " + str(user) + ": " + x)
+        now = datetime.now()
+        Time = now.strftime("%H:%M:")
         if message.author == self.user:
             return
 
+        if Time == "09:11:":
+            await channel.send("🛫🛬💥🏢🏢")
         masaj = y.split(" ")
         masaj_uzunluk = len(masaj)
         son_mesaj = masaj[masaj_uzunluk - 1]
         if son_mesaj == ("nerde") or son_mesaj == ("nerede") or son_mesaj == ("neredesin") or son_mesaj == ("nerdesin"):
             print(son_mesaj)
             await message.reply(f'Ebenin amında. Ben sonu "{son_mesaj}" diye biten bütün mesajlara cevap vermek için kodlanmış bi botum. Seni kırdıysam özür dilerim.')
+
+        
 
         for i in range (len(costom1)):
             if x == costom1[i]:
@@ -167,6 +175,12 @@ class MyClient(discord.Client):
                     print(f"{self.voice_clients[0]} dasın")
                 else:
                     await message.reply("Ses Kanalında Değilsin")
+            
+            case "söyle":
+                if masaj_uzunluk > 1:
+                    await message.channel.send(masaj[1])
+                else:
+                    await message.reply("Ne söyleyeyim?")
 
         if message.content.startswith("oluştur"):
             print("oluştur")
