@@ -1,8 +1,10 @@
-from youtube_search import YoutubeSearch
+import youtube_dl
 
-class Download:
-    def name(self):
-        results = YoutubeSearch('search terms', max_results=10)
-        return results
+ydl_opts = {
+    'format': 'bestaudio/best',
+    'outtmpl': 'video.mp4',
+}
+mesaj= input("Enter the link: ")
 
-if __name__ == __main__
+with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+    ydl.download([mesaj])

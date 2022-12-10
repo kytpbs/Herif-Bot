@@ -1,7 +1,7 @@
 import discord
 import time
-import youtube_dl
 import yt_dlp
+from yt_dlp import YoutubeDL
 from Read import readFile
 import os
 from datetime import datetime
@@ -13,8 +13,8 @@ ydl_opts = {
     'outtmpl': 'test.mp3',
 }
 
-costom1 = []
-costom2 = []
+sus_gif = "https://cdn.discordapp.com/attachments/726408854367371324/1010651691600838799/among-us-twerk.gif"
+
 costom1 = readFile("Costom1.txt")
 costom2 = readFile("Costom2.txt")
 intents = discord.Intents.all()
@@ -26,12 +26,10 @@ deleted_messsages_channel = 991442142679552131
 class MyClient(discord.Client):
     async def on_ready(self):
         print('Logged on as', self.user)
-
-
     async def on_member_join(self, member):
         print(member, "Katıldı! ")
         channel = client.get_channel(929329231173910578)
-        await channel.send("Salak bir kişi daha servera katıldı... Hoşgelmedin", member)
+        await channel.send("Salak bir kişi daha servera katıldı... Hoşgelmedin " + member)
 
     async def on_member_remove(self, member):
         channel = client.get_channel(929329231173910578)
@@ -45,7 +43,7 @@ class MyClient(discord.Client):
             await channel.send("Kanal 3 saniye içinde siliniyor")
             existing_channel = channel
             print("Deleting Channel " + str(channel) + "in 3 seconds")
-            channel.send("Kanal 3 Saniye İçinde Siliniyor")
+            await channel.send("Kanal 3 Saniye İçinde Siliniyor")
             for i in range(3):
                 await channel.send(str(3 - i))
                 time.sleep(1)
@@ -91,10 +89,15 @@ class MyClient(discord.Client):
         if message.author == self.user:
             return
 
+
         embed = discord.Embed(title="Mesaj silindi.",
                               description="Silinen Kanal: " + str(message.channel) + "\n Silen Kişi: " + str(
                                   message.author) + "\n Silinen Mesaj: " + str(message.content), color=696969)
         channel = discord.utils.get(client.get_all_channels(), name='boss-silinen')
+
+        #image: (message.attachments[0].url)
+        #print(image)
+        #embed.set_image(url=image)
         await channel.send(embed=embed)
 
     async def on_message(self, message):
@@ -144,15 +147,17 @@ class MyClient(discord.Client):
             case "dm":
                 await user.send("PING")
             case "sus":
-                await message.reply("https://cdn.discordapp.com/attachments/726408854367371324/1010651691600838799/among-us-twerk.gif")
+                await message.reply(sus_gif)
             case "cu":
                 await message.reply("Ananın AMCUUUU")
+            case "mp3":
+                discord.FFmpegPCMAudio("test.mp3")
             case "array":
                 print(f"Array: {costom1}")
                 embed = discord.Embed(title="Arraydekiler:", colour=696969)
                 for i in range (len(costom1)):
-                    embed.add_field(value=costom1[i], inline=True)
-                    embed.add_field(name="cevaplar", value=costom2[i], inline=True)
+                    embed.add_field(name= "Yazılan:", value=costom1[i], inline=True)
+                    embed.add_field(name="Cevaplar:", value=costom2[i] + "\n", inline=True)
                 await message.reply(embed=embed)
             case "pfp":
                 pfp = user.avatar_url
@@ -171,7 +176,8 @@ class MyClient(discord.Client):
                 await kanal.disconnect()
             case "mi?":
                 if self.voice_clients[0] is not None:
-                    await message.reply(self.voice_clients[0] + "dasın")
+                    self.voice_clients[0].play(discord.FFmpegPCMAudio("test.mp3"))
+                    await message.reply(f"{self.voice_clients[0]} dasın")
                     print(f"{self.voice_clients[0]} dasın")
                 else:
                     await message.reply("Ses Kanalında Değilsin")
@@ -207,48 +213,30 @@ class MyClient(discord.Client):
 
         if message.content.startswith("çal"):
             try:
-                voice = self.voice_clients[0]
-                await voice.resume()
-                print("Tekrar Devam Edildi")
-            except Exception:
-                pass
-            try:
                 os.remove("test.mp3")
             except Exception:
                 print("Dosya Yok")
-            try:
-                mesaj = x.split(" ")[1]
-            except Exception:
-                await message.reply("Anlaşılamadı...")
+
+            if len(x.split(",")) < 2:
+                await message.reply('Virgül (",") Koyduğunuza Emin olun')
                 return
-            video_info = youtube_dl.YoutubeDL().extract_info(
-                url=mesaj, download=False)
-            title = video_info['title']
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                await message.reply("İndiriliyor Lütfen Bekleyin...")
-                ydl.download([mesaj])
-            try:
-                voice = self.voice_clients[0]
-                await message.channel.send("Ses Kanalında")
-                print("Ses Kanalında")
-                voice.play(discord.FFmpegPCMAudio('test.mp3'))
-                await message.reply("indirildi...")
-                time.sleep(1)
-                await message.reply(f"{title} adlı ses çalınıyor")
-                return
-            except Exception:
-                if user.voice is not None:
-                    await message.channel.send("Ses Kanalında Değil Katılma Eylemi...")
-                    kanal = message.author.voice.channel
-                    print(str(kanal) + "'a katılınıyor")
-                    await message.reply(f"{str(kanal)} ' a katılınıyor")
-                    voice = await kanal.connect()
-                    voice.play(discord.FFmpegPCMAudio('test.mp3'))
-                    await message.reply("indirildi...")
-                    time.sleep(1)
-                    await message.reply(f"{title} adlı ses çalınıyor")
-                else:
-                    await message.reply("Bir Ses Kanalında Değilsin")
+            else:
+                mesaj = x.split(",")[1]
+            if "http" not in message.content:
+                print("http yok")
+                with YoutubeDL(ydl_opts) as ydl:
+                    yts = ydl.extract_info(f"ytsearch:{mesaj}", download=True)['entries'][0]
+                    await message.reply(f"Şarkı Çalınıyor: {yts['title']}")
+                    print(mesaj)
+            else:
+                print("http var")
+                mesaj = mesaj
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    await message.reply("İndiriliyor Lütfen Bekleyin...")
+                    ydl.download([mesaj])
+                    await message.reply("İndirildi")
+                    await message.reply("Şarkı Çalınıyor")
+                    discord.FFmpegPCMAudio("test.mp3")
 
         if message.content.lower() == "dur":
             print("Dur Dendi")
@@ -259,13 +247,13 @@ class MyClient(discord.Client):
             except Exception:
                 await message.reply("VC de değilim")
 
-        if y == "çık":
+        if message.content.lower() == "devam":
             try:
                 voice = self.voice_clients[0]
-                await voice.disconnect()
-                print("Durduruldu")
+                await voice.resume()
+                print("Tekrar Devam Edildi")
             except Exception:
-                await message.reply("VC de değilim")
+                await message.reply("Ses Kanalında Değilsin")
 
         if message.content.startswith("sustur"):
             if str(message.author) == "braven#8675":
