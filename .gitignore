@@ -5,3 +5,6 @@ Replit.txt
 *.iml
 Youtube.py
 *.mp3
+.replit
+replit.nix
+venv/
