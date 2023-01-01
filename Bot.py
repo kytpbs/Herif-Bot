@@ -137,56 +137,55 @@ class MyClient(discord.Client):
         if 'neden' in y:
             await message.reply("Kaplumağa Deden :turtle: ")
 
-        match y:
-            case "ping":
-                await message.reply("pong")
-            case "31":
-                await message.channel.send("sjsjsj")
-            case "A":
-                await message.reply(x)
-            case "dm":
-                await user.send("PING")
-            case "sus":
-                await message.reply(sus_gif)
-            case "cu":
-                await message.reply("Ananın AMCUUUU")
-            case "mp3":
-                discord.FFmpegPCMAudio("test.mp3")
-            case "array":
-                print(f"Array: {costom1}")
-                embed = discord.Embed(title="Arraydekiler:", colour=696969)
-                for i in range (len(costom1)):
-                    embed.add_field(name= "Yazılan:", value=costom1[i], inline=True)
-                    embed.add_field(name="Cevaplar:", value=costom2[i] + "\n", inline=True)
-                await message.reply(embed=embed)
-            case "pfp":
-                pfp = user.avatar_url
-                embed = discord.Embed(title="Profile Foto Test", description="profile: ", type="rich", color=696969)
-                embed.set_image(url=pfp)
-                await message.channel.send(embed=embed)
-            case "katıl":
-                if user.voice is not None:
-                    kanal = message.author.voice.channel
-                    print(str(kanal) + "'a katılınıyor")
-                    voice = await kanal.connect()
-                if user.voice is None:
-                    await message.channel.send("Bir Ses Kanalında Değilsin... Lütfen Tekrar Dene")
-            case "çık:":
-                kanal = self.user.voice.channel
-                await kanal.disconnect()
-            case "mi?":
-                if self.voice_clients[0] is not None:
-                    self.voice_clients[0].play(discord.FFmpegPCMAudio("test.mp3"))
-                    await message.reply(f"{self.voice_clients[0]} dasın")
-                    print(f"{self.voice_clients[0]} dasın")
-                else:
-                    await message.reply("Ses Kanalında Değilsin")
-            
-            case "söyle":
-                if masaj_uzunluk > 1:
-                    await message.channel.send(masaj[1])
-                else:
-                    await message.reply("Ne söyleyeyim?")
+        if y == "ping":
+            await message.reply("pong")
+        if y == "31":
+            await message.channel.send("sjsjsj")
+        if y == "A":
+            await message.reply(x)
+        if y == "dm":
+            await user.send("PING")
+        if y == "sus":
+            await message.reply(sus_gif)
+        if y == "cu":
+            await message.reply("Ananın AMCUUUU")
+        if y == "mp3":
+            discord.FFmpegPCMAudio("test.mp3")
+        if y == "array":
+            print(f"Array: {costom1}")
+            embed = discord.Embed(title="Arraydekiler:", colour=696969)
+            for i in range (len(costom1)):
+                embed.add_field(name= "Yazılan:", value=costom1[i], inline=True)
+                embed.add_field(name="Cevaplar:", value=costom2[i] + "\n", inline=True)
+            await message.reply(embed=embed)
+        if y == "pfp":
+            pfp = user.avatar_url
+            embed = discord.Embed(title="Profile Foto Test", description="profile: ", type="rich", color=696969)
+            embed.set_image(url=pfp)
+            await message.channel.send(embed=embed)
+        if y == "katıl":
+            if user.voice is not None:
+                kanal = message.author.voice.channel
+                print(str(kanal) + "'a katılınıyor")
+                voice = await kanal.connect()
+            if user.voice is None:
+                await message.channel.send("Bir Ses Kanalında Değilsin... Lütfen Tekrar Dene")
+        if y == "çık:":
+            kanal = self.user.voice.channel
+            await kanal.disconnect()
+        if y == "mi?":
+            if self.voice_clients[0] is not None:
+                self.voice_clients[0].play(discord.FFmpegPCMAudio("test.mp3"))
+                await message.reply(f"{self.voice_clients[0]} dasın")
+                print(f"{self.voice_clients[0]} dasın")
+            else:
+                await message.reply("Ses Kanalında Değilsin")
+        
+        if y == "söyle":
+            if masaj_uzunluk > 1:
+                await message.channel.send(masaj[1])
+            else:
+                await message.reply("Ne söyleyeyim?")
 
         if message.content.startswith("oluştur"):
             print("oluştur")
