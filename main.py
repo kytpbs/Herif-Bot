@@ -98,13 +98,17 @@ class MyClient(discord.Client):
   async def on_message_delete(self, message):
     if message.author == self.user:
       return
+    async for entry in client.get_guild(758318315151294575).audit_logs(
+        action=discord.AuditLogAction.message_delete):
+      print(f'{entry.user} banned {entry.target}')
+      who_deleted = entry.user
 
-    embed = discord.Embed(title="Mesaj silindi.",
-                          description="Silinen Kanal: " +
-                          str(message.channel) + "\n Silen Kişi: " +
-                          str(message.author) + "\n Silinen Mesaj: " +
-                          str(message.content),
-                          color=696969)
+    embed = discord.Embed(
+      title="Mesaj silindi.",
+      description="Silinen Kanal: " + str(message.channel) +
+      "\n Gönderen Kişi: " + str(message.author) + "\n Silen Kişi: " +
+      str(who_deleted) + "\n Silinen Mesaj: " + str(message.content),
+      color=696969)
     channel = discord.utils.get(client.get_all_channels(), name='boss-silinen')
 
     #image: (message.attachments[0].url)
@@ -192,7 +196,7 @@ class MyClient(discord.Client):
       await kanal.disconnect()
     if y == "rastgele katıl":
       kanallar = guild.voice_channels
-      kanal = kanallar[randint(1,11)]
+      kanal = kanallar[randint(1, 11)]
       kanal.connect()
     if y == "mi?":
       if self.voice_clients[0] is not None:
@@ -323,6 +327,7 @@ class MyClient(discord.Client):
           await member.edit(deafen=True)
       else:
         await message.reply("Kişi Anlaşılamadı lütfen tekrar deneyin")
+
 
 keep_alive()
 client = MyClient(intents=intents)
