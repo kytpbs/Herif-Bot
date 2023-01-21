@@ -115,6 +115,8 @@ class MyClient(discord.Client):
     #print(image)
     #embed.set_image(url=image)
     await channel.send(embed=embed)
+    embed2 = message.embeds
+    await channel.send(embed=embed2)
 
   async def on_message(self, message):
     x = message.content
