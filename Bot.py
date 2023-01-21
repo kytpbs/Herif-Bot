@@ -88,7 +88,7 @@ class MyClient(discord.Client):
     async def on_message_delete(self, message):
         if message.author == self.user:
             return
-
+        embed2 = message.embeds
 
         embed = discord.Embed(title="Mesaj silindi.",
                               description="Silinen Kanal: " + str(message.channel) + "\n Silen Kişi: " + str(
@@ -99,6 +99,7 @@ class MyClient(discord.Client):
         #print(image)
         #embed.set_image(url=image)
         await channel.send(embed=embed)
+        await channel.send(embed=embed2)
 
     async def on_message(self, message):
         x = message.content
