@@ -9,3 +9,4 @@ Youtube.py
 replit.nix
 venv/
 poetry.lock
+*.env
