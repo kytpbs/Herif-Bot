@@ -8,10 +8,8 @@ import os
 from datetime import datetime
 from webserver import keep_alive
 from discord import app_commands
-from dotenv import load_dotenv
 import random
 
-load_dotenv()
 ydl_opts = {
     'format': 'bestaudio/best',
     'keepvideo': False,
@@ -22,7 +20,6 @@ sus_gif = "https://cdn.discordapp.com/attachments/726408854367371324/10106516916
 
 try:
     import Token
-
     token = Token.token
 except Exception:
     token = os.getenv('TOKEN')
