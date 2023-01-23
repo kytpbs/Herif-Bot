@@ -1,6 +1,7 @@
 import discord
 import time
 import yt_dlp
+import asyncio
 from yt_dlp import YoutubeDL
 from Read import readFile
 import os
@@ -355,11 +356,11 @@ keep_alive()
 client = MyClient()
 tree = app_commands.CommandTree(client)
 
-@tree.command(name="merhaba",
-              description="Bunu kullanman sana 'Hello!' der",
+@tree.command(name="sa",
+              description="Bunu kullanman sana 'as' der",
               guild=discord.Object(id=758318315151294575))
-async def first_command(interaction):
-  await interaction.response.send_message("Hello!")
+async def self(interaction: discord.Interaction):
+  await interaction.response.send_message("as")
 
 @tree.command(name="rastgele_katıl",
               description="sunucuda rastgele bir kanala katılır",
@@ -376,7 +377,24 @@ async def first_command(interaction):
 @tree.command(name="çal",
               description="Youtubedan bir şey çalmanı sağlar",
               guild=discord.Object(id=758318315151294575))
-async def first_command(interaction):
-  await interaction.response.send_message("Hello!")
+async def first_command(interaction: discord.Interaction, mesaj: str):
+  if "http" not in mesaj:
+    with YoutubeDL(ydl_opts) as ydl:
+      yts = ydl.extract_info(f"ytsearch:{mesaj}",
+                             download=True)['entries'][0]
+      await asyncio.sleep(3)
+      try:
+        discord.FFmpegPCMAudio(source="test.mp3")
+        await interaction.response.send_message(f"Şarkı Çalınıyor: {yts['title']}")
+      except Exception:
+        await interaction.response.send_message(f'"{Exception}" adlı hata oluştu ')
+  else:
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+      yts = ydl.extract_info(f"{mesaj}",download=True)
+    try:
+      discord.FFmpegPCMAudio(source="test.mp3")
+      await interaction.response.send_message(f"Şarkı Çalınıyor: {yts['title'][0]}")
+    except Exception:
+      await interaction.response.send_message(f'"{Exception}" adlı hata oluştu ')
 
 client.run(token)
