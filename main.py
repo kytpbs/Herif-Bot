@@ -6,6 +6,7 @@ from Read import readFile
 import os
 from datetime import datetime
 from webserver import keep_alive
+from discord import app_commands
 import random
 
 ydl_opts = {
@@ -28,6 +29,7 @@ class MyClient(discord.Client):
 
   async def on_ready(self):
     print('Logged on as', self.user)
+    await tree.sync(guild=discord.Object(id=758318315151294575))
 
   async def on_member_join(self, member):
     print(member, "Katıldı! ")
@@ -198,8 +200,8 @@ class MyClient(discord.Client):
       await kanal.disconnect()
     if y == "rastgele katıl":
       kanallar = guild.voice_channels
-      kanal = kanallar[randint(1, 11)]
-      kanal.connect()
+      kanal = kanallar[random.randint(1, 11)]
+      await kanal.connect()
     if y == "mi?":
       if self.voice_clients[0] is not None:
         self.voice_clients[0].play(discord.FFmpegPCMAudio("test.mp3"))
@@ -259,7 +261,7 @@ class MyClient(discord.Client):
           yts = ydl.extract_info(f"ytsearch:{mesaj}",
                                  download=True)['entries'][0]
           await message.reply(f"Şarkı Çalınıyor: {yts['title']}")
-          discord.FFmpegPCMAudio("test.mp3")
+          discord.FFmpegPCMAudio(source="test.mp3")
           print(mesaj)
       else:
         print("http var")
@@ -330,7 +332,21 @@ class MyClient(discord.Client):
       else:
         await message.reply("Kişi Anlaşılamadı lütfen tekrar deneyin")
 
+    if message.content.startswith("spam"):
+      for _ in range(10):
+        await message.reply(x.split(" ")[1])
+
 
 keep_alive()
 client = MyClient(intents=intents)
+tree = app_commands.CommandTree(client)
+
+
+@tree.command(name="commandname",
+              description="My first application Command",
+              guild=discord.Object(id=12417128931))
+async def first_command(interaction):
+  await interaction.response.send_message("Hello!")
+
+
 client.run(os.getenv('TOKEN'))
