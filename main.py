@@ -363,7 +363,7 @@ async def self(interaction: discord.Interaction):
     await interaction.response.send_message("as")
 
 
-@tree.command(name="Katıl", description="Kanala katılmamı sağlar", guild=discord.Object(id=758318315151294575))
+@tree.command(name="katıl", description="Kanala katılmamı sağlar", guild=discord.Object(id=758318315151294575))
 async def Katıl(interaction: discord.Interaction):
     kanal = interaction.user.voice.channel
     await kanal.connect()
@@ -406,7 +406,7 @@ async def cal(interaction: discord.Interaction, mesaj: str):
         pass
     self = interaction.client
     voices = self.voice_clients
-    if voices is not None:
+    if voices[0] is not None:
         voice = voices[0]
     else:
         vc = interaction.user.voice.channel
