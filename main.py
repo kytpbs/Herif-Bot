@@ -7,8 +7,9 @@ import os
 from datetime import datetime
 from webserver import keep_alive
 from discord import app_commands
+from dotenv import load_dotenv
 import random
-
+load_dotenv()
 ydl_opts = {
   'format': 'bestaudio/best',
   'keepvideo': False,
@@ -17,6 +18,11 @@ ydl_opts = {
 
 sus_gif = "https://cdn.discordapp.com/attachments/726408854367371324/1010651691600838799/among-us-twerk.gif"
 
+try:
+  import Token
+  token = Token.token
+except Exception:
+  token = os.getenv('TOKEN')
 costom1 = readFile("Costom1.txt")
 costom2 = readFile("Costom2.txt")
 intents = discord.Intents.all()
@@ -26,10 +32,17 @@ deleted_messsages_channel = 991442142679552131
 
 
 class MyClient(discord.Client):
+  def __init__(self):
+    super().__init__(intents=discord.Intents.all())
+    self.synced = False
 
   async def on_ready(self):
+    await self.wait_until_ready()
+    if not self.synced:
+      await tree.sync(guild=discord.Object(id=758318315151294575))
+      self.synced = True
     print('Logged on as', self.user)
-    await tree.sync(guild=discord.Object(id=758318315151294575))
+
 
   async def on_member_join(self, member):
     print(member, "Katıldı! ")
@@ -117,8 +130,9 @@ class MyClient(discord.Client):
     #print(image)
     #embed.set_image(url=image)
     await channel.send(embed=embed)
-    embed2 = message.embeds
-    await channel.send(embed=embed2)
+    if message.embeds is not None:
+      embed2 = message.embeds
+      await channel.send(embed=embed2)
 
   async def on_message(self, message):
     x = message.content
@@ -338,15 +352,31 @@ class MyClient(discord.Client):
 
 
 keep_alive()
-client = MyClient(intents=intents)
+client = MyClient()
 tree = app_commands.CommandTree(client)
 
-
-@tree.command(name="commandname",
-              description="My first application Command",
-              guild=discord.Object(id=12417128931))
+@tree.command(name="merhaba",
+              description="Bunu kullanman sana 'Hello!' der",
+              guild=discord.Object(id=758318315151294575))
 async def first_command(interaction):
   await interaction.response.send_message("Hello!")
 
+@tree.command(name="rastgele_katıl",
+              description="sunucuda rastgele bir kanala katılır",
+              guild=discord.Object(id=758318315151294575))
+async def first_command(interaction):
+  try:
+    kanallar = interaction.guild.voice_channels
+    kanal = kanallar[random.randint(1, 11)]
+    await kanal.connect()
+    await interaction.response.send_message(f'"{kanal}" adlı kanala katıldım!')
+  except Exception:
+    await interaction.response.send_message(f'"{Exception}" hatası oluştu')
 
-client.run(os.getenv('TOKEN'))
+@tree.command(name="çal",
+              description="Youtubedan bir şey çalmanı sağlar",
+              guild=discord.Object(id=758318315151294575))
+async def first_command(interaction):
+  await interaction.response.send_message("Hello!")
+
+client.run(token)
