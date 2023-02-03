@@ -406,9 +406,9 @@ async def cal(interaction: discord.Interaction, mesaj: str):
         pass
     self = interaction.client
     voices = self.voice_clients
-    if voices[0] is not None:
+    try:
         voice = voices[0]
-    else:
+    except Exception:
         vc = interaction.user.voice.channel
         voice = await vc.connect()
     if "http" not in mesaj:
