@@ -416,6 +416,7 @@ async def cal(interaction: discord.Interaction, mesaj: str):
             yts = ydl.extract_info(f"ytsearch:{mesaj}",
                                    download=True)['entries'][0]
             try:
+                await asyncio.sleep(1)
                 voice.play(discord.FFmpegPCMAudio(source="test.mp3"))
                 await interaction.followup.send(f"Şarkı Çalınıyor: {yts['title']}")
             except Exception:
