@@ -28,7 +28,7 @@ costom2 = readFile("Costom2.txt")
 intents = discord.Intents.all()
 intents.members = True
 intents.voice_states = True
-deleted_messsages_channel = 991442142679552131
+deleted_messages_channel = 991442142679552131
 
 
 class MyClient(discord.Client):
@@ -39,7 +39,7 @@ class MyClient(discord.Client):
     async def on_ready(self):
         await self.wait_until_ready()
         if not self.synced:
-            await tree.sync(guild=discord.Object(id=758318315151294575))
+            await tree.sync()
             self.synced = True
         print('Logged on as', self.user)
 
@@ -114,7 +114,7 @@ class MyClient(discord.Client):
             return
         async for entry in client.get_guild(758318315151294575).audit_logs(
                 action=discord.AuditLogAction.message_delete):
-            print(f'{entry.user} banned {entry.target}')
+            print(f'{entry.user} deleted {entry.target}')
             who_deleted = entry.user
 
         embed = discord.Embed(
@@ -357,21 +357,19 @@ tree = app_commands.CommandTree(client)
 
 
 @tree.command(name="sa",
-              description="Bunu kullanman sana 'as' der",
-              guild=discord.Object(id=758318315151294575))
+              description="Bunu kullanman sana 'as' der")
 async def self(interaction: discord.Interaction):
     await interaction.response.send_message("as")
 
 
-@tree.command(name="katıl", description="Kanala katılmamı sağlar", guild=discord.Object(id=758318315151294575))
+@tree.command(name="katıl", description="Kanala katılmamı sağlar")
 async def Katıl(interaction: discord.Interaction):
     kanal = interaction.user.voice.channel
     await kanal.connect()
 
 
 @tree.command(name="rastgele_katıl",
-              description="sunucuda rastgele bir kanala katılır",
-              guild=discord.Object(id=758318315151294575))
+              description="sunucuda rastgele bir kanala katılır")
 async def first_command(interaction):
     try:
         kanallar = interaction.guild.voice_channels
@@ -382,22 +380,31 @@ async def first_command(interaction):
         await interaction.response.send_message(f'"{Exception}" hatası oluştu')
 
 
-@tree.command(name="çık",
-              description="ses kanalından çıkar", guild=discord.Object(id=758318315151294575))
+@tree.command(name="dur", description="Sesi durdurur")
+async def dur(interaction: discord.Interaction):
+    self = interaction.client
+    try:
+        voice = self.voice_clients[0]
+        await voice.stop()
+        interaction.response.send_message(f"Durduruldu!")
+    except Exception:
+        interaction.response.send_message(f"{Exception} hatasında varıldı, lüfen tekrar dene")
+
+
+@tree.command(name="çık", description="Ses Kanalından çıkar")
 async def dur(interaction: discord.Interaction):
     self = interaction.client
     voices = self.voice_clients
     if voices is not None:
         voice = voices[0]
-        await voice.disconnect()
+        await voice.disconnect(force=False)
         await interaction.response.send_message(f'{voice.channel} adlı kanaldan çıktım!')
     else:
         await interaction.response.send_message(f'Kanalda değilim galiba...')
 
 
 @tree.command(name="çal",
-              description="Youtubedan bir şey çalmanı sağlar",
-              guild=discord.Object(id=758318315151294575))
+              description="Youtubedan bir şey çalmanı sağlar",)
 async def cal(interaction: discord.Interaction, mesaj: str):
     await interaction.response.defer(ephemeral=True)
     try:
@@ -429,6 +436,11 @@ async def cal(interaction: discord.Interaction, mesaj: str):
             await interaction.followup.send(f"Şarkı Çalınıyor: {yts['title'][0]}")
         except Exception:
             await interaction.followup.send(f'"{Exception}" adlı hata oluştu ')
+
+
+@tree.command(name="neden", description="tüm sunucularda çalışması için test")
+async def neden(interaction):
+    await interaction.response.send_message("Kaplumbağa neden")
 
 
 client.run(token)
