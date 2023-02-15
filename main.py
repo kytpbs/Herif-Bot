@@ -2,6 +2,7 @@ import discord
 import time
 import yt_dlp
 import asyncio
+import requests
 from yt_dlp import YoutubeDL
 from Read import readFile
 import os
@@ -20,6 +21,7 @@ sus_gif = "https://cdn.discordapp.com/attachments/726408854367371324/10106516916
 
 try:
     import Token
+
     token = Token.token
 except Exception:
     token = os.getenv('TOKEN')
@@ -363,9 +365,14 @@ async def self(interaction: discord.Interaction):
 
 
 @tree.command(name="katıl", description="Kanala katılmamı sağlar")
-async def Katıl(interaction: discord.Interaction):
-    kanal = interaction.user.voice.channel
-    await kanal.connect()
+async def katil(interaction: discord.Interaction):
+    if interaction.user.voice is not None:
+        kanal = interaction.user.voice.channel
+        await kanal.connect()
+        await interaction.response.send_message(f"{kanal} adlı sesli sohbete katıldım!")
+    else:
+        await interaction.response.defer(ephemeral=True)
+        await interaction.followup.send(f"Galiba bir Sesli sohbet kanalında değilsin.")
 
 
 @tree.command(name="rastgele_katıl",
@@ -382,13 +389,16 @@ async def first_command(interaction):
 
 @tree.command(name="dur", description="Sesi durdurur")
 async def dur(interaction: discord.Interaction):
-    self = interaction.client
-    try:
-        voice = self.voice_clients[0]
-        await voice.stop()
-        interaction.response.send_message(f"Durduruldu!")
-    except Exception:
-        interaction.response.send_message(f"{Exception} hatasında varıldı, lüfen tekrar dene")
+    voices = interaction.client.voice_clients
+    for i in voices:
+        if i.channel == interaction.user.voice.channel:
+            voice = i
+            voice.stop()
+            await interaction.response.send_message(f"{voice.channel} kanaılnda ses durduruldu")
+            break
+    else:
+        await interaction.response.defer(ephemeral=True)
+        await interaction.followup.send("Ses kanalı bulmada bir hata oluştu")
 
 
 @tree.command(name="çık", description="Ses Kanalından çıkar")
@@ -404,20 +414,31 @@ async def dur(interaction: discord.Interaction):
 
 
 @tree.command(name="çal",
-              description="Youtubedan bir şey çalmanı sağlar",)
+              description="Youtubedan bir şey çalmanı sağlar")
 async def cal(interaction: discord.Interaction, mesaj: str):
-    await interaction.response.defer(ephemeral=True)
-    try:
+    if os.path.exists("test.mp3"):
         os.remove("test.mp3")
+    else:
+        print("File not found")
+        pass
+    voices = interaction.client.voice_clients
+    for i in voices:
+        if i.channel == interaction.user.voice.channel:
+            voice = i
+            break
+    else:
+        if interaction.user.voice is not None:
+            vc = interaction.user.voice.channel
+            voice = await vc.connect()
+        else:
+            await interaction.response.defer(ephemeral=True)
+            await interaction.followup.send("Galiba Ses Kanalında Değilsin.")
+            return
+    try:
+        await voice.play()
     except Exception:
         pass
-    self = interaction.client
-    voices = self.voice_clients
-    try:
-        voice = voices[0]
-    except Exception:
-        vc = interaction.user.voice.channel
-        voice = await vc.connect()
+    await interaction.response.defer(ephemeral=False)
     if "http" not in mesaj:
         with YoutubeDL(ydl_opts) as ydl:
             yts = ydl.extract_info(f"ytsearch:{mesaj}",
@@ -432,6 +453,7 @@ async def cal(interaction: discord.Interaction, mesaj: str):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             yts = ydl.extract_info(f"{mesaj}", download=True)
         try:
+            await asyncio.sleep(1)
             voice.play(discord.FFmpegPCMAudio(source="test.mp3"))
             await interaction.followup.send(f"Şarkı Çalınıyor: {yts['title'][0]}")
         except Exception:
@@ -442,5 +464,22 @@ async def cal(interaction: discord.Interaction, mesaj: str):
 async def neden(interaction):
     await interaction.response.send_message("Kaplumbağa neden")
 
+
+@tree.command(name="sustur", description="birini susturmanı sağlar")
+async def sustur(interaction: discord.Interaction, user: discord.User):
+    await user.edit(mute=True)
+    await interaction.response.send_message(f"{user} susturuldu")
+
+
+@tree.command(name="susturma_kaldır", description="Susturulmuş birinin susturmasını kapatmanı sağlar")
+async def sustur(interaction: discord.Interaction, kullanıcı: discord.User):
+    try:
+        await kullanıcı.edit(mute=True)
+    except Exception:
+        if Exception == discord.app_commands.errors.CommandInvokeError:
+            await interaction.response.send_message(f"{kullanıcı} adlı kişi bir ses kanalında değil", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"Bilinmeyen bir hata oluştu lütfen tekrar dene", ephemeral=True)
+    await interaction.response.send_message(f"{kullanıcı} adlı kişinin sesi açıldı")
 
 client.run(token)
