@@ -474,7 +474,8 @@ async def sustur(interaction: discord.Interaction, user: discord.User):
 @tree.command(name="susturma_kaldır", description="Susturulmuş birinin susturmasını kapatmanı sağlar")
 async def sustur(interaction: discord.Interaction, kullanıcı: discord.User):
     try:
-        await kullanıcı.edit(mute=True)
+        await kullanıcı.edit(mute=False)
+        interaction.response.send_message(f"{kullanıcı} adlı kişi susturuldu")
     except Exception:
         if Exception == discord.app_commands.errors.CommandInvokeError:
             await interaction.response.send_message(f"{kullanıcı} adlı kişi bir ses kanalında değil", ephemeral=True)
