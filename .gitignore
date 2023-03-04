@@ -8,3 +8,4 @@ Youtube.py
 .replit
 replit.nix
 venv/
+*.env
