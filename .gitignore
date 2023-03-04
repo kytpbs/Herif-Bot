@@ -8,4 +8,5 @@ Youtube.py
 .replit
 replit.nix
 venv/
+poetry.lock
 *.env
