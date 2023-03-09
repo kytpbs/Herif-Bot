@@ -1,15 +1,15 @@
-import discord
 import time
-import yt_dlp
 import asyncio
-import requests
-from yt_dlp import YoutubeDL
-from Read import readFile
+import discord
+import yt_dlp
 import os
+import random
+import openai
+from Read import readFile
 from datetime import datetime
 from webserver import keep_alive
 from discord import app_commands
-import random
+from yt_dlp import YoutubeDL
 
 ydl_opts = {
     'format': 'bestaudio/best',
@@ -21,10 +21,14 @@ sus_gif = "https://cdn.discordapp.com/attachments/726408854367371324/10106516916
 
 try:
     import Token
-
     token = Token.token
 except Exception:
     token = os.getenv('TOKEN')
+try:
+    import OpenAiKey
+    openai.api_key = OpenAiKey.token
+except Exception:
+    openai.api_key = os.getenv('OpenAiKey')
 costom1 = readFile("Costom1.txt")
 costom2 = readFile("Costom2.txt")
 intents = discord.Intents.all()
@@ -147,7 +151,7 @@ class MyClient(discord.Client):
         if message.author == self.user:
             return
 
-        if Time == "09:11:":
+        if Time == "06:11:": #9:11 for +3 timezone
             await channel.send("🛫🛬💥🏢🏢")
         masaj = y.split(" ")
         masaj_uzunluk = len(masaj)
@@ -366,13 +370,23 @@ async def self(interaction: discord.Interaction):
 
 @tree.command(name="katıl", description="Kanala katılmamı sağlar")
 async def katil(interaction: discord.Interaction):
-    if interaction.user.voice is not None:
-        kanal = interaction.user.voice.channel
-        await kanal.connect()
-        await interaction.response.send_message(f"{kanal} adlı sesli sohbete katıldım!")
+    voices = interaction.client.voice_clients
+    for i in voices:
+        if i.channel == interaction.user.voice.channel:
+            voice = i
+            print("Same channel as user")
+            await interaction.response.send_message("Zaten seninle aynı ses kanalındayım.", ephemeral=True)
+            break
+        if i.channel.guild == interaction.user.voice.channel.guild:
+            await i.disconnect()
     else:
-        await interaction.response.defer(ephemeral=True)
-        await interaction.followup.send(f"Galiba bir Sesli sohbet kanalında değilsin.")
+        if interaction.user.voice is not None:
+            vc = interaction.user.voice.channel
+            voice = await vc.connect()
+            await interaction.response.send_message(f"{vc.channel} adlı ses kanalına katıldım", ephemeral=False)
+        else:
+            await interaction.response.send_message("Galiba Ses Kanalında Değilsin.", ephemeral=True)
+            return
 
 
 @tree.command(name="rastgele_katıl",
@@ -414,7 +428,7 @@ async def dur(interaction: discord.Interaction):
 
 
 @tree.command(name="çal",
-              description="Youtubedan bir şey çalmanı sağlar")
+              description="Youtubedan bir şey çalmanı sağlar (server gereksinimi yok)")
 async def cal(interaction: discord.Interaction, mesaj: str):
     if os.path.exists("test.mp3"):
         os.remove("test.mp3")
@@ -425,14 +439,15 @@ async def cal(interaction: discord.Interaction, mesaj: str):
     for i in voices:
         if i.channel == interaction.user.voice.channel:
             voice = i
+            print("Same channel as user")
             break
+            await i.disconnect()
     else:
         if interaction.user.voice is not None:
             vc = interaction.user.voice.channel
             voice = await vc.connect()
         else:
-            await interaction.response.defer(ephemeral=True)
-            await interaction.followup.send("Galiba Ses Kanalında Değilsin.")
+            await interaction.response.send_message("Galiba Ses Kanalında Değilsin.", ephemeral=True)
             return
     try:
         await voice.play()
@@ -472,7 +487,7 @@ async def sustur(interaction: discord.Interaction, user: discord.User):
 
 
 @tree.command(name="susturma_kaldır", description="Susturulmuş birinin susturmasını kapatmanı sağlar")
-async def sustur(interaction: discord.Interaction, kullanıcı: discord.User):
+async def sustur_ac(interaction: discord.Interaction, kullanıcı: discord.User):
     try:
         await kullanıcı.edit(mute=False)
         interaction.response.send_message(f"{kullanıcı} adlı kişi susturuldu")
@@ -482,5 +497,19 @@ async def sustur(interaction: discord.Interaction, kullanıcı: discord.User):
         else:
             await interaction.response.send_message(f"Bilinmeyen bir hata oluştu lütfen tekrar dene", ephemeral=True)
     await interaction.response.send_message(f"{kullanıcı} adlı kişinin sesi açıldı")
+
+@tree.command(name="chatgpt",description="Botun gerçekten zeki olmasını sağlar")
+async def chatgpt(interaction: discord.Interaction,mesaj: str):
+    await interaction.response.defer(ephemeral=False)
+    print("ChatGPT istek:", mesaj)
+    response2 = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": mesaj},
+    ]
+    )
+    cevap = response2['choices'][0]['message']['content']
+    await interaction.followup.send(f"ChatGPT'den gelen cevap: \n {cevap}")
 
 client.run(token)
