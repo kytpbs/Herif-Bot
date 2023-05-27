@@ -12,9 +12,7 @@ from discord import app_commands
 from yt_dlp import YoutubeDL
 
 ydl_opts = {
-  'format': 'bestaudio/best',
-  'keepvideo': False,
-  'outtmpl': 'test.mp3',
+  'format': 'bestaudio',
 }
 
 sus_gif = "https://cdn.discordapp.com/attachments/726408854367371324/1010651691600838799/among-us-twerk.gif"
@@ -53,13 +51,15 @@ class MyClient(discord.Client):
   async def on_member_join(self, member):
     print(member, "Katıldı! ")
     channel = client.get_channel(929329231173910578)
-    await channel.send("Salak bir kişi daha servera katıldı... Hoşgelmedin " +
+    if isinstance(channel, discord.TextChannel):
+      await channel.send("Salak bir kişi daha servera katıldı... Hoşgelmedin " +
                        member)
 
   async def on_member_remove(self, member):
     channel = client.get_channel(929329231173910578)
-    await channel.send("Zeki bir insan valrlığı olan " + "**" + str(member) +
-                       "**" + " Bu saçmalık serverdan ayrıldı")
+    if isinstance(channel, discord.TextChannel):
+      await channel.send("Zeki bir insan valrlığı olan " + "**" + str(member) +
+                        "**" + " Bu saçmalık serverdan ayrıldı")
     print(member, "Ayrıldı! ")
 
   async def on_guild_channel_create(self, channel):
@@ -84,12 +84,16 @@ class MyClient(discord.Client):
                                    color=696969)
     channel = discord.utils.get(client.get_all_channels(), name='boss-silinen')
     profile_change.set_image(url=pfp)
-    await channel.send(embed=profile_change)
+    if isinstance(channel, discord.TextChannel):
+      await channel.send(embed=profile_change)
 
   async def on_member_ban(self, guild, user):
     channel = discord.utils.get(client.get_all_channels(), name='〖💬〗genel')
-    await channel.send("Ah Lan " + str(user) + " Adlı kişi " + str(guild) +
-                       " serverından banlandı ")
+    if isinstance(channel, discord.TextChannel):
+      await channel.send("Ah Lan " + str(user) + " Adlı kişi " + str(guild) +
+                        " serverından banlandı ")
+    else:
+      print("There were an error while sending a message to the channel")
     print("Ah Lan", str(user), "Adlı kişi", str(guild), "serverından banlandı")
 
   async def on_member_unban(self, guild, user):
@@ -100,9 +104,10 @@ class MyClient(discord.Client):
     except Exception:
       print("There were an error while sending a DM")
       channel = discord.utils.get(client.get_all_channels(), name='〖💬〗genel')
-      await channel.send(
-        f"{user} bu mal gibi {guild} sunucusuna geri girebilme hakkı kazanmılştır"
-      )
+      if isinstance(channel, discord.TextChannel):
+        await channel.send(
+          f"{user} bu mal gibi {guild} sunucusuna geri girebilme hakkı kazanmılştır"
+        )
       pass
 
   async def on_message_edit(self, before, message):
@@ -114,7 +119,8 @@ class MyClient(discord.Client):
       f"Eski Mesaj: {before.content} \n Yeni Mesaj: {message.content}",
       color=696969)
     channel = discord.utils.get(client.get_all_channels(), name='boss-silinen')
-    await channel.send(embed=embed)
+    if isinstance(channel, discord.TextChannel):
+        await channel.send(embed=embed)
 
   async def on_message_delete(self, message):
     if message.author == self.user:
@@ -135,10 +141,12 @@ class MyClient(discord.Client):
     # image: (message.attachments[0].url)
     # print(image)
     # embed.set_image(url=image)
-    await channel.send(embed=embed)
+    if isinstance(channel, discord.TextChannel):
+      await channel.send(embed=embed)
     if message.embeds is not None:
       embed2 = message.embeds
-      await channel.send(embed=embed2)
+      if isinstance(channel, discord.TextChannel):
+        await channel.send(embed=embed2)
 
   async def on_message(self, message):
     x = message.content
@@ -216,19 +224,14 @@ class MyClient(discord.Client):
         await message.channel.send(
           "Bir Ses Kanalında Değilsin... Lütfen Tekrar Dene")
     if y == "çık:":
-      kanal = self.user.voice.channel
-      await kanal.disconnect()
+      if self.voice_clients and self.voice_clients[0]:
+        kanal = self.voice_clients[0].channel
+        if isinstance(kanal, discord.VoiceProtocol):
+          await kanal.disconnect(force=False)
     if y == "rastgele katıl":
       kanallar = guild.voice_channels
       kanal = kanallar[random.randint(1, 11)]
       await kanal.connect()
-    if y == "mi?":
-      if self.voice_clients[0] is not None:
-        self.voice_clients[0].play(discord.FFmpegPCMAudio("test.mp3"))
-        await message.reply(f"{self.voice_clients[0]} dasın")
-        print(f"{self.voice_clients[0]} dasın")
-      else:
-        await message.reply("Ses Kanalında Değilsin")
 
     if y == "söyle":
       if masaj_uzunluk > 1:
@@ -264,41 +267,11 @@ class MyClient(discord.Client):
       await message.reply(embed=embed)
       print(f"1: {costom1} 2: {costom2}")
 
-    if message.content.startswith("çal"):
-      voice = self.voice_clients
-      try:
-        os.remove("test.mp3")
-      except Exception:
-        print("Dosya Yok")
-
-      if len(x.split(",")) < 2:
-        await message.reply('Virgül (",") Koyduğunuza Emin olun')
-        return
-      else:
-        mesaj = x.split(",")[1]
-      if "http" not in message.content:
-        print("http yok")
-        with YoutubeDL(ydl_opts) as ydl:
-          yts = ydl.extract_info(f"ytsearch:{mesaj}",
-                                 download=True)['entries'][0]
-          await message.reply(f"Şarkı Çalınıyor: {yts['title']}")
-          voice.play(discord.FFmpegPCMAudio(source="test.mp3"))
-          print(mesaj)
-      else:
-        print("http var")
-        mesaj = mesaj
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-          await message.reply("İndiriliyor Lütfen Bekleyin...")
-          ydl.download([mesaj])
-          await message.reply("İndirildi")
-          await message.reply("Şarkı Çalınıyor")
-          voice.play(discord.FFmpegPCMAudio("test.mp3"))
-
     if message.content.lower() == "dur":
       print("Dur Dendi")
       try:
         voice = self.voice_clients[0]
-        await voice.stop()
+        await voice.stop() # type: ignore
         print("Durduruldu")
       except Exception:
         await message.reply("VC de değilim")
@@ -306,7 +279,7 @@ class MyClient(discord.Client):
     if message.content.lower() == "devam":
       try:
         voice = self.voice_clients[0]
-        await voice.resume()
+        await voice.resume() # type: ignore
         print("Tekrar Devam Edildi")
       except Exception:
         await message.reply("Ses Kanalında Değilsin")
@@ -371,6 +344,17 @@ async def self(interaction: discord.Interaction):
 @tree.command(name="katıl", description="Kanala katılmamı sağlar")
 async def katil(interaction: discord.Interaction):
   voices = interaction.client.voice_clients
+
+  if not isinstance(interaction.user, discord.Member):  
+    await interaction.response.send_message("Bir Hata oluştu, lütfen tekrar deneyin",
+                                            ephemeral=True)
+    return
+  
+  if interaction.user.voice is None:
+    await interaction.response.send_message("Ses Kanalında Değilsin.",
+                                            ephemeral=True)
+    return
+
   for i in voices:
     if i.channel == interaction.user.voice.channel:
       voice = i
@@ -378,19 +362,16 @@ async def katil(interaction: discord.Interaction):
       await interaction.response.send_message(
         "Zaten seninle aynı ses kanalındayım.", ephemeral=True)
       break
-    if i.channel.guild == interaction.user.voice.channel.guild:
-      await i.disconnect()
+  
   else:
-    if interaction.user.voice is not None:
-      vc = interaction.user.voice.channel
-      voice = await vc.connect()
-      await interaction.response.send_message(
-        f"{vc.channel} adlı ses kanalına katıldım", ephemeral=False)
-    else:
-      await interaction.response.send_message("Galiba Ses Kanalında Değilsin.",
+    if interaction.user.voice.channel is None:
+      await interaction.response.send_message("Ses Kanalında Değilsin.",
                                               ephemeral=True)
       return
-
+    vc = interaction.user.voice.channel
+    voice = await vc.connect()
+    await interaction.response.send_message(
+      f"{vc} adlı ses kanalına katıldım", ephemeral=False) 
 
 @tree.command(name="rastgele_katıl",
               description="sunucuda rastgele bir kanala katılır")
@@ -410,7 +391,7 @@ async def dur(interaction: discord.Interaction):
   for i in voices:
     if i.channel == interaction.user.voice.channel:
       voice = i
-      voice.stop()
+      voice.pause()
       await interaction.response.send_message(
         f"{voice.channel} kanaılnda ses durduruldu")
       break
@@ -418,9 +399,29 @@ async def dur(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     await interaction.followup.send("Ses kanalı bulmada bir hata oluştu")
 
+@tree.command(name="devam_et", description="Sesi devam ettirir")
+async def devam_et(interaction: discord.Interaction):
+  if not isinstance(interaction.user, discord.Member):
+    await interaction.response.send_message("Bir Hata oluştu, lütfen tekrar deneyin",
+                                            ephemeral=True)
+    return
+  if interaction.user.voice is None:
+    await interaction.response.send_message("Ses Kanalında Değilsin.",
+                                            ephemeral=True)
+    return
+  voices = interaction.client.voice_clients
+  for i in voices:
+    if i.channel == interaction.user.voice.channel:
+      voice = i
+      voice.resume()
+      await interaction.response.send_message(
+        f"{voice.channel} kanaılnda ses devam ettiriliyor")
+      break
+  else:
+    await interaction.response.send_message("Ses kanalı bulmada bir hata oluştu")
 
 @tree.command(name="çık", description="Ses Kanalından çıkar")
-async def dur(interaction: discord.Interaction):
+async def cik(interaction: discord.Interaction):
   self = interaction.client
   voices = self.voice_clients
   if voices is not None:
@@ -436,50 +437,45 @@ async def dur(interaction: discord.Interaction):
   name="çal",
   description="Youtubedan bir şey çalmanı sağlar (server gereksinimi yok)")
 async def cal(interaction: discord.Interaction, mesaj: str):
-  if os.path.exists("test.mp3"):
-    os.remove("test.mp3")
-  else:
-    print("File not found")
-    pass
   voices = interaction.client.voice_clients
+
+  if not isinstance(interaction.user, discord.Member):  
+    await interaction.response.send_message("Sesli kanala katılırken Bir Hata oluştu, lütfen tekrar deneyin",
+                                            ephemeral=True)
+    return
+  
+  if interaction.user.voice is None:
+    await interaction.response.send_message("Ses Kanalında Değilsin.",
+                                            ephemeral=True)
+    return
+
   for i in voices:
     if i.channel == interaction.user.voice.channel:
       voice = i
-      print("Same channel as user")
       break
-      await i.disconnect()
+  
   else:
-    if interaction.user.voice is not None:
-      vc = interaction.user.voice.channel
-      voice = await vc.connect()
-    else:
-      await interaction.response.send_message("Galiba Ses Kanalında Değilsin.",
+    if interaction.user.voice.channel is None:
+      await interaction.response.send_message("Ses Kanalında Değilsin.",
                                               ephemeral=True)
       return
-  try:
-    await voice.play()
-  except Exception:
-    pass
+    vc = interaction.user.voice.channel
+    voice = await vc.connect()
   await interaction.response.defer(ephemeral=False)
-  if "http" not in mesaj:
-    with YoutubeDL(ydl_opts) as ydl:
-      yts = ydl.extract_info(f"ytsearch:{mesaj}", download=True)['entries'][0]
-      try:
-        await asyncio.sleep(1)
-        voice.play(discord.FFmpegPCMAudio(source="test.mp3"))
-        await interaction.followup.send(f"Şarkı Çalınıyor: {yts['title']}")
-      except Exception:
-        await interaction.followup.send(f'"{Exception}" adlı hata oluştu ')
-  else:
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-      yts = ydl.extract_info(f"{mesaj}", download=True)
-    try:
-      await asyncio.sleep(1)
-      voice.play(discord.FFmpegPCMAudio(source="test.mp3"))
-      await interaction.followup.send(f"Şarkı Çalınıyor: {yts['title'][0]}")
-    except Exception:
-      await interaction.followup.send(f'"{Exception}" adlı hata oluştu ')
-
+  # Get the search query from the message content
+  # Create a YouTube downloader object
+  with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+      # Search for the video on YouTube
+      video_info = ydl.extract_info(f"ytsearch:{mesaj}", download=False)['entries'][0]
+      # Get the audio stream from the video
+      audio_url = video_info['url']
+      # Create an audio source from the audio stream
+      audio_source = discord.FFmpegPCMAudio(audio_url)
+  # Play the audio in the voice channel
+  voice.play(audio_source)
+  await interaction.followup.send(f"{video_info['title']} adlı şarkı çalınıyor", ephemeral=False)
+  
+    
 
 @tree.command(name="neden", description="tüm sunucularda çalışması için test")
 async def neden(interaction):
@@ -488,6 +484,9 @@ async def neden(interaction):
 
 @tree.command(name="sustur", description="birini susturmanı sağlar")
 async def sustur(interaction: discord.Interaction, user: discord.User):
+  if not isinstance(user, discord.Member):
+    await interaction.response.send_message("Kullanıcıyı bulamadım lütfen tekrar dene", ephemeral=True)
+    return
   await user.edit(mute=True)
   await interaction.response.send_message(f"{user} susturuldu")
 
@@ -495,18 +494,15 @@ async def sustur(interaction: discord.Interaction, user: discord.User):
 @tree.command(name="susturma_kaldır",
               description="Susturulmuş birinin susturmasını kapatmanı sağlar")
 async def sustur_ac(interaction: discord.Interaction, kullanıcı: discord.User):
-  try:
+  if not isinstance(kullanıcı, discord.Member):
+    await interaction.response.send_message("Kullanıcıyı bulamadım lütfen tekrar dene", ephemeral=True)
+    return
+  if kullanıcı.voice is None:
     await kullanıcı.edit(mute=False)
-    interaction.response.send_message(f"{kullanıcı} adlı kişi susturuldu")
-  except Exception:
-    if Exception == discord.app_commands.errors.CommandInvokeError:
-      await interaction.response.send_message(
-        f"{kullanıcı} adlı kişi bir ses kanalında değil", ephemeral=True)
-    else:
-      await interaction.response.send_message(
-        f"Bilinmeyen bir hata oluştu lütfen tekrar dene", ephemeral=True)
-  await interaction.response.send_message(
-    f"{kullanıcı} adlı kişinin sesi açıldı")
+    await interaction.response.send_message(f"{kullanıcı} adlı kişinin sesi açıldı")
+  else:
+    await interaction.response.send_message(
+      f"{kullanıcı} adlı kişi ses kanalında değil")
 
 
 @tree.command(name="chatgpt",
@@ -531,37 +527,11 @@ async def chatgpt(interaction: discord.Interaction, mesaj: str):
         "content": mesaj
       },
     ])
-  file = open("gpt-id.txt", "w")
-  file.write(response2['id'])
-  file.close()
-  print(response2)
-  cevap = response2['choices'][0]['message']['content']
-  await interaction.followup.send(f"ChatGPT'den gelen cevap: \n {cevap}")
+  cevap = response2['choices'][0]['message']['content'] # type: ignore
+  embed = discord.Embed(title="ChatGPT", description=cevap)
+  await interaction.followup.send(f"ChatGPT'den gelen cevap: \n ", embed=embed)
 
-
-@tree.command(name="gpt-cevapla",
-              description="Botun gerçekten zeki olmasını sağlar")
-async def chatgpt(interaction: discord.Interaction, mesaj: str):
-  await interaction.response.defer(ephemeral=False)
-  print("ChatGPT istek:", mesaj)
-  file = open("gpt-id.txt", "r")
-  gpt_id = file.read()
-  file.close()
-  response2 = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo",
-    id=gpt_id,
-    messages=[
-      {
-        "role": "system",
-        "content": "You are a general assistant named 'Herif bot'"
-      },
-      {
-        "role": "user",
-        "content": mesaj
-      },
-    ])
-  cevap = response2['choices'][0]['message']['content']
-  await interaction.followup.send(f"ChatGPT'den gelen cevap: \n {cevap}")
-
-
-client.run(token)
+if token is not None:
+  client.run(token)
+else:
+  raise Exception("Token bulunamadı")
