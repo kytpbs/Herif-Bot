@@ -1,3 +1,4 @@
+import json
 import time
 import asyncio
 import discord
@@ -5,17 +6,19 @@ import yt_dlp
 import os
 import random
 import openai
-from Read import readFile
+from Read import readFile, jsonRead
 from datetime import datetime
 from webserver import keep_alive
 from discord import app_commands
+from discord.ext import tasks, commands
 from yt_dlp import YoutubeDL
 
 ydl_opts = {
   'format': 'bestaudio',
 }
 
-sus_gif = "https://cdn.discordapp.com/attachments/726408854367371324/1010651691600838799/among-us-twerk.gif"
+
+
 
 try:
   import Token
@@ -29,10 +32,17 @@ except Exception:
   openai.api_key = os.getenv('OpenAiKey')
 costom1 = readFile("Costom1.txt")
 costom2 = readFile("Costom2.txt")
+birthdays = jsonRead('birthdays.json')
+print(birthdays)
 intents = discord.Intents.all()
 intents.members = True
 intents.voice_states = True
+sus_gif = "https://cdn.discordapp.com/attachments/726408854367371324/1010651691600838799/among-us-twerk.gif"
 deleted_messages_channel = 991442142679552131
+kytpbs_tag = "<@474944711358939170>"
+cyan = 0x00FFFF
+cya = 696969
+
 
 
 class MyClient(discord.Client):
@@ -43,6 +53,7 @@ class MyClient(discord.Client):
 
   async def on_ready(self):
     await self.wait_until_ready()
+    check_birthdays.start()
     if not self.synced:
       await tree.sync()
       self.synced = True
@@ -81,7 +92,7 @@ class MyClient(discord.Client):
     profile_change = discord.Embed(title="Biri profilini deiğiştirdi amk.",
                                    description="Eski Hali: " + str(before) +
                                    "\n Yeni Hali: " + str(after),
-                                   color=696969)
+                                   color=cya)
     channel = discord.utils.get(client.get_all_channels(), name='boss-silinen')
     profile_change.set_image(url=pfp)
     if isinstance(channel, discord.TextChannel):
@@ -113,40 +124,56 @@ class MyClient(discord.Client):
   async def on_message_edit(self, before, message):
     if message.author == self.user:
       return
-    embed = discord.Embed(
-      title="Mesaj Düzenlendi",
-      description=f"Kanal: {message.channel} \n Kişi: {message.author} \n"
-      f"Eski Mesaj: {before.content} \n Yeni Mesaj: {message.content}",
-      color=696969)
-    channel = discord.utils.get(client.get_all_channels(), name='boss-silinen')
+    if before.content == message.content:
+      return
+    
+    embed = discord.Embed(title="Mesaj Düzenlendi", description="Biri Mesajını Düzenlendi",color=0x00FFFF)
+    
+    embed.add_field(name="Kanal: ", value=message.channel, inline=False)
+    embed.add_field(name="Kişi: ", value=message.author, inline=False)
+    embed.add_field(name="Eski Mesaj: ", value=before.content, inline=False)
+    embed.add_field(name="Yeni Mesaj: ", value=message.content, inline=False)
+
+    channel = self.get_channel(deleted_messages_channel)
     if isinstance(channel, discord.TextChannel):
         await channel.send(embed=embed)
 
   async def on_message_delete(self, message):
     if message.author == self.user:
       return
-    async for entry in client.get_guild(758318315151294575).audit_logs(
-        action=discord.AuditLogAction.message_delete):
+    
+    channel = self.get_channel(deleted_messages_channel)
+    
+    async for entry in message.guild.audit_logs(
+      action=discord.AuditLogAction.message_delete):
       print(f'{entry.user} deleted {entry.target}')
       who_deleted = entry.user
-
+      break
+    else:
+      who_deleted = None
+    
     embed = discord.Embed(
-      title="Mesaj silindi.",
-      description="Silinen Kanal: " + str(message.channel) +
-      "\n Gönderen Kişi: " + str(message.author) + "\n Silen Kişi: " +
-      str(who_deleted) + "\n Silinen Mesaj: " + str(message.content),
-      color=696969)
-    channel = discord.utils.get(client.get_all_channels(), name='boss-silinen')
+      title="Mesaj silindi.", description="Silinen Mesaj: " + str(message.content),
+      color=cya)
+    embed.add_field(name="Silinen kanal:", value=message.channel, inline=False)
+    embed.add_field(name="Gönderen kişi:", value=message.author, inline=False)
+    if who_deleted is not None:
+      embed.add_field(name="Silen kişi:", value=who_deleted, inline=False)
 
-    # image: (message.attachments[0].url)
-    # print(image)
-    # embed.set_image(url=image)
+    if message.attachments is not None:
+      if (len(message.attachments) == 1):
+        embed.set_image(url=message.attachments[0].url)
+      else:
+        for attachment in message.attachments:
+          embed.add_field(name=f"Eklentiler:", value=attachment.url, inline=False)
+    if message.embeds is not None:
+      embeds2 = message.embeds
+    else:
+      embeds2 = []
     if isinstance(channel, discord.TextChannel):
       await channel.send(embed=embed)
-    if message.embeds is not None:
-      embed2 = message.embeds
-      if isinstance(channel, discord.TextChannel):
-        await channel.send(embed=embed2)
+      for embed in embeds2:
+        await channel.send(embed=embed)
 
   async def on_message(self, message):
     x = message.content
@@ -154,9 +181,12 @@ class MyClient(discord.Client):
     user = message.author
     channel = message.channel
     guild = message.guild
-    print(str(channel) + " " + str(user) + ": " + x)
-    now = datetime.now()
-    Time = now.strftime("%H:%M:")
+    data = str(guild) + " " + str(channel) + " " + str(user) + ": " + x
+    print(data)
+    with open("log.txt", "a") as f:
+      f.write(str(data) + "\n")
+
+    Time = datetime.now().strftime("%H:%M:")
     if message.author == self.user:
       return
 
@@ -172,7 +202,7 @@ class MyClient(discord.Client):
         f'Ebenin amında. Ben sonu "{son_mesaj}" diye biten bütün mesajlara cevap vermek için kodlanmış bi botum. Seni kırdıysam özür dilerim.'
       )
 
-    for i in range(len(costom1)):
+    for i in range(1, len(costom1)):
       if x == costom1[i]:
         await message.reply(costom2[i])
 
@@ -202,7 +232,7 @@ class MyClient(discord.Client):
       discord.FFmpegPCMAudio("test.mp3")
     if y == "array":
       print(f"Array: {costom1}")
-      embed = discord.Embed(title="Arraydekiler:", colour=696969)
+      embed = discord.Embed(title="Arraydekiler:", colour=cya)
       for i in range(len(costom1)):
         embed.add_field(name="Yazılan:", value=costom1[i], inline=True)
         embed.add_field(name="Cevaplar:", value=costom2[i] + "\n", inline=True)
@@ -212,7 +242,7 @@ class MyClient(discord.Client):
       embed = discord.Embed(title="Profile Foto Test",
                             description="profile: ",
                             type="rich",
-                            color=696969)
+                            color=cya)
       embed.set_image(url=pfp)
       await message.channel.send(embed=embed)
     if y == "katıl":
@@ -259,30 +289,13 @@ class MyClient(discord.Client):
       embed = discord.Embed(title="Yeni özel komut oluşturuldu:",
                             description="Test: ",
                             type="rich",
-                            color=696969)
+                            color=cya)
       embed.add_field(name="Söylenen: ", value=x.split(" ")[1], inline=True)
       embed.add_field(name="Botun cevabı: ",
                       value=x.split(" ")[2],
                       inline=True)
       await message.reply(embed=embed)
       print(f"1: {costom1} 2: {costom2}")
-
-    if message.content.lower() == "dur":
-      print("Dur Dendi")
-      try:
-        voice = self.voice_clients[0]
-        await voice.stop() # type: ignore
-        print("Durduruldu")
-      except Exception:
-        await message.reply("VC de değilim")
-
-    if message.content.lower() == "devam":
-      try:
-        voice = self.voice_clients[0]
-        await voice.resume() # type: ignore
-        print("Tekrar Devam Edildi")
-      except Exception:
-        await message.reply("Ses Kanalında Değilsin")
 
     if message.content.startswith("sustur"):
       if str(message.author) == "braven#8675":
@@ -329,12 +342,44 @@ class MyClient(discord.Client):
     if message.content.startswith("spam"):
       for _ in range(10):
         await message.reply(x.split(" ")[1])
-
+      
 
 keep_alive()
 client = MyClient()
+general_chat = client.get_channel(1056268428308135976)
 tree = app_commands.CommandTree(client)
 
+@tasks.loop(hours=24)
+async def check_birthdays():
+    channel = client.get_channel(847070819766108181)
+    if not isinstance(channel, discord.TextChannel):
+      raise RuntimeError("Kanal Bulunamadı")
+    today = datetime.now()
+    usuable_dict = get_user_and_date(birthdays)
+
+    for user, birthday in usuable_dict.items():
+      if birthday.month == today.month and birthday.day == today.day:
+          age = today.year - birthday.year
+          print(user)
+          await channel.send(f"{user.mention} {age} yaşına girdi. Doğum günün kutlu olsun!")
+
+def get_user_and_date(dict):
+  new_dict = {}
+  for user_id, date in dict.items():
+    user = client.get_user(int(user_id))
+    if user is None:
+      continue
+    dates = date.split("-")
+    if len(dates) != 3:
+      print("Hatalı tarih formatı, lütfen düzeltin!")
+      continue
+    date_obj = datetime(int(dates[0]), int(dates[1]), int(dates[2]))
+    print(f"{user} : {date_obj}")
+    if date_obj is None:
+      continue
+    new_dict[user] = date_obj
+
+  return new_dict
 
 @tree.command(name="sa", description="Bunu kullanman sana 'as' der")
 async def self(interaction: discord.Interaction):
@@ -378,31 +423,39 @@ async def katil(interaction: discord.Interaction):
 async def first_command(interaction):
   try:
     kanallar = interaction.guild.voice_channels
-    kanal = kanallar[random.randint(1, 11)]
+    kanal = kanallar[random.randint(1, len(kanallar) - 1)]
     await kanal.connect()
     await interaction.response.send_message(f'"{kanal}" adlı kanala katıldım!')
   except Exception:
-    await interaction.response.send_message(f'"{Exception}" hatası oluştu')
+    await interaction.response.send_message('bilinmeyen bir hata oluştu!', ephemeral=True)
 
 
 @tree.command(name="dur", description="Sesi durdurur")
 async def dur(interaction: discord.Interaction):
   voices = interaction.client.voice_clients
+  if not isinstance(interaction.user, discord.Member):
+    await interaction.response.send_message("Bir hata oluştu, lütfen tekrar deneyin",
+                                            ephemeral=True)
+    return
+  if interaction.user.voice is None:
+    await interaction.response.send_message("Ses Kanalında Değilsin.",
+                                            ephemeral=True)
+    return
   for i in voices:
     if i.channel == interaction.user.voice.channel:
       voice = i
-      voice.pause()
-      await interaction.response.send_message(
-        f"{voice.channel} kanaılnda ses durduruldu")
-      break
+      if isinstance(voice, discord.VoiceClient):
+        voice.pause()
+        await interaction.response.send_message(
+          f"{voice.channel} kanaılnda ses durduruldu", ephemeral=False)
+        break
   else:
-    await interaction.response.defer(ephemeral=True)
-    await interaction.followup.send("Ses kanalı bulmada bir hata oluştu")
+    await interaction.response.send_message("Bot ile aynı ses kanalında değilsin!", ephemeral=True)
 
 @tree.command(name="devam_et", description="Sesi devam ettirir")
 async def devam_et(interaction: discord.Interaction):
   if not isinstance(interaction.user, discord.Member):
-    await interaction.response.send_message("Bir Hata oluştu, lütfen tekrar deneyin",
+    await interaction.response.send_message("Bir kullanıcı değilsin hatası, lütfen tekrar deneyin",
                                             ephemeral=True)
     return
   if interaction.user.voice is None:
@@ -410,15 +463,23 @@ async def devam_et(interaction: discord.Interaction):
                                             ephemeral=True)
     return
   voices = interaction.client.voice_clients
-  for i in voices:
-    if i.channel == interaction.user.voice.channel:
-      voice = i
-      voice.resume()
-      await interaction.response.send_message(
-        f"{voice.channel} kanaılnda ses devam ettiriliyor")
-      break
+  for voice in voices:
+    if voice.channel == interaction.user.voice.channel:
+      if isinstance(voice, discord.VoiceClient):
+        if voice.is_paused():
+          await interaction.response.send_message(
+          f"{voice.channel} kanaılnda ses devam ettiriliyor")
+          voice.resume()
+          break
+        else:
+          await interaction.response.send_message("Durdurulmuş bir ses yok!", ephemeral=True)
+          break
+      else:
+        await interaction.response.send_message("Bot sesi bulunamadı hatası, lütfen tekrar dene!", ephemeral=True)
+        break
+        
   else:
-    await interaction.response.send_message("Ses kanalı bulmada bir hata oluştu")
+    await interaction.response.send_message("Bot ile aynı ses kanaılnda değilsin!", ephemeral=True)
 
 @tree.command(name="çık", description="Ses Kanalından çıkar")
 async def cik(interaction: discord.Interaction):
@@ -459,21 +520,33 @@ async def cal(interaction: discord.Interaction, mesaj: str):
       await interaction.response.send_message("Ses Kanalında Değilsin.",
                                               ephemeral=True)
       return
-    vc = interaction.user.voice.channel
-    voice = await vc.connect()
-  await interaction.response.defer(ephemeral=False)
+    VoiceChannel = interaction.user.voice.channel
+    voice = await VoiceChannel.connect()
+  
+  if not isinstance(voice, discord.VoiceClient):
+    await interaction.response.send_message("Sese katılım hatası, lütfen tekrar deneyin",
+                                            ephemeral=True)
+    return
+  
+  await interaction.response.defer()
   # Get the search query from the message content
   # Create a YouTube downloader object
   with yt_dlp.YoutubeDL(ydl_opts) as ydl:
       # Search for the video on YouTube
-      video_info = ydl.extract_info(f"ytsearch:{mesaj}", download=False)['entries'][0]
+      yds = ydl.extract_info(f"ytsearch:{mesaj}", download=False)
+      if yds is None:
+        await interaction.followup.send("Youtube da bulunamadı lütfen tekrar dene!", ephemeral=True)
+        return
+      video_info = yds['entries'][0]
       # Get the audio stream from the video
       audio_url = video_info['url']
       # Create an audio source from the audio stream
       audio_source = discord.FFmpegPCMAudio(audio_url)
   # Play the audio in the voice channel
   voice.play(audio_source)
-  await interaction.followup.send(f"{video_info['title']} adlı şarkı çalınıyor", ephemeral=False)
+  embed = discord.Embed(title="Şarkı Çalınıyor", description=f"{video_info['title']}", color=0x00ff00)
+  embed.set_thumbnail(url=video_info['thumbnail'])
+  await interaction.followup.send(embed=embed, ephemeral=False)
   
     
 
@@ -516,20 +589,34 @@ async def chatgpt(interaction: discord.Interaction, mesaj: str):
     messages=[
       {
         "role": "system",
-        "content": "You are a general assistant named 'Herif bot'"
-      },
-      {
-        "role": "user",
-        "content": "Yusuf is gay"
+        "content": "You are a general assistant named 'Herif bot' and you are in a discord server"
       },
       {
         "role": "user",
         "content": mesaj
       },
     ])
-  cevap = response2['choices'][0]['message']['content'] # type: ignore
+  if not isinstance(response2, dict):
+    await interaction.followup.send(f"ChatGPT'den cevap alınamadı, lütfen tekrar dene. çalışmaz ise {kytpbs_tag} a bildir", ephemeral=True)
+    return
+  cevap = response2['choices'][0]['message']['content']
   embed = discord.Embed(title="ChatGPT", description=cevap)
   await interaction.followup.send(f"ChatGPT'den gelen cevap: \n ", embed=embed)
+
+@tree.command(name="dogumgunu_ekle", description="Doğumgününü eklemeni sağlar")
+async def dogumgunu(interaction: discord.Interaction, kullanıcı: discord.User, gun: str, ay: str, yıl: str):
+  id = kullanıcı.id
+  date = datetime(int(yıl), int(ay), int(gun))
+  date_string = str(date.year) + "-" + str(date.month) + "-" + str(date.day)
+  if id in birthdays and birthdays[id] is not None:
+    await interaction.response.send_message(f"{kullanıcı.mention} adlı kişinin doğum günü zaten '{birthdays[id]}' olarak ayarlanmış " +
+                                            f"Değiştirmek için lütfen {kytpbs_tag}'ya ulaşın", ephemeral=True)
+    return
+  birthdays[id] = date_string
+  with open("birthdays.json", "w") as f:
+    json.dump(birthdays, f)
+  await interaction.response.send_message(f"{kullanıcı.mention} adlı kişinin doğum günü '{date_string}' olarak ayarlandı")
+
 
 if token is not None:
   client.run(token)
