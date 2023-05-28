@@ -351,7 +351,7 @@ tree = app_commands.CommandTree(client)
 
 @tasks.loop(hours=24)
 async def check_birthdays():
-    channel = client.get_channel(847070819766108181)
+    channel = client.get_channel(1056268428308135976)
     if not isinstance(channel, discord.TextChannel):
       raise RuntimeError("Kanal Bulunamadı")
     today = datetime.now()
