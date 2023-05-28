@@ -17,7 +17,7 @@ ydl_opts = {
   'format': 'bestaudio',
 }
 
-
+print(':)') # Hello. I found your project randomly. I just want to learn hot to use GitHub. How to do requests and do something with other people projects. Good Luck :3
 
 
 try:
