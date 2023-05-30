@@ -176,23 +176,38 @@ class MyClient(discord.Client):
         await channel.send(embed=embed)
 
   async def on_message(self, message):
-    x = message.content
-    y = x.lower()
+    Message_Content = message.content
+    Message_Content_Lower = Message_Content.lower()
     user = message.author
     channel = message.channel
     guild = message.guild
-    data = str(guild) + " " + str(channel) + " " + str(user) + ": " + x
+
+
+    Time = datetime.now().strftime("%H:%M:")
+    if guild is None:
+      guild = "DM"
+    data = f'{str(Time)} {guild} {channel} {user.name}: {Message_Content}'
     print(data)
     with open("log.txt", "a") as f:
       f.write(str(data) + "\n")
 
-    Time = datetime.now().strftime("%H:%M:")
     if message.author == self.user:
       return
+    
+    
+
+    if isinstance(channel, discord.DMChannel):
+      #is response to a message
+      if message.reference is not None:
+        print(f"Message is a response to a message that is {message.reference.resolved.content}")
+        await message.reply(gpt(Message_Content, "You are in a DM channel", message.reference.resolved.content))
+      else:
+        await message.reply(gpt(Message_Content, "You are in a DM channel"))
 
     if Time == "06:11:":  #9:11 for +3 timezone
       await channel.send("🛫🛬💥🏢🏢")
-    masaj = y.split(" ")
+    
+    masaj = Message_Content_Lower.split(" ")
     masaj_uzunluk = len(masaj)
     son_mesaj = masaj[masaj_uzunluk - 1]
     if son_mesaj == ("nerde") or son_mesaj == ("nerede") or son_mesaj == (
@@ -203,41 +218,46 @@ class MyClient(discord.Client):
       )
 
     for i in range(1, len(costom1)):
-      if x == costom1[i]:
+      if Message_Content == costom1[i]:
         await message.reply(costom2[i])
 
-    if 'tuna' in y:
+    if 'tuna' in Message_Content_Lower:
       await message.channel.send("<@725318387198197861>")  # tuna tag
 
-    if 'kaya' in y:
+    if 'kaya' in Message_Content_Lower:
       await message.reply("Zeka Kübü")
       await message.channel.send("<@474944711358939170>")  # kaya tag
 
-    if 'neden' in y:
+    if 'neden' in Message_Content_Lower:
       await message.reply("Kaplumağa Deden :turtle: ")
 
-    if y == "ping":
+    if Message_Content_Lower == "ping":
       await message.reply("pong")
-    if y == "31":
+    
+    if Message_Content_Lower == "31":
       await message.channel.send("sjsjsj")
-    if y == "A":
-      await message.reply(x)
-    if y == "dm":
+   
+    if Message_Content_Lower == "A":
+      await message.reply(Message_Content)
+    
+    if Message_Content_Lower == "dm":
       await user.send("PING")
-    if y == "sus":
+    
+    if Message_Content_Lower == "sus":
       await message.reply(sus_gif)
-    if y == "cu":
+    
+    if Message_Content_Lower == "cu":
       await message.reply("Ananın AMCUUUU")
-    if y == "mp3":
-      discord.FFmpegPCMAudio("test.mp3")
-    if y == "array":
+
+    if Message_Content_Lower == "array":
       print(f"Array: {costom1}")
       embed = discord.Embed(title="Arraydekiler:", colour=cya)
       for i in range(len(costom1)):
         embed.add_field(name="Yazılan:", value=costom1[i], inline=True)
         embed.add_field(name="Cevaplar:", value=costom2[i] + "\n", inline=True)
       await message.reply(embed=embed)
-    if y == "pfp":
+    
+    if Message_Content_Lower == "pfp":
       pfp = user.avatar_url
       embed = discord.Embed(title="Profile Foto Test",
                             description="profile: ",
@@ -245,7 +265,8 @@ class MyClient(discord.Client):
                             color=cya)
       embed.set_image(url=pfp)
       await message.channel.send(embed=embed)
-    if y == "katıl":
+    
+    if Message_Content_Lower == "katıl":
       if user.voice is not None:
         kanal = message.author.voice.channel
         print(str(kanal) + "'a katılınıyor")
@@ -253,17 +274,29 @@ class MyClient(discord.Client):
       if user.voice is None:
         await message.channel.send(
           "Bir Ses Kanalında Değilsin... Lütfen Tekrar Dene")
-    if y == "çık:":
+    
+    if Message_Content_Lower == "çık:":
       if self.voice_clients and self.voice_clients[0]:
         kanal = self.voice_clients[0].channel
         if isinstance(kanal, discord.VoiceProtocol):
           await kanal.disconnect(force=False)
-    if y == "rastgele katıl":
+    
+    if Message_Content_Lower == "rastgele katıl":
+      if guild is 'DM':
+        await message.reply("Bu komut sadece sunucularda çalışır")
+        return
+      if not isinstance(guild , discord.Guild):
+        await message.reply("Bir hata oluştu, lütfen tekrar deneyin")
+        return
+      if (len(guild.voice_channels) == 0):
+        await message.reply("Sunucuda ses kanalı bulunamadı")
+        return
+      
       kanallar = guild.voice_channels
       kanal = kanallar[random.randint(1, 11)]
       await kanal.connect()
 
-    if y == "söyle":
+    if Message_Content_Lower == "söyle":
       if masaj_uzunluk > 1:
         await message.channel.send(masaj[1])
       else:
@@ -271,17 +304,17 @@ class MyClient(discord.Client):
 
     if message.content.startswith("oluştur"):
       print("oluştur")
-      if len(x.split(" ")) < 2:
+      if len(Message_Content.split(" ")) < 2:
         await message.reply("İlk Mesajı girmediniz.")
         return
-      if len(x.split(" ")) < 3:
+      if len(Message_Content.split(" ")) < 3:
         await message.reply("Son Mesajı Girmediniz")
         return
       print(f"uzunluklar: 1: {len(costom1)} 2:")
-      x1 = ['', x.split(" ")[1]]
-      x2 = ['', x.split(" ")[2]]
-      costom1.append(x.split(" ")[1])
-      costom2.append(x.split(" ")[2])
+      x1 = ['', Message_Content.split(" ")[1]]
+      x2 = ['', Message_Content.split(" ")[2]]
+      costom1.append(Message_Content.split(" ")[1])
+      costom2.append(Message_Content.split(" ")[2])
       with open('Costom1.txt', 'a') as f:
         f.writelines('\n'.join(x1))
       with open('Costom2.txt', 'a') as l:
@@ -290,9 +323,9 @@ class MyClient(discord.Client):
                             description="Test: ",
                             type="rich",
                             color=cya)
-      embed.add_field(name="Söylenen: ", value=x.split(" ")[1], inline=True)
+      embed.add_field(name="Söylenen: ", value=Message_Content.split(" ")[1], inline=True)
       embed.add_field(name="Botun cevabı: ",
-                      value=x.split(" ")[2],
+                      value=Message_Content.split(" ")[2],
                       inline=True)
       await message.reply(embed=embed)
       print(f"1: {costom1} 2: {costom2}")
@@ -341,7 +374,7 @@ class MyClient(discord.Client):
 
     if message.content.startswith("spam"):
       for _ in range(10):
-        await message.reply(x.split(" ")[1])
+        await message.reply(Message_Content.split(" ")[1])
       
 
 keep_alive()
@@ -583,23 +616,10 @@ async def sustur_ac(interaction: discord.Interaction, kullanıcı: discord.User)
 async def chatgpt(interaction: discord.Interaction, mesaj: str):
   await interaction.response.defer(ephemeral=False)
   print("ChatGPT istek:", mesaj)
-  response2 = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo",
-    temperature=1,
-    messages=[
-      {
-        "role": "system",
-        "content": "You are a general assistant named 'Herif bot' and you are in a discord server"
-      },
-      {
-        "role": "user",
-        "content": mesaj
-      },
-    ])
-  if not isinstance(response2, dict):
-    await interaction.followup.send(f"ChatGPT'den cevap alınamadı, lütfen tekrar dene. çalışmaz ise {kytpbs_tag} a bildir", ephemeral=True)
+  cevap = gpt(mesaj)
+  if cevap == -1:
+    await interaction.followup.send("Bir hata oluştu, lütfen tekrar deneyin", ephemeral=True)
     return
-  cevap = response2['choices'][0]['message']['content']
   embed = discord.Embed(title="ChatGPT", description=cevap)
   await interaction.followup.send(f"ChatGPT'den gelen cevap: \n ", embed=embed)
 
@@ -617,6 +637,44 @@ async def dogumgunu(interaction: discord.Interaction, kullanıcı: discord.User,
     json.dump(birthdays, f)
   await interaction.response.send_message(f"{kullanıcı.mention} adlı kişinin doğum günü '{date_string}' olarak ayarlandı")
 
+# content: extra content to add
+def gpt(mesaj, content="", refrence=None):
+  if refrence is None:
+    messages=[
+    {
+      "role": "system",
+      "content": "You are a general assistant named 'Herif bot' and you are in a discord server" + f"{content}"
+    },
+    {
+      "role": "user",
+      "content": mesaj
+    },
+    ]
+  else:
+    messages=[
+    {
+      "role": "system",
+      "content": "You are a general assistant named 'Herif bot' and you are in a discord server" + f"{content}"
+    },
+    {
+      "role": "user",
+      "content": mesaj
+    },
+    {
+      "role": "system",
+      "content": refrence
+    },
+    ]
+  response2 = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    temperature=1,
+    messages=messages,
+  )
+    
+  if not isinstance(response2, dict):
+    return -1;
+  cevap = response2['choices'][0]['message']['content']
+  return cevap
 
 if token is not None:
   client.run(token)
