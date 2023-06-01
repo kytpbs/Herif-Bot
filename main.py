@@ -1,16 +1,15 @@
 import json
 import time
-import asyncio
 import discord
 import yt_dlp
 import os
 import random
 import openai
 from Read import readFile, jsonRead
-from datetime import datetime
+from datetime import datetime, time, timezone, tzinfo
 from webserver import keep_alive
 from discord import app_commands
-from discord.ext import tasks, commands
+from discord.ext import tasks
 from yt_dlp import YoutubeDL
 
 ydl_opts = {
@@ -30,15 +29,18 @@ try:
   openai.api_key = OpenAiKey.token
 except Exception:
   openai.api_key = os.getenv('OpenAiKey')
+
 costom1 = readFile("Costom1.txt")
 costom2 = readFile("Costom2.txt")
 birthdays = jsonRead('birthdays.json')
 print(birthdays)
+
 intents = discord.Intents.all()
 intents.members = True
 intents.voice_states = True
 sus_gif = "https://cdn.discordapp.com/attachments/726408854367371324/1010651691600838799/among-us-twerk.gif"
-deleted_messages_channel = 991442142679552131
+deleted_messages_channel_id = 991442142679552131
+general_chat_id = 1056268428308135976
 kytpbs_tag = "<@474944711358939170>"
 cyan = 0x00FFFF
 cya = 696969
@@ -61,10 +63,9 @@ class MyClient(discord.Client):
 
   async def on_member_join(self, member):
     print(member, "Katıldı! ")
-    channel = client.get_channel(929329231173910578)
-    if isinstance(channel, discord.TextChannel):
-      await channel.send("Salak bir kişi daha servera katıldı... Hoşgelmedin " +
-                       member)
+    general_channel = client.get_channel(general_chat_id)
+    if isinstance(general_channel, discord.TextChannel):
+      await general_channel.send(f"Zeki bir insan valrlığı olan {member.mention} Bu saçmalık {member.guild} serverına katıldı. Hoşgeldin!")
 
   async def on_member_remove(self, member):
     channel = client.get_channel(929329231173910578)
@@ -76,15 +77,12 @@ class MyClient(discord.Client):
   async def on_guild_channel_create(self, channel):
     print("New Channel Created:", channel)
     if str(channel) == "a":
-      await channel.send("Kanal 3 saniye içinde siliniyor")
-      existing_channel = channel
       print("Deleting Channel " + str(channel) + "in 3 seconds")
       await channel.send("Kanal 3 Saniye İçinde Siliniyor")
       for i in range(3):
         await channel.send(str(3 - i))
-        time.sleep(1)
+        time.sleep(1) # type: ignore
       await channel.send("Siliniyor...")
-      await existing_channel.delete()
 
   async def on_user_update(self, before, after):
     pfp = before.avatar_url
@@ -93,7 +91,7 @@ class MyClient(discord.Client):
                                    description="Eski Hali: " + str(before) +
                                    "\n Yeni Hali: " + str(after),
                                    color=cya)
-    channel = discord.utils.get(client.get_all_channels(), name='boss-silinen')
+    channel = self.get_channel(deleted_messages_channel_id)
     profile_change.set_image(url=pfp)
     if isinstance(channel, discord.TextChannel):
       await channel.send(embed=profile_change)
@@ -134,7 +132,7 @@ class MyClient(discord.Client):
     embed.add_field(name="Eski Mesaj: ", value=before.content, inline=False)
     embed.add_field(name="Yeni Mesaj: ", value=message.content, inline=False)
 
-    channel = self.get_channel(deleted_messages_channel)
+    channel = self.get_channel(deleted_messages_channel_id)
     if isinstance(channel, discord.TextChannel):
         await channel.send(embed=embed)
 
@@ -142,7 +140,7 @@ class MyClient(discord.Client):
     if message.author == self.user:
       return
     
-    channel = self.get_channel(deleted_messages_channel)
+    channel = self.get_channel(deleted_messages_channel_id)
     
     async for entry in message.guild.audit_logs(
       action=discord.AuditLogAction.message_delete):
@@ -155,8 +153,10 @@ class MyClient(discord.Client):
     embed = discord.Embed(
       title="Mesaj silindi.", description="Silinen Mesaj: " + str(message.content),
       color=cya)
+    
     embed.add_field(name="Silinen kanal:", value=message.channel, inline=False)
     embed.add_field(name="Gönderen kişi:", value=message.author, inline=False)
+    
     if who_deleted is not None:
       embed.add_field(name="Silen kişi:", value=who_deleted, inline=False)
 
@@ -169,11 +169,9 @@ class MyClient(discord.Client):
     if message.embeds is not None:
       embeds2 = message.embeds
     else:
-      embeds2 = []
-    if isinstance(channel, discord.TextChannel):
-      await channel.send(embed=embed)
-      for embed in embeds2:
-        await channel.send(embed=embed)
+      embeds2 = None
+    if isinstance(channel, discord.TextChannel) and embeds2 is not None:
+      await channel.send(embeds=embeds2)
 
   async def on_message(self, message):
     Message_Content = message.content
@@ -186,10 +184,11 @@ class MyClient(discord.Client):
     Time = datetime.now().strftime("%H:%M:")
     if guild is None:
       guild = "DM"
-    data = f'{str(Time)} {guild} {channel} {user.name}: {Message_Content}'
+    data = f'{str(Time)} {str(guild)} {str(channel)} {str(user.name)}: {str(Message_Content)}'
     print(data)
-    with open("log.txt", "a") as f:
-      f.write(str(data) + "\n")
+    if message.embeds is None:
+      with open("log.txt", "a") as f:
+        f.write(str(data) + "\n")
 
     if message.author == self.user:
       return
@@ -270,7 +269,7 @@ class MyClient(discord.Client):
       if user.voice is not None:
         kanal = message.author.voice.channel
         print(str(kanal) + "'a katılınıyor")
-        voice = await kanal.connect()
+        await kanal.connect()
       if user.voice is None:
         await message.channel.send(
           "Bir Ses Kanalında Değilsin... Lütfen Tekrar Dene")
@@ -282,9 +281,6 @@ class MyClient(discord.Client):
           await kanal.disconnect(force=False)
     
     if Message_Content_Lower == "rastgele katıl":
-      if guild is 'DM':
-        await message.reply("Bu komut sadece sunucularda çalışır")
-        return
       if not isinstance(guild , discord.Guild):
         await message.reply("Bir hata oluştu, lütfen tekrar deneyin")
         return
@@ -379,10 +375,9 @@ class MyClient(discord.Client):
 
 keep_alive()
 client = MyClient()
-general_chat = client.get_channel(1056268428308135976)
 tree = app_commands.CommandTree(client)
 
-@tasks.loop(hours=24)
+@tasks.loop(time= time(hour=6,minute=30, tzinfo=timezone.utc)) #9.30 for +3 timezone
 async def check_birthdays():
     channel = client.get_channel(1056268428308135976)
     if not isinstance(channel, discord.TextChannel):
@@ -404,7 +399,8 @@ def get_user_and_date(dict):
       continue
     dates = date.split("-")
     if len(dates) != 3:
-      print("Hatalı tarih formatı, lütfen düzeltin!")
+      e = ValueError("Hatalı tarih formatı, lütfen düzeltin!")
+      print(e)
       continue
     date_obj = datetime(int(dates[0]), int(dates[1]), int(dates[2]))
     print(f"{user} : {date_obj}")
@@ -527,15 +523,14 @@ async def cik(interaction: discord.Interaction):
     await interaction.response.send_message(f'Kanalda değilim galiba...')
 
 
-@tree.command(
-  name="çal",
+@tree.command(name="çal",
   description="Youtubedan bir şey çalmanı sağlar (server gereksinimi yok)")
 async def cal(interaction: discord.Interaction, mesaj: str):
   voices = interaction.client.voice_clients
 
   if not isinstance(interaction.user, discord.Member):  
-    await interaction.response.send_message("Sesli kanala katılırken Bir Hata oluştu, lütfen tekrar deneyin",
-                                            ephemeral=True)
+    await interaction.response.send_message("Sesli kanala katılırken Bir Hata oluştu, lütfen tekrar deneyin. " +
+                                            "Hata: Kullanıcı bulunamadı", ephemeral=True)
     return
   
   if interaction.user.voice is None:
@@ -580,8 +575,7 @@ async def cal(interaction: discord.Interaction, mesaj: str):
   embed = discord.Embed(title="Şarkı Çalınıyor", description=f"{video_info['title']}", color=0x00ff00)
   embed.set_thumbnail(url=video_info['thumbnail'])
   await interaction.followup.send(embed=embed, ephemeral=False)
-  
-    
+
 
 @tree.command(name="neden", description="tüm sunucularda çalışması için test")
 async def neden(interaction):
@@ -624,7 +618,7 @@ async def chatgpt(interaction: discord.Interaction, mesaj: str):
   await interaction.followup.send(f"ChatGPT'den gelen cevap: \n ", embed=embed)
 
 @tree.command(name="dogumgunu_ekle", description="Doğumgününü eklemeni sağlar")
-async def dogumgunu(interaction: discord.Interaction, kullanıcı: discord.User, gun: str, ay: str, yıl: str):
+async def dogumgunu_ekle(interaction: discord.Interaction, kullanıcı: discord.User, gun: str, ay: str, yıl: str):
   id = kullanıcı.id
   date = datetime(int(yıl), int(ay), int(gun))
   date_string = str(date.year) + "-" + str(date.month) + "-" + str(date.day)
@@ -637,34 +631,63 @@ async def dogumgunu(interaction: discord.Interaction, kullanıcı: discord.User,
     json.dump(birthdays, f)
   await interaction.response.send_message(f"{kullanıcı.mention} adlı kişinin doğum günü '{date_string}' olarak ayarlandı")
 
+@tree.command(name="dogumgunu_sil", description="Doğumgününü silmeni sağlar")
+async def dogumgunu_sil(interaction: discord.Interaction, kullanıcı: discord.User):
+  
+  if not isinstance(interaction.user, discord.Member):
+    await interaction.response.send_message("Bir hata oluştu, lütfen tekrar deneyin",
+                                            ephemeral=True)
+    return
+  
+  if interaction.user != kullanıcı and interaction.user.get_role(763458533819285556) is None:
+    await interaction.response.send_message("Sadece Kendi Doğumgününü Silebilirsin", ephemeral=True)
+    return
+  id = kullanıcı.id
+  if id in birthdays and birthdays[id] is not None:
+    birthdays.pop(id)
+    with open("birthdays.json", "w") as f:
+      json.dump(birthdays, f)
+    await interaction.response.send_message(f"{kullanıcı.mention} adlı kişinin doğum günü silindi")
+  else:
+    await interaction.response.send_message(f"{kullanıcı.mention} adlı kişinin doğum günü zaten kayıtlı değil", ephemeral=True)
+
+@tree.command(name="dogumgunu_goster", description="Kişinin doğumgününü gösterir")
+async def dogumgunu_goster(interaction: discord.Interaction, kullanıcı: discord.User):
+  id = str(kullanıcı.id)
+  print(id)
+  if id in birthdays and birthdays[id] is not None:
+    await interaction.response.send_message(f"{kullanıcı.mention} adlı kişinin doğum günü '{birthdays[id]}'")
+  else:
+    await interaction.response.send_message(f"{kullanıcı.mention} adlı kişinin doğum günü kayıtlı değil", ephemeral=True)
+
+@tree.command(name="dogumgunu_listele", description="Doğumgünlerini listeler")
+async def dogumgunu_listele(interaction: discord.Interaction):
+  if interaction.user.get_role(763458533819285556) is None:
+    await interaction.response.send_message("Bu komutu kullanmak için gerekli iznin yok", ephemeral=True)
+    return
+  embed = discord.Embed(title="Doğumgünleri", description="Doğumgünleri", color=cyan)
+  new_list = get_user_and_date(birthdays)
+  for user, date in new_list.items():
+    embed.add_field(name=f"{user}:", value=f"{date}", inline=False)
+  await interaction.response.send_message(embed=embed)
+
 # content: extra content to add
 def gpt(mesaj, content="", refrence=None):
-  if refrence is None:
-    messages=[
-    {
-      "role": "system",
-      "content": "You are a general assistant named 'Herif bot' and you are in a discord server" + f"{content}"
-    },
-    {
-      "role": "user",
-      "content": mesaj
-    },
-    ]
-  else:
-    messages=[
-    {
-      "role": "system",
-      "content": "You are a general assistant named 'Herif bot' and you are in a discord server" + f"{content}"
-    },
-    {
-      "role": "user",
-      "content": mesaj
-    },
-    {
-      "role": "system",
+  messages=[
+  {
+    "role": "system",
+    "content": "You are a general assistant named 'Herif bot' and you are in a discord server" + f"{content}"
+  },
+  {
+    "role": "user",
+    "content": mesaj
+  },
+  ]
+  if refrence is not None:
+    messages.append({
+      "role": "assistant",
       "content": refrence
-    },
-    ]
+    })
   response2 = openai.ChatCompletion.create(
     model="gpt-3.5-turbo",
     temperature=1,
