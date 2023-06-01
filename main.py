@@ -642,7 +642,7 @@ async def dogumgunu_sil(interaction: discord.Interaction, kullanıcı: discord.U
   if interaction.user != kullanıcı and interaction.user.get_role(763458533819285556) is None:
     await interaction.response.send_message("Sadece Kendi Doğumgününü Silebilirsin", ephemeral=True)
     return
-  id = kullanıcı.id
+  id = str(kullanıcı.id)
   if id in birthdays and birthdays[id] is not None:
     birthdays.pop(id)
     with open("birthdays.json", "w") as f:
