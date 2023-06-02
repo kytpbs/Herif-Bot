@@ -622,11 +622,11 @@ async def dogumgunu_ekle(interaction: discord.Interaction, kullanıcı: discord.
   id = kullanıcı.id
   date = datetime(int(yıl), int(ay), int(gun))
   date_string = str(date.year) + "-" + str(date.month) + "-" + str(date.day)
-  if id in birthdays and birthdays[id] is not None:
-    await interaction.response.send_message(f"{kullanıcı.mention} adlı kişinin doğum günü zaten '{birthdays[id]}' olarak ayarlanmış " +
+  if id in birthdays and birthdays[str(id)] is not None:
+    await interaction.response.send_message(f"{kullanıcı.mention} adlı kişinin doğum günü zaten '{birthdays[str(id)]}' olarak ayarlanmış " +
                                             f"Değiştirmek için lütfen {kytpbs_tag}'ya ulaşın", ephemeral=True)
     return
-  birthdays[id] = date_string
+  birthdays[str(id)] = date_string
   with open("birthdays.json", "w") as f:
     json.dump(birthdays, f)
   await interaction.response.send_message(f"{kullanıcı.mention} adlı kişinin doğum günü '{date_string}' olarak ayarlandı")
@@ -654,7 +654,6 @@ async def dogumgunu_sil(interaction: discord.Interaction, kullanıcı: discord.U
 @tree.command(name="dogumgunu_goster", description="Kişinin doğumgününü gösterir")
 async def dogumgunu_goster(interaction: discord.Interaction, kullanıcı: discord.User):
   id = str(kullanıcı.id)
-  print(id)
   if id in birthdays and birthdays[id] is not None:
     await interaction.response.send_message(f"{kullanıcı.mention} adlı kişinin doğum günü '{birthdays[id]}'")
   else:
