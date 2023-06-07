@@ -7,13 +7,17 @@ import random
 import openai
 from Read import readFile, jsonRead
 from datetime import datetime, time, timezone, tzinfo
-from webserver import keep_alive
 from discord import app_commands
 from discord.ext import tasks
 from yt_dlp import YoutubeDL
 
 ydl_opts = {
   'format': 'bestaudio',
+  'noplaylist': True,
+  'default_search': 'auto',
+  'outtmpl': 'song.mp3',
+  'keepvideo': False,
+  'nooverwrites': False,
 }
 
 
@@ -41,6 +45,7 @@ intents.voice_states = True
 sus_gif = "https://cdn.discordapp.com/attachments/726408854367371324/1010651691600838799/among-us-twerk.gif"
 deleted_messages_channel_id = 991442142679552131
 general_chat_id = 1056268428308135976
+birthday_role_id = 815183230789091328
 kytpbs_tag = "<@474944711358939170>"
 cyan = 0x00FFFF
 cya = 696969
@@ -68,7 +73,7 @@ class MyClient(discord.Client):
       await general_channel.send(f"Zeki bir insan valrlığı olan {member.mention} Bu saçmalık {member.guild} serverına katıldı. Hoşgeldin!")
 
   async def on_member_remove(self, member):
-    channel = client.get_channel(929329231173910578)
+    channel = client.get_channel(general_chat_id)
     if isinstance(channel, discord.TextChannel):
       await channel.send("Zeki bir insan valrlığı olan " + "**" + str(member) +
                         "**" + " Bu saçmalık serverdan ayrıldı")
@@ -97,25 +102,25 @@ class MyClient(discord.Client):
       await channel.send(embed=profile_change)
 
   async def on_member_ban(self, guild, user):
-    channel = discord.utils.get(client.get_all_channels(), name='〖💬〗genel')
+    channel = self.get_channel(general_chat_id)
     if isinstance(channel, discord.TextChannel):
       await channel.send("Ah Lan " + str(user) + " Adlı kişi " + str(guild) +
                         " serverından banlandı ")
-    else:
-      print("There were an error while sending a message to the channel")
-    print("Ah Lan", str(user), "Adlı kişi", str(guild), "serverından banlandı")
+      return
+    raise RuntimeError(f"Kanal Bulunamadı: aranan id: {general_chat_id}")
 
-  async def on_member_unban(self, guild, user):
+  async def on_member_unban(self, guild: discord.Guild, user: discord.User):
     try:
       await user.send("You are finally unbanned from " + str(guild) +
                       " Named server :)")
-      print("sending dm to ..." + user + "Server: " + str(guild))
+      print(f"{user} unbanned from {guild}, sending a DM")
     except Exception:
-      print("There were an error while sending a DM")
-      channel = discord.utils.get(client.get_all_channels(), name='〖💬〗genel')
+      print(f"There were an error while sending a DM about unban to {user} from {guild}")
+      
+      channel = self.get_channel(general_chat_id)
       if isinstance(channel, discord.TextChannel):
         await channel.send(
-          f"{user} bu mal gibi {guild} sunucusuna geri girebilme hakkı kazanmılştır"
+          f"{user.name} bu mal gibi {guild.name} sunucusuna geri girebilme hakkı kazanmılştır"
         )
       pass
 
@@ -187,8 +192,7 @@ class MyClient(discord.Client):
     data = f'{str(Time)} {str(guild)} {str(channel)} {str(user.name)}: {str(Message_Content)}'
     print(data)
     if message.embeds is None:
-      with open("log.txt", "a") as f:
-        f.write(str(data) + "\n")
+      log(str(data))
 
     if message.author == self.user:
       return
@@ -372,26 +376,38 @@ class MyClient(discord.Client):
       for _ in range(10):
         await message.reply(Message_Content.split(" ")[1])
       
-
-keep_alive()
 client = MyClient()
 tree = app_commands.CommandTree(client)
 
 @tasks.loop(time= time(hour=6,minute=30, tzinfo=timezone.utc)) #9.30 for +3 timezone
 async def check_birthdays():
-    channel = client.get_channel(1056268428308135976)
-    if not isinstance(channel, discord.TextChannel):
-      raise RuntimeError("Kanal Bulunamadı")
+    genel = client.get_channel(general_chat_id)
+    rol = client.get_role(birthday_role_id)
     today = datetime.now()
-    usuable_dict = get_user_and_date(birthdays)
+    usuable_dict = get_user_and_date_from_string(birthdays)
+    
+    if not isinstance(rol, discord.Role):
+      raise RuntimeError(f"Rol Bulunamadı aranan id: {birthday_role_id}")
+    if not isinstance(genel, discord.TextChannel):
+      raise RuntimeError(f"Kanal Bulunamadı aranan id: {general_chat_id}")
+    
+    # remove birthday role from members that have it.
+    for member in client.get_all_members():
+      if member.get_role(birthday_role_id) is not None:
+        print(f"{member} adlı kişinin doğum günü rolü kaldırılıyor")
+        await member.remove_roles(rol)
 
     for user, birthday in usuable_dict.items():
       if birthday.month == today.month and birthday.day == today.day:
           age = today.year - birthday.year
-          print(user)
-          await channel.send(f"{user.mention} {age} yaşına girdi. Doğum günün kutlu olsun!")
+          await user.add_roles(rol) # add birthday role to user.
+          await genel.send(f"{user.mention} {age} yaşına girdi. Doğum günün kutlu olsun!")
 
-def get_user_and_date(dict):
+def log(data: str):
+  with open("log.txt", "a") as f:
+    f.write(data + "\n")
+
+def get_user_and_date_from_string(dict):
   new_dict = {}
   for user_id, date in dict.items():
     user = client.get_user(int(user_id))
@@ -458,7 +474,6 @@ async def first_command(interaction):
   except Exception:
     await interaction.response.send_message('bilinmeyen bir hata oluştu!', ephemeral=True)
 
-
 @tree.command(name="dur", description="Sesi durdurur")
 async def dur(interaction: discord.Interaction):
   voices = interaction.client.voice_clients
@@ -511,26 +526,60 @@ async def devam_et(interaction: discord.Interaction):
     await interaction.response.send_message("Bot ile aynı ses kanaılnda değilsin!", ephemeral=True)
 
 @tree.command(name="çık", description="Ses Kanalından çıkar")
-async def cik(interaction: discord.Interaction):
+async def cik(interaction: discord.Interaction, zorla: bool = False):
   self = interaction.client
   voices = self.voice_clients
-  if voices is not None:
-    voice = voices[0]
-    await voice.disconnect(force=False)
-    await interaction.response.send_message(
-      f'{voice.channel} adlı kanaldan çıktım!')
+  for i in voices:
+    if not isinstance(i, discord.VoiceClient):
+      print(Warning("Listede Olmaması Gereken Bir Şey Var"))
+      continue
+    
+    if i.channel == interaction.user.voice.channel:
+      if i.is_playing() and not zorla:
+        await interaction.response.send_message("Bot başka bir ses kanalında zaten çalıyor lütfen bitmesini bekle. yönetici isen zorla yap", ephemeral=True)
+        return
+      if i.is_playing() and zorla:
+        i.stop()
+      await i.disconnect()
+      await interaction.response.send_message(f"{i.channel} adlı kanaldan çıktım")
+      break
+
+    if i.guild == interaction.guild:
+      if zorla:
+        if i.is_playing():
+          i.stop()
+        await i.disconnect()
+        await interaction.response.send_message(f"{i.channel} adlı kanaldan çıktım")
+        break
+      
+      if interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("Botla aynı kanalda değilsin, zorla kullanarak çıkabilirsin", ephemeral=True)
+        break
+      
+      await interaction.response.send_message("Bot ile aynı kanalda değilsin", ephemeral=True)
+
   else:
-    await interaction.response.send_message(f'Kanalda değilim galiba...')
+    await interaction.response.send_message(f'Seninle Aynı Kanalda değilim galiba...')
 
 
 @tree.command(name="çal",
-  description="Youtubedan bir şey çalmanı sağlar (server gereksinimi yok)")
-async def cal(interaction: discord.Interaction, mesaj: str):
+  description="Youtubedan bir şey çalmanı sağlar (yeni!)")
+async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False):
   voices = interaction.client.voice_clients
 
+  if zorla and not interaction.user.guild_permissions.administrator:
+    await interaction.response.send_message("Bu komutu zorla kullanmak için yönetici olmalısın.",
+                                            ephemeral=True)
+    return
+  
   if not isinstance(interaction.user, discord.Member):  
     await interaction.response.send_message("Sesli kanala katılırken Bir Hata oluştu, lütfen tekrar deneyin. " +
                                             "Hata: Kullanıcı bulunamadı", ephemeral=True)
+    return
+  
+  if not isinstance(interaction.guild, discord.Guild):
+    await interaction.response.send_message("Youtubedan çalma sadece sunucularda çalışır." +
+                                            "Hata: Sunucu bulunamadı", ephemeral=True)
     return
   
   if interaction.user.voice is None:
@@ -539,15 +588,36 @@ async def cal(interaction: discord.Interaction, mesaj: str):
     return
 
   for i in voices:
+    if not isinstance(i, discord.VoiceClient):
+      print(Warning("Listede Olmaması Gereken Bir Şey Var"))
+      continue
+    
     if i.channel == interaction.user.voice.channel:
+      if i.is_playing() and not zorla:
+        if interaction.user.guild_permissions.administrator:
+          await interaction.response.send_message("Bot zaten çalıyor. zorla yaparak değiştirebilirsin", ephemeral=True)
+          break
+        await interaction.response.send_message("Bot zaten çalıyor. lütfen bitmesini bekle.", ephemeral=True)
+        return
+      if i.is_playing() and zorla:
+        i.stop()
       voice = i
       break
-  
+    
+    if i.guild == interaction.guild:
+      if zorla:
+        await i.disconnect(force=True)
+        voice = await interaction.user.voice.channel.connect()
+        break
+      
+      if not i.is_playing():
+        await i.disconnect(force=True)
+        voice = await interaction.user.voice.channel.connect()
+        break
+      
+      await interaction.response.send_message("Bot başka bir ses kanalında zaten çalıyor lütfen bitmesini bekle.", ephemeral=True)
+    
   else:
-    if interaction.user.voice.channel is None:
-      await interaction.response.send_message("Ses Kanalında Değilsin.",
-                                              ephemeral=True)
-      return
     VoiceChannel = interaction.user.voice.channel
     voice = await VoiceChannel.connect()
   
@@ -558,26 +628,25 @@ async def cal(interaction: discord.Interaction, mesaj: str):
   
   await interaction.response.defer()
   # Get the search query from the message content
-  # Create a YouTube downloader object
+  # Download Music
   with yt_dlp.YoutubeDL(ydl_opts) as ydl:
       # Search for the video on YouTube
-      yds = ydl.extract_info(f"ytsearch:{mesaj}", download=False)
+      sent_message = await interaction.followup.send(f"{mesaj} Youtube da aranıyor lütfen bekleyin...", ephemeral=False, wait=True)
+      yds = ydl.extract_info(f"ytsearch:{mesaj}", download=True)
       if yds is None:
         await interaction.followup.send("Youtube da bulunamadı lütfen tekrar dene!", ephemeral=True)
         return
       video_info = yds['entries'][0]
-      # Get the audio stream from the video
-      audio_url = video_info['url']
-      # Create an audio source from the audio stream
-      audio_source = discord.FFmpegPCMAudio(audio_url)
+ 
   # Play the audio in the voice channel
+  audio_source = discord.FFmpegPCMAudio('song.mp3')
   voice.play(audio_source)
   embed = discord.Embed(title="Şarkı Çalınıyor", description=f"{video_info['title']}", color=0x00ff00)
   embed.set_thumbnail(url=video_info['thumbnail'])
-  await interaction.followup.send(embed=embed, ephemeral=False)
+  await interaction.followup.edit_message(sent_message.id,content="",embed=embed)
 
 
-@tree.command(name="neden", description="tüm sunucularda çalışması için test")
+@tree.command(name="neden", description="komke")
 async def neden(interaction):
   await interaction.response.send_message("Kaplumbağa neden")
 
@@ -631,7 +700,7 @@ async def dogumgunu_ekle(interaction: discord.Interaction, kullanıcı: discord.
     json.dump(birthdays, f)
   await interaction.response.send_message(f"{kullanıcı.mention} adlı kişinin doğum günü '{date_string}' olarak ayarlandı")
 
-@tree.command(name="dogumgunu_sil", description="Doğumgününü silmeni sağlar")
+@tree.command(name="dogumgunu_sil", description="Doğumgününü silmeni sağlar eğer mod değilsen başkasının doğum gününü silemezsin")
 async def dogumgunu_sil(interaction: discord.Interaction, kullanıcı: discord.User):
   
   if not isinstance(interaction.user, discord.Member):
@@ -659,13 +728,13 @@ async def dogumgunu_goster(interaction: discord.Interaction, kullanıcı: discor
   else:
     await interaction.response.send_message(f"{kullanıcı.mention} adlı kişinin doğum günü kayıtlı değil", ephemeral=True)
 
-@tree.command(name="dogumgunu_listele", description="Doğumgünlerini listeler")
+@tree.command(name="dogumgunu_listele", description="Doğumgünlerini listeler, sadece modlar kullanabilir")
 async def dogumgunu_listele(interaction: discord.Interaction):
   if interaction.user.get_role(763458533819285556) is None:
     await interaction.response.send_message("Bu komutu kullanmak için gerekli iznin yok", ephemeral=True)
     return
   embed = discord.Embed(title="Doğumgünleri", description="Doğumgünleri", color=cyan)
-  new_list = get_user_and_date(birthdays)
+  new_list = get_user_and_date_from_string(birthdays)
   for user, date in new_list.items():
     embed.add_field(name=f"{user}:", value=f"{date}", inline=False)
   await interaction.response.send_message(embed=embed)
@@ -701,4 +770,4 @@ def gpt(mesaj, content="", refrence=None):
 if token is not None:
   client.run(token)
 else:
-  raise Exception("Token bulunamadı")
+  raise ValueError("Token bulunamadı")
