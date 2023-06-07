@@ -11,3 +11,4 @@ replit.nix
 venv/
 poetry.lock
 *.env
+log.txt
