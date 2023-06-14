@@ -5,7 +5,7 @@ import yt_dlp
 import os
 import random
 import openai
-from Read import readFile, jsonRead
+from Read import readFile, jsonRead, log, get_user_and_date_from_string
 from datetime import datetime, time, timezone, tzinfo
 from discord import app_commands
 from discord.ext import tasks
@@ -49,8 +49,6 @@ birthday_role_id = 815183230789091328
 kytpbs_tag = "<@474944711358939170>"
 cyan = 0x00FFFF
 cya = 696969
-
-
 
 class MyClient(discord.Client):
 
@@ -403,29 +401,6 @@ async def check_birthdays():
           await user.add_roles(rol) # add birthday role to user.
           await genel.send(f"{user.mention} {age} yaşına girdi. Doğum günün kutlu olsun!")
 
-def log(data: str):
-  with open("log.txt", "a") as f:
-    f.write(data + "\n")
-
-def get_user_and_date_from_string(dict):
-  new_dict = {}
-  for user_id, date in dict.items():
-    user = client.get_user(int(user_id))
-    if user is None:
-      continue
-    dates = date.split("-")
-    if len(dates) != 3:
-      e = ValueError("Hatalı tarih formatı, lütfen düzeltin!")
-      print(e)
-      continue
-    date_obj = datetime(int(dates[0]), int(dates[1]), int(dates[2]))
-    print(f"{user} : {date_obj}")
-    if date_obj is None:
-      continue
-    new_dict[user] = date_obj
-
-  return new_dict
-
 @tree.command(name="sa", description="Bunu kullanman sana 'as' der")
 async def self(interaction: discord.Interaction):
   await interaction.response.send_message("as")
@@ -643,8 +618,7 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
   voice.play(audio_source)
   embed = discord.Embed(title="Şarkı Çalınıyor", description=f"{video_info['title']}", color=0x00ff00)
   embed.set_thumbnail(url=video_info['thumbnail'])
-  await interaction.followup.edit_message(sent_message.id,content="",embed=embed)
-
+  await sent_message.edit(content="",embed=embed)
 
 @tree.command(name="neden", description="komke")
 async def neden(interaction):
