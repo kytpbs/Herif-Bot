@@ -380,7 +380,7 @@ tree = app_commands.CommandTree(client)
 @tasks.loop(time= time(hour=6,minute=30, tzinfo=timezone.utc)) #9.30 for +3 timezone
 async def check_birthdays():
     genel = client.get_channel(general_chat_id)
-    rol = client.get_role(birthday_role_id)
+    rol = genel.guild.get_role(birthday_role_id)
     today = datetime.now()
     usuable_dict = get_user_and_date_from_string(birthdays)
     
