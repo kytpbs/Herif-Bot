@@ -5,7 +5,7 @@ import yt_dlp
 import os
 import random
 import openai
-from Read import readFile, jsonRead, log, get_user_and_date_from_string
+from Read import readFile, jsonRead, log
 from datetime import datetime, time, timezone, tzinfo
 from discord import app_commands
 from discord.ext import tasks
