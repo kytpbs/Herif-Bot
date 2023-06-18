@@ -97,7 +97,7 @@ class MyClient(discord.Client):
       self.old_channel = channel
       self.deleted = True
 
-  async def on_reaction_add(self, reaction: discord.Reaction, user: discord.Member|discord.User):
+  async def on_reaction_add(self, reaction: discord.Reaction, user):
     print(reaction.emoji, "Eklendi")
     if reaction.emoji == "🔙":
       if self.old_channel is None:
