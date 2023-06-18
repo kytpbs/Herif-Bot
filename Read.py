@@ -35,3 +35,26 @@ def get_user_and_date_from_string(dict: dict):
     new_dict[user] = date_obj
 
   return new_dict
+
+if __name__ == "__main__":
+  print(RuntimeWarning("This file is not meant to be run directly!"))
+  print("1. readFile")
+  print("2. jsonRead")
+  print("3. log")
+  print("4. exit")
+  inp = input(">>> ")
+  if inp == "1":
+    print("Enter file name: ")
+    file_name = input(">>> ")
+    print(readFile(file_name))
+  elif inp == "2":
+    print("Enter file name: ")
+    file_name = input(">>> ")
+    print(jsonRead(file_name))
+  elif inp == "3":
+    print("Enter data: ")
+    data = input(">>> ")
+    log(data)
+  elif inp == "4":
+    exit()
+  

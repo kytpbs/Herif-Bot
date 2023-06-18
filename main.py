@@ -5,6 +5,7 @@ import yt_dlp
 import os
 import random
 import openai
+import JoinVC
 from Read import readFile, jsonRead, log, get_user_and_date_from_string
 from datetime import datetime, time, timezone, tzinfo
 from discord import app_commands
@@ -55,6 +56,8 @@ class MyClient(discord.Client):
   def __init__(self):
     super().__init__(intents=discord.Intents.all())
     self.synced = False
+    self.deleted = False
+    self.old_channel = None
 
   async def on_ready(self):
     await self.wait_until_ready()
@@ -78,17 +81,40 @@ class MyClient(discord.Client):
     print(member, "Ayrıldı! ")
 
   async def on_guild_channel_create(self, channel):
-    print("New Channel Created:", channel)
-    if str(channel) == "a":
-      print("Deleting Channel " + str(channel) + "in 3 seconds")
-      await channel.send("Kanal 3 Saniye İçinde Siliniyor")
-      for i in range(3):
-        await channel.send(str(3 - i))
-        time.sleep(1) # type: ignore
-      await channel.send("Siliniyor...")
+    print(channel, "Oluşturuldu")
+    deleted_messages_channel = self.get_channel(deleted_messages_channel_id)
+    if isinstance(deleted_messages_channel, discord.TextChannel):
+      await deleted_messages_channel.send(
+        f"**{channel}** adlı kanal oluşturuldu")
+  
+  async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
+    print(channel, "Silindi")
+    deleted_messages_channel = self.get_channel(deleted_messages_channel_id)
+    if isinstance(deleted_messages_channel, discord.TextChannel):
+      message = await deleted_messages_channel.send(
+        f"**{channel}** adlı kanal silindi geri oluşturmak için reaksiyon verin (içindeki yazı kurtarılamıyor, sadece son silinen kanal kurtarılabilir)")
+      await message.add_reaction("🔙")
+      self.old_channel = channel
+      self.deleted = True
 
-  async def on_user_update(self, before, after):
-    pfp = before.avatar_url
+  async def on_reaction_add(self, reaction: discord.Reaction, user: discord.Member|discord.User):
+    print(reaction.emoji, "Eklendi")
+    if reaction.emoji == "🔙":
+      if self.old_channel is None:
+        await reaction.message.channel.send("Silinen Kanal bulunamadı")
+        return
+      if self.deleted:
+        if isinstance(user, discord.Member) and not user.guild_permissions.administrator:
+          await reaction.message.channel.send("Bu kanalı geri oluşturmak için yetkiniz yok")
+          return
+        new_channel = await self.old_channel.clone(reason="Kanal geri oluşturuldu")
+        self.deleted = False
+        await reaction.message.channel.send(f"{new_channel.mention} adlı kanal geri oluşturuldu")
+        await reaction.message.delete(delay=1)
+        return
+
+  async def on_member_update(self, before: discord.Member, after: discord.Member):
+    pfp = before.avatar_url # type: ignore
     print("Profil değişti:", before)
     profile_change = discord.Embed(title="Biri profilini deiğiştirdi amk.",
                                    description="Eski Hali: " + str(before) +
@@ -201,9 +227,9 @@ class MyClient(discord.Client):
       #is response to a message
       if message.reference is not None:
         print(f"Message is a response to a message that is {message.reference.resolved.content}")
-        await message.reply(gpt(Message_Content, "You are in a DM channel", message.reference.resolved.content))
+        await message.reply(gpt(Message_Content, "You are in a DM channel", message.reference.resolved.content)['content'])
       else:
-        await message.reply(gpt(Message_Content, "You are in a DM channel"))
+        await message.reply(gpt(Message_Content, "You are in a DM channel")['content'])
 
     if Time == "06:11:":  #9:11 for +3 timezone
       await channel.send("🛫🛬💥🏢🏢")
@@ -376,6 +402,7 @@ class MyClient(discord.Client):
       
 client = MyClient()
 tree = app_commands.CommandTree(client)
+join = JoinVC.join(client=client)
 
 @tasks.loop(time= time(hour=6,minute=30, tzinfo=timezone.utc)) #9.30 for +3 timezone
 async def check_birthdays():
@@ -653,12 +680,43 @@ async def sustur_ac(interaction: discord.Interaction, kullanıcı: discord.User)
 async def chatgpt(interaction: discord.Interaction, mesaj: str):
   await interaction.response.defer(ephemeral=False)
   print("ChatGPT istek:", mesaj)
-  cevap = gpt(mesaj)
+  cevap = gpt(mesaj, use_function=True)[['content']]
+  print(f"Cevap: {cevap}")
+  if cevap.get("function_call"):
+    function_name = cevap['function_call']['name']
   if cevap == -1:
     await interaction.followup.send("Bir hata oluştu, lütfen tekrar deneyin", ephemeral=True)
     return
   embed = discord.Embed(title="ChatGPT", description=cevap)
   await interaction.followup.send(f"ChatGPT'den gelen cevap: \n ", embed=embed)
+
+@tree.command(name="foto", description="Bir Fotoğraf Oluşturmanı Sağlar")
+async def foto(interaction: discord.Interaction, mesaj: str):
+  await interaction.response.defer(ephemeral=False)
+  embed = discord.Embed(title="Foto", description=f'"{mesaj}" için oluşturulan fotoğraf: ')
+  embeds = []
+  embeds.append(embed)
+  try:
+    image = openai.Image.create(prompt=mesaj, n=1)
+    if image is not None:
+      images = image["data"]
+      image_url = image["data"][0]["url"]
+      embed.set_image(url=image_url)
+  except openai.InvalidRequestError:
+    embed = discord.Embed(title="HATA", description="+18 olduğu için izin verilmedi (kapatılamıyor)")
+    return
+  except openai.OpenAIError:
+    embed = discord.Embed(title="HATA", description="Bir hata oluştu, hata: 'OpenAIError'")
+    return
+  except Exception as e:
+    embed = discord.Embed(title="HATA", description=f"Bir hata oluştu: {e.__class__.__name__}")
+    return
+  if image is None:
+    embed = discord.Embed(title="HATA", description="Bir hata oluştu: 'image bulunamadı'")
+    return
+  for index, url in enumerate(images):
+    embeds.append(discord.Embed(title=f"Fotoğraf {index + 1}",url=url["url"]))
+  await interaction.followup.send(embeds=embeds, ephemeral=False)
 
 @tree.command(name="dogumgunu_ekle", description="Doğumgününü eklemeni sağlar")
 async def dogumgunu_ekle(interaction: discord.Interaction, kullanıcı: discord.User, gun: str, ay: str, yıl: str):
@@ -714,33 +772,57 @@ async def dogumgunu_listele(interaction: discord.Interaction):
   await interaction.response.send_message(embed=embed)
 
 # content: extra content to add
-def gpt(mesaj, content="", refrence=None):
+def gpt(mesaj, content="", refrence=None, use_function=False):
   messages=[
   {
     "role": "system",
-    "content": "You are a general assistant named 'Herif bot' and you are in a discord server" + f"{content}"
+    "content": "You are a general assistant named 'Herif bot' and you are in a discord server" + f"{content}",
   },
   {
     "role": "user",
-    "content": mesaj
+    "content": mesaj,
   },
   ]
+  functions = None
+  if use_function:
+    functions = [
+      {
+        "name": "play_youtube",
+        "description": "a void function that plays a youtube video",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "the title of the video to play, e.g. 'Never gonna give you up'",
+            },
+            "volume": {
+              "type": "number",
+              "description": "the volume to play the video at, e.g. 50",
+            }
+          },
+          "required": ["title"],
+        },
+      },
+    ]
   if refrence is not None:
     messages.append({
       "role": "assistant",
       "content": refrence
     })
   response2 = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo",
+    model="gpt-3.5-turbo-0613",
     temperature=1,
     messages=messages,
   )
     
   if not isinstance(response2, dict):
     return -1;
-  cevap = response2['choices'][0]['message']['content']
+  cevap = response2['choices'][0]['message']
   return cevap
 
+def play_youtube(title: str):
+  print("playing " + title)
 if token is not None:
   client.run(token)
 else:
