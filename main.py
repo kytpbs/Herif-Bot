@@ -5,6 +5,7 @@ import yt_dlp
 import os
 import random
 import openai
+import youtube_tools
 from Read import readFile, jsonRead, log
 from datetime import datetime, time, timezone, tzinfo
 from discord import app_commands
@@ -46,19 +47,23 @@ general_chat_id = 1056268428308135976
 birthday_role_id = 815183230789091328
 kytpbs_tag = "<@474944711358939170>"
 cyan = 0x00FFFF
-cya = 696969
+green = 696969
+last_played = youtube_tools.video_data()
 
 class MyClient(discord.Client):
   
   def __init__(self):
     super().__init__(intents=discord.Intents.all())
     self.deleted = False
+    self.synced = False
     self.old_channel = None
 
   async def on_ready(self):
     await self.wait_until_ready()
     check_birthdays.start()
-    await tree.sync()
+    if not self.synced:
+      await tree.sync()
+      self.synced = True
     print('Logged on as', self.user)
 
   async def on_member_join(self, member: discord.Member):
@@ -113,7 +118,7 @@ class MyClient(discord.Client):
     profile_change = discord.Embed(title="Biri profilini deiğiştirdi amk.",
                                    description="Eski Hali: " + str(before) +
                                    "\n Yeni Hali: " + str(after),
-                                   color=cya)
+                                   color=green)
     channel = self.get_channel(deleted_messages_channel_id)
     profile_change.set_image(url=pfp)
     if isinstance(channel, discord.TextChannel):
@@ -175,7 +180,7 @@ class MyClient(discord.Client):
     
     embed = discord.Embed(
       title="Mesaj silindi.", description="Silinen Mesaj: " + str(message.content),
-      color=cya)
+      color=green)
     
     embed.add_field(name="Silinen kanal:", value=message.channel, inline=False)
     embed.add_field(name="Gönderen kişi:", value=message.author, inline=False)
@@ -272,7 +277,7 @@ class MyClient(discord.Client):
 
     if Message_Content_Lower == "array":
       print(f"Array: {costom1}")
-      embed = discord.Embed(title="Arraydekiler:", colour=cya)
+      embed = discord.Embed(title="Arraydekiler:", colour=green)
       for i in range(len(costom1)):
         embed.add_field(name="Yazılan:", value=costom1[i], inline=True)
         embed.add_field(name="Cevaplar:", value=costom2[i] + "\n", inline=True)
@@ -283,7 +288,7 @@ class MyClient(discord.Client):
       embed = discord.Embed(title="Profile Foto Test",
                             description="profile: ",
                             type="rich",
-                            color=cya)
+                            color=green)
       embed.set_image(url=pfp)
       await message.channel.send(embed=embed)
     
@@ -340,7 +345,7 @@ class MyClient(discord.Client):
       embed = discord.Embed(title="Yeni özel komut oluşturuldu:",
                             description="Test: ",
                             type="rich",
-                            color=cya)
+                            color=green)
       embed.add_field(name="Söylenen: ", value=Message_Content.split(" ")[1], inline=True)
       embed.add_field(name="Botun cevabı: ",
                       value=Message_Content.split(" ")[2],
@@ -538,11 +543,12 @@ async def katil(interaction: discord.Interaction):
       f"{vc} adlı ses kanalına katıldım", ephemeral=False) 
 
 @tree.command(name="kanala_katıl",
-              description="sunucuda rastgele bir kanala katılır")
+              description="sunucuda belirli bir kanala ya da rastgele bir kanala katılır")
 async def channel_join(interaction: discord.Interaction, channel: discord.VoiceChannel = None):
   if channel is not None:
+    await interaction.response.defer()
     await channel.connect()
-    await interaction.response.send_message(f'"{channel}" adlı kanala katıldım!')
+    await interaction.followup.send(f'"{channel.mention}" adlı kanala katıldım!')
     return
   
   kanallar = interaction.guild.voice_channels
@@ -561,16 +567,24 @@ async def dur(interaction: discord.Interaction):
     await interaction.response.send_message("Ses Kanalında Değilsin.",
                                             ephemeral=True)
     return
+    
   for i in voices:
     if i.channel == interaction.user.voice.channel:
       voice = i
-      if isinstance(voice, discord.VoiceClient):
-        voice.pause()
-        await interaction.response.send_message(
-          f"{voice.channel} kanaılnda ses durduruldu", ephemeral=False)
-        break
+      break
   else:
     await interaction.response.send_message("Bot ile aynı ses kanalında değilsin!", ephemeral=True)
+    return
+
+  if not voice.is_playing():
+    await interaction.response.send_message("Bot Zaten bir Ses Çalmıyor", ephemeral=True)
+    return
+  voice.pause()
+  embed = discord.Embed(title="Ses Durduruldu", color=cyan)
+  if last_played.has_data():
+    embed.set_thumbnail(url=last_played.thumbnail_url)
+    embed.add_field(name="Şarkı", value=last_played.title, inline=False)
+  await interaction.response.send_message(embed=embed)
 
 @tree.command(name="devam_et", description="Sesi devam ettirir")
 async def devam_et(interaction: discord.Interaction):
@@ -583,23 +597,28 @@ async def devam_et(interaction: discord.Interaction):
                                             ephemeral=True)
     return
   voices = interaction.client.voice_clients
+  
   for voice in voices:
     if voice.channel == interaction.user.voice.channel:
       if isinstance(voice, discord.VoiceClient):
         if voice.is_paused():
-          await interaction.response.send_message(
-          f"{voice.channel} kanaılnda ses devam ettiriliyor")
-          voice.resume()
+          voice = voice
           break
         else:
           await interaction.response.send_message("Durdurulmuş bir ses yok!", ephemeral=True)
-          break
+          return
       else:
         await interaction.response.send_message("Bot sesi bulunamadı hatası, lütfen tekrar dene!", ephemeral=True)
-        break
-        
+        return
   else:
     await interaction.response.send_message("Bot ile aynı ses kanaılnda değilsin!", ephemeral=True)
+    return
+
+  voice.resume()
+  embed = discord.Embed(title=f"{voice.channel.mention} kanalında Ses Devam Ettirildi", color=cyan)
+  if last_played.has_data():
+    embed.set_thumbnail(url=last_played.thumbnail_url)
+    embed.add_field(name="Çalınan", value=last_played.title, inline=False)
 
 @tree.command(name="çık", description="Ses Kanalından çıkar")
 async def cik(interaction: discord.Interaction, zorla: bool = False):
@@ -649,7 +668,6 @@ async def cik(interaction: discord.Interaction, zorla: bool = False):
   else:
     await interaction.response.send_message(f'Seninle Aynı Kanalda değilim galiba...')
 
-
 @tree.command(name="çal",
   description="Youtubedan bir şey çalmanı sağlar (yeni!)")
 async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False):
@@ -657,7 +675,7 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
   
   if not isinstance(interaction.user, discord.Member):  
     await interaction.response.send_message("Sesli kanala katılırken Bir Hata oluştu, lütfen tekrar deneyin. " +
-                                            "Hata: Kullanıcı bulunamadı", ephemeral=True)
+                                            "Hata: Kullanıcı bulunamadı. UYARI: Sadece Sunucularda Çalışır", ephemeral=True)
     return
   
   if zorla and not interaction.user.guild_permissions.administrator:
@@ -731,6 +749,7 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
       if yds is None:
         await interaction.followup.send("Youtube da bulunamadı lütfen tekrar dene!", ephemeral=True)
         return
+      last_played.set_yt_dlp_dict(yds)
       video_info = yds['entries'][0]
  
   # Play the audio in the voice channel
