@@ -619,6 +619,7 @@ async def devam_et(interaction: discord.Interaction):
   if last_played.has_data():
     embed.set_thumbnail(url=last_played.thumbnail_url)
     embed.add_field(name="Çalınan", value=last_played.title, inline=False)
+  await interaction.response.send_message(embed=embed)
 
 @tree.command(name="çık", description="Ses Kanalından çıkar")
 async def cik(interaction: discord.Interaction, zorla: bool = False):
