@@ -12,3 +12,4 @@ venv/
 poetry.lock
 *.env
 log.txt
+birthdays.json
