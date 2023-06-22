@@ -5,8 +5,7 @@ import yt_dlp
 import os
 import random
 import openai
-import JoinVC
-from Read import readFile, jsonRead, log, get_user_and_date_from_string
+from Read import readFile, jsonRead, log
 from datetime import datetime, time, timezone, tzinfo
 from discord import app_commands
 from discord.ext import tasks
@@ -22,11 +21,9 @@ ydl_opts = {
 }
 
 
-
-
 try:
   import Token
-  token = Token.token
+  token = Token.dev_token
 except Exception:
   token = os.getenv('TOKEN')
 try:
@@ -52,29 +49,26 @@ cyan = 0x00FFFF
 cya = 696969
 
 class MyClient(discord.Client):
-
+  
   def __init__(self):
     super().__init__(intents=discord.Intents.all())
-    self.synced = False
     self.deleted = False
     self.old_channel = None
 
   async def on_ready(self):
     await self.wait_until_ready()
     check_birthdays.start()
-    if not self.synced:
-      await tree.sync()
-      self.synced = True
+    await tree.sync()
     print('Logged on as', self.user)
 
-  async def on_member_join(self, member):
+  async def on_member_join(self, member: discord.Member):
     print(member, "Katıldı! ")
-    general_channel = client.get_channel(general_chat_id)
+    general_channel = get_general_channel(member.guild)
     if isinstance(general_channel, discord.TextChannel):
       await general_channel.send(f"Zeki bir insan valrlığı olan {member.mention} Bu saçmalık {member.guild} serverına katıldı. Hoşgeldin!")
 
   async def on_member_remove(self, member):
-    channel = client.get_channel(general_chat_id)
+    channel = get_general_channel(member.guild)
     if isinstance(channel, discord.TextChannel):
       await channel.send("Zeki bir insan valrlığı olan " + "**" + str(member) +
                         "**" + " Bu saçmalık serverdan ayrıldı")
@@ -125,7 +119,7 @@ class MyClient(discord.Client):
     if isinstance(channel, discord.TextChannel):
       await channel.send(embed=profile_change)
 
-  async def on_member_ban(self, guild, user):
+  async def on_member_ban(self, guild: discord.Guild, user):
     channel = self.get_channel(general_chat_id)
     if isinstance(channel, discord.TextChannel):
       await channel.send("Ah Lan " + str(user) + " Adlı kişi " + str(guild) +
@@ -259,7 +253,7 @@ class MyClient(discord.Client):
       await message.reply("Kaplumağa Deden :turtle: ")
 
     if Message_Content_Lower == "ping":
-      await message.reply("pong")
+      await message.reply(f"PONG, ping: {round(self.latency * 1000)}ms")
     
     if Message_Content_Lower == "31":
       await message.channel.send("sjsjsj")
@@ -399,38 +393,116 @@ class MyClient(discord.Client):
     if message.content.startswith("spam"):
       for _ in range(10):
         await message.reply(Message_Content.split(" ")[1])
-      
+
 client = MyClient()
 tree = app_commands.CommandTree(client)
-join = JoinVC.join(client=client)
+
+def get_general_channel(guild: discord.Guild):
+  for channel in guild.text_channels:
+    if "genel" in channel.name.lower() or "general" in channel.name.lower():
+      return channel
+  return None
+
+def get_user_and_date_from_string(dict: dict):
+  new_dict = {}
+  for user_id, date in dict.items():
+    user = client.get_user(int(user_id))
+    if user is None:
+      continue
+    dates = date.split("-")
+    if len(dates) != 3:
+      e = ValueError("Hatalı tarih formatı, lütfen düzeltin!")
+      print(e)
+      continue
+    date_obj = datetime(int(dates[0]), int(dates[1]), int(dates[2]))
+    print(f"{user} : {date_obj}")
+    if date_obj is None:
+      continue
+    new_dict[user] = date_obj
+
+  return new_dict
+
+async def get_voice(interaction: discord.Interaction):
+  voices = interaction.client.voice_clients
+  
+  if not isinstance(interaction.user, discord.Member):  
+    await interaction.response.send_message("Sesli kanala katılırken Bir Hata oluştu, lütfen tekrar deneyin. " +
+                                            "Hata: Kullanıcı bulunamadı", ephemeral=True)
+    raise ValueError("Kullanıcı bulunamadı")
+  
+  if not isinstance(interaction.guild, discord.Guild):
+    await interaction.response.send_message("Youtubedan çalma sadece sunucularda çalışır." +
+                                            "Hata: Sunucu bulunamadı", ephemeral=True)
+    raise ValueError("Sunucu bulunamadı")
+  
+  if interaction.user.voice is None:
+    await interaction.response.send_message("Ses Kanalında Değilsin. hata: 'ses bulunamadı'",
+                                            ephemeral=True)
+    raise ValueError("Ses bulunamadı")
+
+  if interaction.user.voice.channel is None:
+    await interaction.response.send_message("Ses Kanalında Değilsin. hata: 'kanal bulunamadı'",
+                                            ephemeral=True)
+    return
+  for i in voices:
+    if not isinstance(i, discord.VoiceClient):
+      print(Warning("Listede Olmaması Gereken Bir Şey Var"))
+      continue
+    
+    if i.channel == interaction.user.voice.channel:
+      if i.is_playing():
+        await interaction.response.send_message("Bot zaten çalıyor. lütfen bitmesini bekle.", ephemeral=True)
+        return
+      voice = i
+      break
+    
+    if i.guild == interaction.guild:
+      if not i.is_playing():
+        await i.disconnect(force=True)
+        voice = await interaction.user.voice.channel.connect()
+        break
+      
+      await interaction.response.send_message("Bot başka bir ses kanalında zaten çalıyor lütfen bitmesini bekle.", ephemeral=True)
+    
+  else:
+    VoiceChannel = interaction.user.voice.channel
+    voice = await VoiceChannel.connect()
+  
+  if not isinstance(voice, discord.VoiceClient):
+    await interaction.response.send_message("Sese katılım hatası, lütfen tekrar deneyin",
+                                            ephemeral=True)
+    raise RuntimeError("Sese katılım hatası")
+  return voice
 
 @tasks.loop(time= time(hour=6,minute=30, tzinfo=timezone.utc)) #9.30 for +3 timezone
 async def check_birthdays():
-    genel = client.get_channel(general_chat_id)
-    rol = genel.guild.get_role(birthday_role_id)
-    today = datetime.now()
-    usuable_dict = get_user_and_date_from_string(birthdays)
-    
-    if not isinstance(rol, discord.Role):
-      raise RuntimeError(f"Rol Bulunamadı aranan id: {birthday_role_id}")
-    if not isinstance(genel, discord.TextChannel):
-      raise RuntimeError(f"Kanal Bulunamadı aranan id: {general_chat_id}")
-    
-    # remove birthday role from members that have it.
-    for member in client.get_all_members():
-      if member.get_role(birthday_role_id) is not None:
-        print(f"{member} adlı kişinin doğum günü rolü kaldırılıyor")
-        await member.remove_roles(rol)
+  genel = client.get_channel(general_chat_id)
+  if not isinstance(genel, discord.TextChannel):
+    raise ValueError(f"Kanal Bulunamadı aranan id: {general_chat_id}")
+  rol = genel.guild.get_role(birthday_role_id)
+  today = datetime.now()
+  usuable_dict = get_user_and_date_from_string(birthdays)
+  
+  if not isinstance(rol, discord.Role):
+    raise RuntimeError(f"Rol Bulunamadı aranan id: {birthday_role_id}")
+  if not isinstance(genel, discord.TextChannel):
+    raise RuntimeError(f"Kanal Bulunamadı aranan id: {general_chat_id}")
+  
+  # remove birthday role from members that have it.
+  for member in client.get_all_members():
+    if member.get_role(birthday_role_id) is not None:
+      print(f"{member} adlı kişinin doğum günü rolü kaldırılıyor")
+      await member.remove_roles(rol)
 
-    for user, birthday in usuable_dict.items():
-      if birthday.month == today.month and birthday.day == today.day:
-          age = today.year - birthday.year
-          await user.add_roles(rol) # add birthday role to user.
-          await genel.send(f"{user.mention} {age} yaşına girdi. Doğum günün kutlu olsun!")
+  for user, birthday in usuable_dict.items():
+    if birthday.month == today.month and birthday.day == today.day:
+        age = today.year - birthday.year
+        await user.add_roles(rol) # add birthday role to user.
+        await genel.send(f"{user.mention} {age} yaşına girdi. Doğum günün kutlu olsun!")
 
 @tree.command(name="sa", description="Bunu kullanman sana 'as' der")
 async def self(interaction: discord.Interaction):
-  await interaction.response.send_message("as")
+  await interaction.response.send_message(f"as, ping: {round(client.latency * 1000)}ms")
 
 
 @tree.command(name="katıl", description="Kanala katılmamı sağlar")
@@ -465,16 +537,18 @@ async def katil(interaction: discord.Interaction):
     await interaction.response.send_message(
       f"{vc} adlı ses kanalına katıldım", ephemeral=False) 
 
-@tree.command(name="rastgele_katıl",
+@tree.command(name="kanala_katıl",
               description="sunucuda rastgele bir kanala katılır")
-async def first_command(interaction):
-  try:
-    kanallar = interaction.guild.voice_channels
-    kanal = kanallar[random.randint(1, len(kanallar) - 1)]
-    await kanal.connect()
-    await interaction.response.send_message(f'"{kanal}" adlı kanala katıldım!')
-  except Exception:
-    await interaction.response.send_message('bilinmeyen bir hata oluştu!', ephemeral=True)
+async def channel_join(interaction: discord.Interaction, channel: discord.VoiceChannel = None):
+  if channel is not None:
+    await channel.connect()
+    await interaction.response.send_message(f'"{channel}" adlı kanala katıldım!')
+    return
+  
+  kanallar = interaction.guild.voice_channels
+  kanal = kanallar[random.randint(1, len(kanallar) - 1)]
+  await kanal.connect()
+  await interaction.response.send_message(f'"{kanal}" adlı kanala katıldım!')
 
 @tree.command(name="dur", description="Sesi durdurur")
 async def dur(interaction: discord.Interaction):
@@ -531,6 +605,18 @@ async def devam_et(interaction: discord.Interaction):
 async def cik(interaction: discord.Interaction, zorla: bool = False):
   self = interaction.client
   voices = self.voice_clients
+
+  if not isinstance(interaction.user, discord.Member):
+      await interaction.response.send_message("Bir kullanıcı değilsin hatası, lütfen tekrar deneyin",
+                                              ephemeral=True)
+      print(Warning("Bir Kullanıcı Değil"))
+      return
+  
+  if not isinstance(interaction.user.voice, discord.VoiceState):
+    await interaction.response.send_message("Ses Kanalında Değilsin.",
+                                            ephemeral=True)
+    return
+  
   for i in voices:
     if not isinstance(i, discord.VoiceClient):
       print(Warning("Listede Olmaması Gereken Bir Şey Var"))
@@ -568,15 +654,15 @@ async def cik(interaction: discord.Interaction, zorla: bool = False):
   description="Youtubedan bir şey çalmanı sağlar (yeni!)")
 async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False):
   voices = interaction.client.voice_clients
-
-  if zorla and not interaction.user.guild_permissions.administrator:
-    await interaction.response.send_message("Bu komutu zorla kullanmak için yönetici olmalısın.",
-                                            ephemeral=True)
-    return
   
   if not isinstance(interaction.user, discord.Member):  
     await interaction.response.send_message("Sesli kanala katılırken Bir Hata oluştu, lütfen tekrar deneyin. " +
                                             "Hata: Kullanıcı bulunamadı", ephemeral=True)
+    return
+  
+  if zorla and not interaction.user.guild_permissions.administrator:
+    await interaction.response.send_message("Bu komutu zorla kullanmak için yönetici olmalısın.",
+                                            ephemeral=True)
     return
   
   if not isinstance(interaction.guild, discord.Guild):
@@ -588,21 +674,27 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
     await interaction.response.send_message("Ses Kanalında Değilsin.",
                                             ephemeral=True)
     return
+  
+  if not isinstance(interaction.user.voice.channel, discord.VoiceChannel):
+    await interaction.response.send_message("Ses Kanalında Değilsin.",
+                                            ephemeral=True)
+    return
 
   for i in voices:
     if not isinstance(i, discord.VoiceClient):
       print(Warning("Listede Olmaması Gereken Bir Şey Var"))
       continue
-    
+
     if i.channel == interaction.user.voice.channel:
-      if i.is_playing() and not zorla:
+      if i.is_playing():
+        if zorla:
+          i.stop()
+          voice = i
+          break
         if interaction.user.guild_permissions.administrator:
           await interaction.response.send_message("Bot zaten çalıyor. zorla yaparak değiştirebilirsin", ephemeral=True)
-          break
         await interaction.response.send_message("Bot zaten çalıyor. lütfen bitmesini bekle.", ephemeral=True)
         return
-      if i.is_playing() and zorla:
-        i.stop()
       voice = i
       break
     
@@ -616,8 +708,9 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
         await i.disconnect(force=True)
         voice = await interaction.user.voice.channel.connect()
         break
-      
-      await interaction.response.send_message("Bot başka bir ses kanalında zaten çalıyor lütfen bitmesini bekle.", ephemeral=True)
+      else:
+        await interaction.response.send_message("Bot başka bir ses kanalında zaten çalıyor lütfen bitmesini bekle.", ephemeral=True)
+        return
     
   else:
     VoiceChannel = interaction.user.voice.channel
@@ -762,9 +855,14 @@ async def dogumgunu_goster(interaction: discord.Interaction, kullanıcı: discor
 
 @tree.command(name="dogumgunu_listele", description="Doğumgünlerini listeler, sadece modlar kullanabilir")
 async def dogumgunu_listele(interaction: discord.Interaction):
-  if interaction.user.get_role(763458533819285556) is None:
+  if not isinstance(interaction.user, discord.Member):
+    await interaction.response.send_message("Bir hata oluştu, lütfen tekrar deneyin", ephemeral=True)
+    return
+  
+  if interaction.user.guild_permissions.administrator is False:
     await interaction.response.send_message("Bu komutu kullanmak için gerekli iznin yok", ephemeral=True)
     return
+  
   embed = discord.Embed(title="Doğumgünleri", description="Doğumgünleri", color=cyan)
   new_list = get_user_and_date_from_string(birthdays)
   for user, date in new_list.items():
