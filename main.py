@@ -5,8 +5,10 @@ import yt_dlp
 import os
 import random
 import openai
+import logging
 import youtube_tools
-from Read import jsonRead, log
+from Server_Check import is_server
+from Read import jsonRead
 from datetime import datetime, time, timezone
 from discord import app_commands
 from discord.ext import tasks
@@ -21,6 +23,12 @@ ydl_opts = {
   'nooverwrites': False,
 }
 
+if is_server():
+  import google.cloud.logging
+  google_client = google.cloud.logging.Client()
+  google_client.setup_logging()
+else:
+  logging.basicConfig(filename='log.txt', level=logging.INFO)
 
 try:
   import Token
@@ -65,12 +73,14 @@ class MyClient(discord.Client):
     print('Logged on as', self.user)
 
   async def on_member_join(self, member: discord.Member):
-    print(member, "Katıldı! ")
+    print(member.name, "Katıldı! ")
+    logging.info(f"{member.name}, joined {member.guild.name}")
     general_channel = get_general_channel(member.guild)
     if isinstance(general_channel, discord.TextChannel):
       await general_channel.send(f"Zeki bir insan valrlığı olan {member.mention} Bu saçmalık {member.guild} serverına katıldı. Hoşgeldin!")
 
-  async def on_member_remove(self, member):
+  async def on_member_remove(self, member: discord.Member):
+    logging.info(f"{member.name}, left {member.guild.name}")
     channel = get_general_channel(member.guild)
     if isinstance(channel, discord.TextChannel):
       await channel.send("Zeki bir insan valrlığı olan " + "**" + str(member) +
@@ -79,6 +89,7 @@ class MyClient(discord.Client):
 
   async def on_guild_channel_create(self, channel):
     print(channel, "Oluşturuldu")
+    logging.info(f"At {channel.guild.name}, {channel} was created.")
     deleted_messages_channel = self.get_channel(deleted_messages_channel_id)
     if isinstance(deleted_messages_channel, discord.TextChannel):
       await deleted_messages_channel.send(
@@ -86,6 +97,7 @@ class MyClient(discord.Client):
   
   async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
     print(channel, "Silindi")
+    logging.info(f"At {channel.guild.name}, {channel} was deleted.")
     deleted_messages_channel = self.get_channel(deleted_messages_channel_id)
     if isinstance(deleted_messages_channel, discord.TextChannel):
       message = await deleted_messages_channel.send(
@@ -94,7 +106,10 @@ class MyClient(discord.Client):
       self.old_channel = channel
       self.deleted = True
 
-  async def on_reaction_add(self, reaction: discord.Reaction, user):
+  async def on_reaction_add(self, reaction: discord.Reaction, user: discord.User | discord.Member):
+    logging.info(f"{user.name} reacted with {reaction.emoji} to {reaction.message.content}")
+    if user == self.user:
+      return
     print(reaction.emoji, "Eklendi")
     if reaction.emoji == "🔙":
       if self.old_channel is None:
@@ -111,8 +126,9 @@ class MyClient(discord.Client):
         return
 
   async def on_member_update(self, before: discord.Member, after: discord.Member):
-    pfp = before.avatar_url # type: ignore
+    pfp = before.avatar_url
     print("Profil değişti:", before)
+    logging.info(f"{before.name}'s profile picture changed.")
     profile_change = discord.Embed(title="Biri profilini deiğiştirdi amk.",
                                    description="Eski Hali: " + str(before) +
                                    "\n Yeni Hali: " + str(after),
@@ -122,8 +138,9 @@ class MyClient(discord.Client):
     if isinstance(channel, discord.TextChannel):
       await channel.send(embed=profile_change)
 
-  async def on_member_ban(self, guild: discord.Guild, user):
-    channel = self.get_channel(general_chat_id)
+  async def on_member_ban(self, guild: discord.Guild, user: discord.Member):
+    channel = get_general_channel(guild)
+    logging.info(f"{user.name} was banned from {guild.name}")
     if isinstance(channel, discord.TextChannel):
       await channel.send("Ah Lan " + str(user) + " Adlı kişi " + str(guild) +
                         " serverından banlandı ")
@@ -131,19 +148,17 @@ class MyClient(discord.Client):
     raise RuntimeError(f"Kanal Bulunamadı: aranan id: {general_chat_id}")
 
   async def on_member_unban(self, guild: discord.Guild, user: discord.User):
-    try:
-      await user.send("You are finally unbanned from " + str(guild) +
-                      " Named server :)")
-      print(f"{user} unbanned from {guild}, sending a DM")
-    except Exception:
-      print(f"There were an error while sending a DM about unban to {user} from {guild}")
-      
-      channel = self.get_channel(general_chat_id)
-      if isinstance(channel, discord.TextChannel):
-        await channel.send(
-          f"{user.name} bu mal gibi {guild.name} sunucusuna geri girebilme hakkı kazanmılştır"
-        )
-      pass
+    logging.info(f"{user.name} was unbanned from {guild.name}")
+    invite = guild.text_channels[0].create_invite(target_user=user, reason="Ban kaldırıldı, sunucuya geri davet ediliyor", max_uses=1)
+    await user.send(f"artık {guild.name} sunucusuna geri girebilirsin. giriş linkin: {invite}")
+    print(f"{user} unbanned from {guild}, sending a DM")
+
+    channel = self.get_channel(general_chat_id)
+    if isinstance(channel, discord.TextChannel):
+      await channel.send(
+        f"{user.name} bu mal gibi {guild.name} sunucusuna geri girebilme hakkı kazanmılştır"
+      )
+    pass
 
   async def on_message_edit(self, before, message):
     if message.author == self.user:
@@ -212,7 +227,7 @@ class MyClient(discord.Client):
     data = f'{str(Time)} {str(guild)} {str(channel)} {str(user.name)}: {str(Message_Content)}'
     print(data)
     if message.embeds is None:
-      log(str(data))
+      logging.info(data)
 
     if message.author == self.user:
       return
@@ -231,7 +246,7 @@ class MyClient(discord.Client):
     if Time == "06:11:":  #9:11 for +3 timezone
       await channel.send("🛫🛬💥🏢🏢")
     
-    son_mesaj = message.content.lower().split()[-1]
+    son_mesaj = message.content.lower().split(" ")[-1]
     if son_mesaj == ("nerde") or son_mesaj == ("nerede") or son_mesaj == (
         "neredesin") or son_mesaj == ("nerdesin"):
       print(son_mesaj)
@@ -345,6 +360,11 @@ class MyClient(discord.Client):
     if message.content.startswith("spam"):
       for _ in range(10):
         await message.reply(Message_Content.split(" ")[1])
+
+  async def on_error(self, event_method: str, /, *args, **kwargs):
+    logging.error(event_method)
+    return await super().on_error(event_method, *args, **kwargs)
+    
 
 client = MyClient()
 tree = app_commands.CommandTree(client)
@@ -472,15 +492,15 @@ async def olustur(interaction: discord.Interaction, yazı: str, cevap: str, degi
     if degistir:
       eski_cevap = Costom_Responses[yazı]
       Costom_Responses[yazı] = cevap
-      with open("Costom_Responses.json", "w") as f:
-        json.dump(Costom_Responses, f, indent=6)
+      with open("responses.json", "w") as f:
+        json.dump(Costom_Responses, f, indent=4)
       embed = discord.Embed(title="Cevap Değiştirildi", description=f"'{yazı} : {cevap}' a değiştirildi", color=cyan)
       embed.add_field(name="Eski Cevap", value=eski_cevap, inline=False)
       await interaction.response.send_message(embed=embed)
       return
   Costom_Responses[yazı] = cevap
-  with open("Costom_Responses.json", "w") as f:
-    json.dump(Costom_Responses, f, indent=6)
+  with open("responses.json", "w") as f:
+    json.dump(Costom_Responses, f, indent=4)
   await interaction.response.send_message(f"Yeni bir cevap oluşturuldu. {yazı} : {cevap}")
 
 @tree.command(name="cevaplar", description="Bütün özel eklenmiş cevapları gösterir")
