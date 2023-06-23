@@ -106,7 +106,7 @@ class MyClient(discord.Client):
       self.old_channel = channel
       self.deleted = True
 
-  async def on_reaction_add(self, reaction: discord.Reaction, user: discord.User | discord.Member):
+  async def on_reaction_add(self, reaction: discord.Reaction, user):
     logging.info(f"{user.name} reacted with {reaction.emoji} to {reaction.message.content}")
     if user == self.user:
       return
