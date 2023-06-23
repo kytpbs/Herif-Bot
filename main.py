@@ -72,16 +72,17 @@ class MyClient(discord.Client):
       await tree.sync()
       self.synced = True
     print('Logged on as', self.user)
+    logger.info(f"Logged on as {self.user}")
 
   async def on_member_join(self, member: discord.Member):
     print(member.name, "Katıldı! ")
-    logging.info(f"{member.name}, joined {member.guild.name}")
+    logger.info(f"{member.name}, joined {member.guild.name}")
     general_channel = get_general_channel(member.guild)
     if isinstance(general_channel, discord.TextChannel):
       await general_channel.send(f"Zeki bir insan valrlığı olan {member.mention} Bu saçmalık {member.guild} serverına katıldı. Hoşgeldin!")
 
   async def on_member_remove(self, member: discord.Member):
-    logging.info(f"{member.name}, left {member.guild.name}")
+    logger.info(f"{member.name}, left {member.guild.name}")
     channel = get_general_channel(member.guild)
     if isinstance(channel, discord.TextChannel):
       await channel.send("Zeki bir insan valrlığı olan " + "**" + str(member) +
@@ -90,7 +91,7 @@ class MyClient(discord.Client):
 
   async def on_guild_channel_create(self, channel):
     print(channel, "Oluşturuldu")
-    logging.info(f"At {channel.guild.name}, {channel} was created.")
+    logger.info(f"At {channel.guild.name}, {channel} was created.")
     deleted_messages_channel = self.get_channel(deleted_messages_channel_id)
     if isinstance(deleted_messages_channel, discord.TextChannel):
       await deleted_messages_channel.send(
@@ -98,7 +99,7 @@ class MyClient(discord.Client):
   
   async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
     print(channel, "Silindi")
-    logging.info(f"At {channel.guild.name}, {channel} was deleted.")
+    logger.info(f"At {channel.guild.name}, {channel} was deleted.")
     deleted_messages_channel = self.get_channel(deleted_messages_channel_id)
     if isinstance(deleted_messages_channel, discord.TextChannel):
       message = await deleted_messages_channel.send(
@@ -108,7 +109,7 @@ class MyClient(discord.Client):
       self.deleted = True
 
   async def on_reaction_add(self, reaction: discord.Reaction, user):
-    logging.info(f"{user.name} reacted with {reaction.emoji} to {reaction.message.content}")
+    logger.info(f"{user.name} reacted with {reaction.emoji} to {reaction.message.content}")
     if user == self.user:
       return
     print(reaction.emoji, "Eklendi")
@@ -129,7 +130,7 @@ class MyClient(discord.Client):
   async def on_member_update(self, before: discord.Member, after: discord.Member):
     pfp = before.avatar_url
     print("Profil değişti:", before)
-    logging.info(f"{before.name}'s profile picture changed.")
+    logger.info(f"{before.name}'s profile picture changed.")
     profile_change = discord.Embed(title="Biri profilini deiğiştirdi amk.",
                                    description="Eski Hali: " + str(before) +
                                    "\n Yeni Hali: " + str(after),
@@ -141,7 +142,7 @@ class MyClient(discord.Client):
 
   async def on_member_ban(self, guild: discord.Guild, user: discord.Member):
     channel = get_general_channel(guild)
-    logging.info(f"{user.name} was banned from {guild.name}")
+    logger.info(f"{user.name} was banned from {guild.name}")
     if isinstance(channel, discord.TextChannel):
       await channel.send("Ah Lan " + str(user) + " Adlı kişi " + str(guild) +
                         " serverından banlandı ")
@@ -228,7 +229,7 @@ class MyClient(discord.Client):
     data = f'{str(Time)} {str(guild)} {str(channel)} {str(user.name)}: {str(Message_Content)}'
     print(data)
     if message.embeds is None:
-      logging.info(data)
+      logger.info(data)
 
     if message.author == self.user:
       return
@@ -363,8 +364,8 @@ class MyClient(discord.Client):
         await message.reply(Message_Content.split(" ")[1])
 
   async def on_error(self, event_method: str, /, *args, **kwargs):
-    logging.error(event_method)
-    return await super().on_error(event_method, *args, **kwargs)
+    logger.error(event_method)
+    return
     
 
 client = MyClient()
@@ -449,6 +450,8 @@ async def get_voice(interaction: discord.Interaction):
 
 @tasks.loop(time= time(hour=6,minute=30, tzinfo=timezone.utc)) #9.30 for +3 timezone
 async def check_birthdays():
+  print("Checking birthdays")
+  logger.info("Checking birthdays")
   genel = client.get_channel(general_chat_id)
   if not isinstance(genel, discord.TextChannel):
     raise ValueError(f"Kanal Bulunamadı aranan id: {general_chat_id}")
