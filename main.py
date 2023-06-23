@@ -1,5 +1,6 @@
 import json
 import time
+import aiohttp
 import discord
 import yt_dlp
 import os
@@ -18,7 +19,7 @@ ydl_opts = {
   'format': 'bestaudio',
   'noplaylist': True,
   'default_search': 'auto',
-  'outtmpl': 'song.mp3',
+  'outtmpl': '%(title)s',
   'keepvideo': False,
   'nooverwrites': False,
 }
@@ -28,9 +29,10 @@ if is_server():
   import google.cloud.logging
   google_client = google.cloud.logging.Client()
   google_client.setup_logging()
+  logger = google_client.logger('discord')
 else:
   logging.basicConfig(filename='log.txt', level=logging.INFO)
-
+  logger = logging.getLogger('discord')
 try:
   import Token
   token = Token.dev_token
@@ -54,8 +56,9 @@ general_chat_id = 1056268428308135976
 birthday_role_id = 815183230789091328
 kytpbs_tag = "<@474944711358939170>"
 cyan = 0x00FFFF
-green = 696969
-last_played = youtube_tools.video_data()
+green = 0x00FF00
+funny_color = 696969
+last_played = youtube_tools.video_data_guild()
 
 class MyClient(discord.Client):
   
@@ -68,6 +71,7 @@ class MyClient(discord.Client):
   async def on_ready(self):
     await self.wait_until_ready()
     check_birthdays.start()
+    clear_cache.start()
     if not self.synced:
       await tree.sync()
       self.synced = True
@@ -168,7 +172,7 @@ class MyClient(discord.Client):
     if before.content == message.content:
       return
     
-    embed = discord.Embed(title="Mesaj Düzenlendi", description="Biri Mesajını Düzenlendi",color=0x00FFFF)
+    embed = discord.Embed(title="Mesaj Düzenlendi", description="Biri Mesajını Düzenlendi",color=cyan)
     
     embed.add_field(name="Kanal: ", value=message.channel, inline=False)
     embed.add_field(name="Kişi: ", value=message.author, inline=False)
@@ -476,6 +480,14 @@ async def check_birthdays():
         await user.add_roles(rol) # add birthday role to user.
         await genel.send(f"{user.mention} {age} yaşına girdi. Doğum günün kutlu olsun!")
 
+@tasks.loop(hours=72)
+async def clear_cache():
+  print("clearing cache")
+  logger.info("clearing cache")
+  folder_directory = f"{os.getcwd()}/cache"
+  for file in os.listdir(folder_directory):
+    os.remove(f"{folder_directory}/{file}")
+
 @tree.command(name="ping", description="botun pingini gösterir")
 async def ping(interaction: discord.Interaction):
   await interaction.response.send_message(f"Pong! {round(client.latency * 1000)}ms")
@@ -568,7 +580,7 @@ async def channel_join(interaction: discord.Interaction, channel: discord.VoiceC
 async def dur(interaction: discord.Interaction):
   voices = interaction.client.voice_clients
   if not isinstance(interaction.user, discord.Member):
-    await interaction.response.send_message("Bir hata oluştu, lütfen tekrar deneyin",
+    await interaction.response.send_message("Bu komutu kullanmak için bir sunucuda olmalısın",
                                             ephemeral=True)
     return
   if interaction.user.voice is None:
@@ -589,9 +601,10 @@ async def dur(interaction: discord.Interaction):
     return
   voice.pause()
   embed = discord.Embed(title="Ses Durduruldu", color=cyan)
-  if last_played.has_data():
-    embed.set_thumbnail(url=last_played.thumbnail_url)
-    embed.add_field(name="Şarkı", value=last_played.title, inline=False)
+  played = last_played.get_video_data(interaction.guild_id)
+  if played.has_data():
+    embed.set_thumbnail(url=played.thumbnail_url)
+    embed.add_field(name="Şarkı", value=played.title, inline=False)
   await interaction.response.send_message(embed=embed)
 
 @tree.command(name="devam_et", description="Sesi devam ettirir")
@@ -624,9 +637,10 @@ async def devam_et(interaction: discord.Interaction):
 
   voice.resume()
   embed = discord.Embed(title=f"{voice.channel.mention} kanalında Ses Devam Ettirildi", color=cyan)
-  if last_played.has_data():
-    embed.set_thumbnail(url=last_played.thumbnail_url)
-    embed.add_field(name="Çalınan", value=last_played.title, inline=False)
+  played = last_played.get_video_data(interaction.guild_id)
+  if played.has_data():
+    embed.set_thumbnail(url=played.thumbnail_url)
+    embed.add_field(name="Çalınan", value=played.title, inline=False)
   await interaction.response.send_message(embed=embed)
 
 @tree.command(name="çık", description="Ses Kanalından çıkar")
@@ -677,8 +691,7 @@ async def cik(interaction: discord.Interaction, zorla: bool = False):
   else:
     await interaction.response.send_message(f'Seninle Aynı Kanalda değilim galiba...')
 
-@tree.command(name="çal",
-  description="Youtubedan bir şey çalmanı sağlar (yeni!)")
+@tree.command(name="çal", description="Youtubedan bir şey çalmanı sağlar (yeni!)")
 async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False):
   voices = interaction.client.voice_clients
   
@@ -749,22 +762,26 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
     return
   
   await interaction.response.defer()
+  ydl_opts["outtmpl"] = f"{os.getcwd()}/cache/{interaction.guild.id}.mp3"
+  sent_message = await interaction.followup.send(f"{mesaj} Youtube da aranıyor lütfen bekleyin...", ephemeral=False, wait=True)
   # Get the search query from the message content
-  # Download Music
-  with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+  info = YoutubeDL.extract_info(f"ytsearch:{mesaj}", download=False)
+  if info is None:
+    await interaction.followup.send("Youtube da bulunamadı lütfen tekrar dene!", ephemeral=True)
+    return
+  played = last_played.get_video_data(interaction.guild.id)
+  if played.title != info['title']:
+    # Download Music
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
       # Search for the video on YouTube
-      sent_message = await interaction.followup.send(f"{mesaj} Youtube da aranıyor lütfen bekleyin...", ephemeral=False, wait=True)
       yds = ydl.extract_info(f"ytsearch:{mesaj}", download=True)
-      if yds is None:
-        await interaction.followup.send("Youtube da bulunamadı lütfen tekrar dene!", ephemeral=True)
-        return
-      last_played.set_yt_dlp_dict(yds)
+      last_played.set_video_data(interaction.guild.id,youtube_tools.video_data(yt_dlp_dict=yds))
       video_info = yds['entries'][0]
- 
+
   # Play the audio in the voice channel
-  audio_source = discord.FFmpegPCMAudio('song.mp3')
+  audio_source = discord.FFmpegPCMAudio(f'{os.getcwd()}/cache/{interaction.guild.id}.mp3')
   voice.play(audio_source)
-  embed = discord.Embed(title="Şarkı Çalınıyor", description=f"{video_info['title']}", color=0x00ff00)
+  embed = discord.Embed(title="Şarkı Çalınıyor", description=f"{video_info['title']}", color=cyan)
   embed.set_thumbnail(url=video_info['thumbnail'])
   await sent_message.edit(content="",embed=embed)
 

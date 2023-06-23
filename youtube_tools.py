@@ -31,3 +31,15 @@ class video_data(object):
         video_info = yt_dlp_dict['entries'][0]
         self.title = video_info['title']
         self.thumbnail_url = video_info['thumbnail']
+
+class video_data_guild:
+    def __init__(self) -> None:
+        self.video_dict = {
+            int : video_data
+        }
+    
+    def set_video_data(self, guild_id: int, video_data: video_data) -> None:
+        self.video_dict[guild_id] = video_data
+    
+    def get_video_data(self, guild_id: int) -> video_data:
+        return self.video_dict.get(guild_id, video_data())
