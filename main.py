@@ -23,6 +23,7 @@ ydl_opts = {
   'nooverwrites': False,
 }
 
+logging.basicConfig(level=logging.INFO)
 if is_server():
   import google.cloud.logging
   google_client = google.cloud.logging.Client()
