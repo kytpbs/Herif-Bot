@@ -6,8 +6,8 @@ import os
 import random
 import openai
 import youtube_tools
-from Read import readFile, jsonRead, log
-from datetime import datetime, time, timezone, tzinfo
+from Read import jsonRead, log
+from datetime import datetime, time, timezone
 from discord import app_commands
 from discord.ext import tasks
 from yt_dlp import YoutubeDL
@@ -33,15 +33,13 @@ try:
 except Exception:
   openai.api_key = os.getenv('OpenAiKey')
 
-costom1 = readFile("Costom1.txt")
-costom2 = readFile("Costom2.txt")
 birthdays = jsonRead('birthdays.json')
+Costom_Responses = jsonRead('responses.json')  
 print(birthdays)
 
 intents = discord.Intents.all()
 intents.members = True
 intents.voice_states = True
-sus_gif = "https://cdn.discordapp.com/attachments/726408854367371324/1010651691600838799/among-us-twerk.gif"
 deleted_messages_channel_id = 991442142679552131
 general_chat_id = 1056268428308135976
 birthday_role_id = 815183230789091328
@@ -201,13 +199,12 @@ class MyClient(discord.Client):
     if isinstance(channel, discord.TextChannel) and embeds2 is not None:
       await channel.send(embeds=embeds2)
 
-  async def on_message(self, message):
+  async def on_message(self, message: discord.Message):
     Message_Content = message.content
     Message_Content_Lower = Message_Content.lower()
     user = message.author
     channel = message.channel
     guild = message.guild
-
 
     Time = datetime.now().strftime("%H:%M:")
     if guild is None:
@@ -220,7 +217,8 @@ class MyClient(discord.Client):
     if message.author == self.user:
       return
     
-    
+    if Costom_Responses.get(Message_Content) is not None:
+      await message.reply(Costom_Responses[message.content])
 
     if isinstance(channel, discord.DMChannel):
       #is response to a message
@@ -233,9 +231,7 @@ class MyClient(discord.Client):
     if Time == "06:11:":  #9:11 for +3 timezone
       await channel.send("🛫🛬💥🏢🏢")
     
-    masaj = Message_Content_Lower.split(" ")
-    masaj_uzunluk = len(masaj)
-    son_mesaj = masaj[masaj_uzunluk - 1]
+    son_mesaj = message.content.lower().split()[-1]
     if son_mesaj == ("nerde") or son_mesaj == ("nerede") or son_mesaj == (
         "neredesin") or son_mesaj == ("nerdesin"):
       print(son_mesaj)
@@ -243,54 +239,14 @@ class MyClient(discord.Client):
         f'Ebenin amında. Ben sonu "{son_mesaj}" diye biten bütün mesajlara cevap vermek için kodlanmış bi botum. Seni kırdıysam özür dilerim.'
       )
 
-    for i in range(1, len(costom1)):
-      if Message_Content == costom1[i]:
-        await message.reply(costom2[i])
-
     if 'tuna' in Message_Content_Lower:
       await message.channel.send("<@725318387198197861>")  # tuna tag
 
     if 'kaya' in Message_Content_Lower:
-      await message.reply("Zeka Kübü")
-      await message.channel.send("<@474944711358939170>")  # kaya tag
-
-    if 'neden' in Message_Content_Lower:
-      await message.reply("Kaplumağa Deden :turtle: ")
+      await message.reply("Zeka Kübü <@474944711358939170>") # kaya tag
 
     if Message_Content_Lower == "ping":
       await message.reply(f"PONG, ping: {round(self.latency * 1000)}ms")
-    
-    if Message_Content_Lower == "31":
-      await message.channel.send("sjsjsj")
-   
-    if Message_Content_Lower == "A":
-      await message.reply(Message_Content)
-    
-    if Message_Content_Lower == "dm":
-      await user.send("PING")
-    
-    if Message_Content_Lower == "sus":
-      await message.reply(sus_gif)
-    
-    if Message_Content_Lower == "cu":
-      await message.reply("Ananın AMCUUUU")
-
-    if Message_Content_Lower == "array":
-      print(f"Array: {costom1}")
-      embed = discord.Embed(title="Arraydekiler:", colour=green)
-      for i in range(len(costom1)):
-        embed.add_field(name="Yazılan:", value=costom1[i], inline=True)
-        embed.add_field(name="Cevaplar:", value=costom2[i] + "\n", inline=True)
-      await message.reply(embed=embed)
-    
-    if Message_Content_Lower == "pfp":
-      pfp = user.avatar_url
-      embed = discord.Embed(title="Profile Foto Test",
-                            description="profile: ",
-                            type="rich",
-                            color=green)
-      embed.set_image(url=pfp)
-      await message.channel.send(embed=embed)
     
     if Message_Content_Lower == "katıl":
       if user.voice is not None:
@@ -320,38 +276,29 @@ class MyClient(discord.Client):
       await kanal.connect()
 
     if Message_Content_Lower == "söyle":
-      if masaj_uzunluk > 1:
-        await message.channel.send(masaj[1])
+      if len(message.content.split(" ")) > 1:
+        await message.channel.send(message.content.split[1:])
       else:
         await message.reply("Ne söyleyeyim?")
 
     if message.content.startswith("oluştur"):
-      print("oluştur")
-      if len(Message_Content.split(" ")) < 2:
-        await message.reply("İlk Mesajı girmediniz.")
+      split = Message_Content.split(" ")
+      if not len(split) > 2:
+        await message.reply("Ne oluşturayım?")
         return
-      if len(Message_Content.split(" ")) < 3:
-        await message.reply("Son Mesajı Girmediniz")
+      if Costom_Responses[split[1]] is not None:
+        await message.reply(f"Bu komut zaten var: {Costom_Responses[split[1]]}")
         return
-      print(f"uzunluklar: 1: {len(costom1)} 2:")
-      x1 = ['', Message_Content.split(" ")[1]]
-      x2 = ['', Message_Content.split(" ")[2]]
-      costom1.append(Message_Content.split(" ")[1])
-      costom2.append(Message_Content.split(" ")[2])
-      with open('Costom1.txt', 'a') as f:
-        f.writelines('\n'.join(x1))
-      with open('Costom2.txt', 'a') as l:
-        l.writelines('\n'.join(x2))
+      Costom_Responses[split[1]] = split[2:]
       embed = discord.Embed(title="Yeni özel komut oluşturuldu:",
                             description="Test: ",
                             type="rich",
                             color=green)
-      embed.add_field(name="Söylenen: ", value=Message_Content.split(" ")[1], inline=True)
+      embed.add_field(name="Söylenen: ", value=split[1], inline=True)
       embed.add_field(name="Botun cevabı: ",
                       value=Message_Content.split(" ")[2],
                       inline=True)
       await message.reply(embed=embed)
-      print(f"1: {costom1} 2: {costom2}")
 
     if message.content.startswith("sustur"):
       if str(message.author) == "braven#8675":
@@ -505,10 +452,47 @@ async def check_birthdays():
         await user.add_roles(rol) # add birthday role to user.
         await genel.send(f"{user.mention} {age} yaşına girdi. Doğum günün kutlu olsun!")
 
+@tree.command(name="ping", description="botun pingini gösterir")
+async def ping(interaction: discord.Interaction):
+  await interaction.response.send_message(f"Pong! {round(client.latency * 1000)}ms")
+
+@tree.command(name="olustur", description="botun senin ayarladığın mesajlara cevap verebilmesini sağlar")
+async def olustur(interaction: discord.Interaction, yazı: str, cevap: str, degistir: bool = False):
+  if Costom_Responses.get(yazı) is not None:
+    if not interaction.user.guild_permissions.administrator:
+      await interaction.response.send_message(f"Bu mesaja zaten bir cevap var: {Costom_Responses[yazı]}, " +
+                                              "lütfen başka bir mesaj deneyin",
+                                              ephemeral=True)
+      return
+    if not degistir:
+      await interaction.response.send_message(f"Bu mesaja zaten bir cevap var: {Costom_Responses[yazı]}, " +
+                                              "değiştirmek için komutta 'degistir' argümanını kullanın",
+                                              ephemeral=True)
+      return
+    if degistir:
+      eski_cevap = Costom_Responses[yazı]
+      Costom_Responses[yazı] = cevap
+      with open("Costom_Responses.json", "w") as f:
+        json.dump(Costom_Responses, f, indent=6)
+      embed = discord.Embed(title="Cevap Değiştirildi", description=f"'{yazı} : {cevap}' a değiştirildi", color=cyan)
+      embed.add_field(name="Eski Cevap", value=eski_cevap, inline=False)
+      await interaction.response.send_message(embed=embed)
+      return
+  Costom_Responses[yazı] = cevap
+  with open("Costom_Responses.json", "w") as f:
+    json.dump(Costom_Responses, f, indent=6)
+  await interaction.response.send_message(f"Yeni bir cevap oluşturuldu. {yazı} : {cevap}")
+
+@tree.command(name="cevaplar", description="Bütün özel eklenmiş cevapları gösterir")
+async def cevaplar(interaction: discord.Interaction):
+  embed = discord.Embed(title="Özel Cevaplar", description="Özel eklenmiş cevaplar", color=cyan)
+  for key, value in Costom_Responses.items():
+    embed.add_field(name=key, value=value, inline=False)
+  await interaction.response.send_message(embed=embed)
+
 @tree.command(name="sa", description="Bunu kullanman sana 'as' der")
 async def self(interaction: discord.Interaction):
   await interaction.response.send_message(f"as, ping: {round(client.latency * 1000)}ms")
-
 
 @tree.command(name="katıl", description="Kanala katılmamı sağlar")
 async def katil(interaction: discord.Interaction):
@@ -764,15 +748,16 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
 async def neden(interaction):
   await interaction.response.send_message("Kaplumbağa neden")
 
-
 @tree.command(name="sustur", description="birini susturmanı sağlar")
-async def sustur(interaction: discord.Interaction, user: discord.User):
+async def sustur(interaction: discord.Interaction, user: discord.Member):
+  if not user.guild == interaction.guild:
+    await interaction.response.send_message("Kullanıcı bu sunucuda değil", ephemeral=True)
+    return
   if not isinstance(user, discord.Member):
     await interaction.response.send_message("Kullanıcıyı bulamadım lütfen tekrar dene", ephemeral=True)
     return
   await user.edit(mute=True)
   await interaction.response.send_message(f"{user} susturuldu")
-
 
 @tree.command(name="susturma_kaldır",
               description="Susturulmuş birinin susturmasını kapatmanı sağlar")
@@ -786,7 +771,6 @@ async def sustur_ac(interaction: discord.Interaction, kullanıcı: discord.User)
   else:
     await interaction.response.send_message(
       f"{kullanıcı} adlı kişi ses kanalında değil")
-
 
 @tree.command(name="chatgpt",
               description="Botun gerçekten zeki olmasını sağlar")
