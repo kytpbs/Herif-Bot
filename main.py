@@ -26,6 +26,7 @@ ydl_opts = {
   'outtmpl': '%(title)s',
   'keepvideo': False,
   'nooverwrites': False,
+  'quiet': True,
 }
 
 #get tokens
@@ -433,9 +434,6 @@ def get_user_and_date_from_string(dict: dict):
 
   return new_dict
 
-def loop_in_thread(loop, future):
-    loop.run_until_complete(future)
-
 def yt_dlp_hook(queue: LifoQueue, download):
     """
     download Hook
@@ -446,10 +444,11 @@ def yt_dlp_hook(queue: LifoQueue, download):
     # Instead of logging the data just add the latest data to the queue
     queue.put(download)
 
-def youtube_download(url, queue: LifoQueue, name):
+def youtube_download(url, queue: LifoQueue, file_name):
+  print("Downloading")
   yt_dlp_hook_partial = functools.partial(yt_dlp_hook, queue)
   
-  ydl_opts["outtmpl"] = name
+  ydl_opts["outtmpl"] = file_name
   ydl_opts["progress_hooks"] = [yt_dlp_hook_partial]
   
   with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -538,7 +537,7 @@ async def check_birthdays():
 @tasks.loop(hours=72)
 async def clear_cache():
   print("clearing cache")
-  logger.info("clearing cache")
+  logger("clearing cache")
   folder_directory = f"{os.getcwd()}/cache"
   for file in os.listdir(folder_directory):
     os.remove(f"{folder_directory}/{file}")
@@ -620,7 +619,7 @@ async def katil(interaction: discord.Interaction):
 
 @tree.command(name="kanala_katıl",
               description="sunucuda belirli bir kanala ya da rastgele bir kanala katılır")
-async def channel_join(interaction: discord.Interaction, channel = None):
+async def channel_join(interaction: discord.Interaction, channel: discord.VoiceChannel = None): # type: ignore
   if channel is not None:
     await interaction.response.defer()
     await channel.connect()
@@ -852,19 +851,18 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
 
   queue = LifoQueue()
 
-  coros = [youtube_download(url=info['url'], queue=queue, name=name)]
-
-  future = asyncio.gather(*coros)
-
-  t = threading.Thread(target=loop_in_thread, args=[loop, future])
+  t = threading.Thread(target=youtube_download, args=(info['url'], queue, name))
   t.start()
-
-  while not future.done():
+  print("running thread")
+  data = queue.get()
+  print(f"data status: {data['status']}")
+  while data['status'] == 'downloading':
     try:
-      data = queue.get_nowait()
-      print(data['percent'])
+      data = queue.get()
+      print(data['_percent_str'])
       embed = discord.Embed(title="Şarkı indiriliyor", description=f"[{info['title']}]", url=info['thumbnail'])
-      embed.add_field(name="İndirilen", value=data['percent'])
+      embed.add_field(name="İndirilen", value=str(data['_percent_str']))
+      embed.set_thumbnail(url=info['thumbnail'])
       await sent_message.edit(embed=embed)
     except Empty as e:
       print("no status updates available")
