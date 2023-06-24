@@ -1,6 +1,10 @@
+import discord
+
 class video_data(object):
     
-    def __init__(self, title: str = None, image_url: str = None, yt_dlp_dict: dict = None):
+    def __init__(self, title: str = None, image_url: str = None, yt_dlp_dict: dict = None, last_webhook: discord.Webhook = None) -> None:
+        if discord.Webhook is not None:
+            self.last_webhook = last_webhook
         if image_url is not None:
             self.thumbnail_url = image_url
         else:

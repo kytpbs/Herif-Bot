@@ -1,4 +1,7 @@
+import asyncio
+import functools
 import json
+import threading
 import time
 import aiohttp
 import discord
@@ -6,10 +9,11 @@ import yt_dlp
 import os
 import random
 import openai
-import logging
 import youtube_tools
 from Server_Check import is_server
+from queue import Empty, LifoQueue
 from Read import jsonRead
+from Read import log as logger
 from datetime import datetime, time, timezone
 from discord import app_commands
 from discord.ext import tasks
@@ -24,15 +28,7 @@ ydl_opts = {
   'nooverwrites': False,
 }
 
-logging.basicConfig(level=logging.INFO)
-if is_server():
-  import google.cloud.logging
-  google_client = google.cloud.logging.Client()
-  google_client.setup_logging()
-  logger = google_client.logger('discord')
-else:
-  logging.basicConfig(filename='log.txt', level=logging.INFO)
-  logger = logging.getLogger('discord')
+#get tokens
 try:
   import Token
   token = Token.dev_token
@@ -76,17 +72,17 @@ class MyClient(discord.Client):
       await tree.sync()
       self.synced = True
     print('Logged on as', self.user)
-    logger.info(f"Logged on as {self.user}")
+    logger(f"Logged on as {self.user}")
 
   async def on_member_join(self, member: discord.Member):
     print(member.name, "Katıldı! ")
-    logger.info(f"{member.name}, joined {member.guild.name}")
+    logger(f"{member.name}, joined {member.guild.name}")
     general_channel = get_general_channel(member.guild)
     if isinstance(general_channel, discord.TextChannel):
       await general_channel.send(f"Zeki bir insan valrlığı olan {member.mention} Bu saçmalık {member.guild} serverına katıldı. Hoşgeldin!")
 
   async def on_member_remove(self, member: discord.Member):
-    logger.info(f"{member.name}, left {member.guild.name}")
+    logger(f"{member.name}, left {member.guild.name}")
     channel = get_general_channel(member.guild)
     if isinstance(channel, discord.TextChannel):
       await channel.send("Zeki bir insan valrlığı olan " + "**" + str(member) +
@@ -95,7 +91,8 @@ class MyClient(discord.Client):
 
   async def on_guild_channel_create(self, channel):
     print(channel, "Oluşturuldu")
-    logger.info(f"At {channel.guild.name}, {channel} was created.")
+    logger(f"At {channel.guild.name}, {channel} was created.")
+
     deleted_messages_channel = self.get_channel(deleted_messages_channel_id)
     if isinstance(deleted_messages_channel, discord.TextChannel):
       await deleted_messages_channel.send(
@@ -103,7 +100,7 @@ class MyClient(discord.Client):
   
   async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
     print(channel, "Silindi")
-    logger.info(f"At {channel.guild.name}, {channel} was deleted.")
+    logger(f"At {channel.guild.name}, {channel} was deleted.")
     deleted_messages_channel = self.get_channel(deleted_messages_channel_id)
     if isinstance(deleted_messages_channel, discord.TextChannel):
       message = await deleted_messages_channel.send(
@@ -113,7 +110,8 @@ class MyClient(discord.Client):
       self.deleted = True
 
   async def on_reaction_add(self, reaction: discord.Reaction, user):
-    logger.info(f"{user.name} reacted with {reaction.emoji} to {reaction.message.content}")
+    
+    logger(f"{user.name} reacted with {reaction.emoji} to {reaction.message.content}")
     if user == self.user:
       return
     print(reaction.emoji, "Eklendi")
@@ -132,21 +130,51 @@ class MyClient(discord.Client):
         return
 
   async def on_member_update(self, before: discord.Member, after: discord.Member):
-    pfp = before.avatar_url
-    print("Profil değişti:", before)
-    logger.info(f"{before.name}'s profile picture changed.")
-    profile_change = discord.Embed(title="Biri profilini deiğiştirdi amk.",
-                                   description="Eski Hali: " + str(before) +
-                                   "\n Yeni Hali: " + str(after),
-                                   color=green)
+    embed = discord.Embed(title="Biri profilini deiğiştirdi amk.", description=after.mention, color=cyan)
+    
+    if before.nick != after.nick:
+      logger(f"{before.name}'s nickname changed from {before.nick} to {after.nick}")
+      embed.add_field(name="Eski Nick:", value=before.nick, inline=False)
+      embed.add_field(name="Yeni Nick:", value=after.nick, inline=False)
+    
+    if before.avatar != after.avatar:
+      logger(f"{before.name}'s profile picture changed.")
+      
+      if before.avatar is None:
+        embed.add_field(name="Eski Profil Fotoğrafı:", value="Yok", inline=False)
+      else:
+        if after.avatar is None:
+          embed.set_thumbnail(url=before.avatar.url)
+        else:
+          embed.add_field(name="Eski Profil Fotoğrafı:", value=before.avatar.url, inline=False)
+      if after.avatar is None:
+        embed.add_field(name="Yeni Profil Fotoğrafı:", value="Yok", inline=False)
+      else:
+        embed.set_thumbnail(url=after.avatar.url)
+
+    if before.roles != after.roles:
+      logger(f"{before.name}'s roles changed.")
+      
+      for role in before.roles:
+        if role not in after.roles:
+          embed.add_field(name="Rol Silindi:", value=role.mention, inline=False)
+
+      for role in after.roles:
+        if role not in before.roles:
+          embed.add_field(name="Rol Eklendi:", value=role.mention, inline=False)
+    
+    if before.status != after.status:
+      logger(f"{before.name}'s status changed from {before.status} to {after.status}")
+      embed.add_field(name="Eski Durum:", value=before.status, inline=False)
+      embed.add_field(name="Yeni Durum:", value=after.status, inline=False)
+    
     channel = self.get_channel(deleted_messages_channel_id)
-    profile_change.set_image(url=pfp)
     if isinstance(channel, discord.TextChannel):
-      await channel.send(embed=profile_change)
+      await channel.send(embed=embed)
 
   async def on_member_ban(self, guild: discord.Guild, user: discord.Member):
     channel = get_general_channel(guild)
-    logger.info(f"{user.name} was banned from {guild.name}")
+    logger(f"{user.name} was banned from {guild.name}")
     if isinstance(channel, discord.TextChannel):
       await channel.send("Ah Lan " + str(user) + " Adlı kişi " + str(guild) +
                         " serverından banlandı ")
@@ -154,11 +182,12 @@ class MyClient(discord.Client):
     raise RuntimeError(f"Kanal Bulunamadı: aranan id: {general_chat_id}")
 
   async def on_member_unban(self, guild: discord.Guild, user: discord.User):
-    logging.info(f"{user.name} was unbanned from {guild.name}")
+    logger(f"{user.name} was unbanned from {guild.name}")
     invite = guild.text_channels[0].create_invite(target_user=user, reason="Ban kaldırıldı, sunucuya geri davet ediliyor", max_uses=1)
-    await user.send(f"artık {guild.name} sunucusuna geri girebilirsin. giriş linkin: {invite}")
-    print(f"{user} unbanned from {guild}, sending a DM")
-
+    try:
+      await user.send(f"artık {guild.name} sunucusuna geri girebilirsin. giriş linkin: {invite}")
+    except discord.Forbidden:
+      logger(f"Couldn't send message to {user.name}")
     channel = self.get_channel(general_chat_id)
     if isinstance(channel, discord.TextChannel):
       await channel.send(
@@ -220,7 +249,7 @@ class MyClient(discord.Client):
     if isinstance(channel, discord.TextChannel) and embeds2 is not None:
       await channel.send(embeds=embeds2)
 
-  async def on_message(self, message: discord.Message):
+  async def on_message(self, message):
     Message_Content = message.content
     Message_Content_Lower = Message_Content.lower()
     user = message.author
@@ -243,11 +272,15 @@ class MyClient(discord.Client):
 
     if isinstance(channel, discord.DMChannel):
       #is response to a message
-      if message.reference is not None:
+      if message.reference is not None and message.reference.resolved is not None and not isinstance(message.reference.resolved, discord.DeletedReferencedMessage):
         print(f"Message is a response to a message that is {message.reference.resolved.content}")
-        await message.reply(gpt(Message_Content, "You are in a DM channel", message.reference.resolved.content)['content'])
+        answer = gpt(Message_Content, "You are in a DM channel", message.reference.resolved.content)
+        if answer != -1:
+          await message.reply(answer['content'])
       else:
-        await message.reply(gpt(Message_Content, "You are in a DM channel")['content'])
+        answer = gpt(Message_Content, "You are in a DM channel")
+        if answer != -1:
+          await message.reply(answer['content'])
 
     if Time == "06:11:":  #9:11 for +3 timezone
       await channel.send("🛫🛬💥🏢🏢")
@@ -400,6 +433,28 @@ def get_user_and_date_from_string(dict: dict):
 
   return new_dict
 
+def loop_in_thread(loop, future):
+    loop.run_until_complete(future)
+
+def yt_dlp_hook(queue: LifoQueue, download):
+    """
+    download Hook
+
+    Args:
+        download (_type_): _description_
+    """
+    # Instead of logging the data just add the latest data to the queue
+    queue.put(download)
+
+def youtube_download(url, queue: LifoQueue, name):
+  yt_dlp_hook_partial = functools.partial(yt_dlp_hook, queue)
+  
+  ydl_opts["outtmpl"] = name
+  ydl_opts["progress_hooks"] = [yt_dlp_hook_partial]
+  
+  with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    return ydl.download(url_list=[url])
+
 async def get_voice(interaction: discord.Interaction):
   voices = interaction.client.voice_clients
   
@@ -495,7 +550,7 @@ async def ping(interaction: discord.Interaction):
 @tree.command(name="olustur", description="botun senin ayarladığın mesajlara cevap verebilmesini sağlar")
 async def olustur(interaction: discord.Interaction, yazı: str, cevap: str, degistir: bool = False):
   if Costom_Responses.get(yazı) is not None:
-    if not interaction.user.guild_permissions.administrator:
+    if isinstance(interaction.user, discord.User) or not interaction.user.guild_permissions.administrator:
       await interaction.response.send_message(f"Bu mesaja zaten bir cevap var: {Costom_Responses[yazı]}, " +
                                               "lütfen başka bir mesaj deneyin",
                                               ephemeral=True)
@@ -514,6 +569,7 @@ async def olustur(interaction: discord.Interaction, yazı: str, cevap: str, degi
       embed.add_field(name="Eski Cevap", value=eski_cevap, inline=False)
       await interaction.response.send_message(embed=embed)
       return
+  
   Costom_Responses[yazı] = cevap
   with open("responses.json", "w") as f:
     json.dump(Costom_Responses, f, indent=4)
@@ -564,11 +620,16 @@ async def katil(interaction: discord.Interaction):
 
 @tree.command(name="kanala_katıl",
               description="sunucuda belirli bir kanala ya da rastgele bir kanala katılır")
-async def channel_join(interaction: discord.Interaction, channel: discord.VoiceChannel = None):
+async def channel_join(interaction: discord.Interaction, channel = None):
   if channel is not None:
     await interaction.response.defer()
     await channel.connect()
     await interaction.followup.send(f'"{channel.mention}" adlı kanala katıldım!')
+    return
+  
+  if interaction.guild is None:
+    await interaction.response.send_message("Bu komutu kullanmak için bir sunucuda olmalısın",
+                                            ephemeral=True)
     return
   
   kanallar = interaction.guild.voice_channels
@@ -579,7 +640,7 @@ async def channel_join(interaction: discord.Interaction, channel: discord.VoiceC
 @tree.command(name="dur", description="Sesi durdurur")
 async def dur(interaction: discord.Interaction):
   voices = interaction.client.voice_clients
-  if not isinstance(interaction.user, discord.Member):
+  if not isinstance(interaction.user, discord.Member) or interaction.guild is None:
     await interaction.response.send_message("Bu komutu kullanmak için bir sunucuda olmalısın",
                                             ephemeral=True)
     return
@@ -596,12 +657,12 @@ async def dur(interaction: discord.Interaction):
     await interaction.response.send_message("Bot ile aynı ses kanalında değilsin!", ephemeral=True)
     return
 
-  if not voice.is_playing():
+  if not voice.is_playing(): # type: ignore
     await interaction.response.send_message("Bot Zaten bir Ses Çalmıyor", ephemeral=True)
     return
-  voice.pause()
+  voice.pause() # type: ignore
   embed = discord.Embed(title="Ses Durduruldu", color=cyan)
-  played = last_played.get_video_data(interaction.guild_id)
+  played = last_played.get_video_data(interaction.guild.id)
   if played.has_data():
     embed.set_thumbnail(url=played.thumbnail_url)
     embed.add_field(name="Şarkı", value=played.title, inline=False)
@@ -609,8 +670,8 @@ async def dur(interaction: discord.Interaction):
 
 @tree.command(name="devam_et", description="Sesi devam ettirir")
 async def devam_et(interaction: discord.Interaction):
-  if not isinstance(interaction.user, discord.Member):
-    await interaction.response.send_message("Bir kullanıcı değilsin hatası, lütfen tekrar deneyin",
+  if not isinstance(interaction.user, discord.Member) or interaction.guild is None:
+    await interaction.response.send_message("Bu komutu kullanmak için bir sunucuda olmalısın",
                                             ephemeral=True)
     return
   if interaction.user.voice is None:
@@ -637,7 +698,7 @@ async def devam_et(interaction: discord.Interaction):
 
   voice.resume()
   embed = discord.Embed(title=f"{voice.channel.mention} kanalında Ses Devam Ettirildi", color=cyan)
-  played = last_played.get_video_data(interaction.guild_id)
+  played = last_played.get_video_data(interaction.guild.id)
   if played.has_data():
     embed.set_thumbnail(url=played.thumbnail_url)
     embed.add_field(name="Çalınan", value=played.title, inline=False)
@@ -761,29 +822,63 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
                                             ephemeral=True)
     return
   
+    # Get the search query from the message content
+  
   await interaction.response.defer()
-  ydl_opts["outtmpl"] = f"{os.getcwd()}/cache/{interaction.guild.id}.mp3"
-  sent_message = await interaction.followup.send(f"{mesaj} Youtube da aranıyor lütfen bekleyin...", ephemeral=False, wait=True)
-  # Get the search query from the message content
-  info = YoutubeDL.extract_info(f"ytsearch:{mesaj}", download=False)
-  if info is None:
+  with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    ydt = ydl.extract_info(f"ytsearch:{mesaj}", download=False)
+    
+  if ydt is None:
     await interaction.followup.send("Youtube da bulunamadı lütfen tekrar dene!", ephemeral=True)
     return
+  info = ydt['entries'][0]
   played = last_played.get_video_data(interaction.guild.id)
-  if played.title != info['title']:
-    # Download Music
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-      # Search for the video on YouTube
-      yds = ydl.extract_info(f"ytsearch:{mesaj}", download=True)
-      last_played.set_video_data(interaction.guild.id,youtube_tools.video_data(yt_dlp_dict=yds))
-      video_info = yds['entries'][0]
+  
+  if played.title == info['title']:
+    audio_source = discord.FFmpegPCMAudio(f'{os.getcwd()}/cache/{interaction.guild.id}.mp3')
+    voice.play(audio_source)
+    embed = discord.Embed(title="Şarkı Çalınıyor", description=f"[{info['title']}]")
+    embed.set_thumbnail(url=info['thumbnail'])
+    await interaction.followup.send(embed=embed)
+    return
 
+  embed = discord.Embed(title="Şarkı indiriliyor", description=f"[{info['title']}]")
+  embed.set_thumbnail(url=info['thumbnail'])
+  sent_message = await interaction.followup.send(embed=embed, wait=True)
+
+  name = f"{os.getcwd()}/cache/{interaction.guild.id}.mp3"
+  
+  loop = asyncio.new_event_loop()
+
+  queue = LifoQueue()
+
+  coros = [youtube_download(url=info['url'], queue=queue, name=name)]
+
+  future = asyncio.gather(*coros)
+
+  t = threading.Thread(target=loop_in_thread, args=[loop, future])
+  t.start()
+
+  while not future.done():
+    try:
+      data = queue.get_nowait()
+      print(data['percent'])
+      embed = discord.Embed(title="Şarkı indiriliyor", description=f"[{info['title']}]", url=info['thumbnail'])
+      embed.add_field(name="İndirilen", value=data['percent'])
+      await sent_message.edit(embed=embed)
+    except Empty as e:
+      print("no status updates available")
+    finally:
+      await asyncio.sleep(0.1)
+  loop.stop()
   # Play the audio in the voice channel
   audio_source = discord.FFmpegPCMAudio(f'{os.getcwd()}/cache/{interaction.guild.id}.mp3')
   voice.play(audio_source)
-  embed = discord.Embed(title="Şarkı Çalınıyor", description=f"{video_info['title']}", color=cyan)
-  embed.set_thumbnail(url=video_info['thumbnail'])
-  await sent_message.edit(content="",embed=embed)
+  embed = discord.Embed(title="Şarkı Çalınıyor", description=f"{info['title']}", color=cyan)
+  embed.set_thumbnail(url=info['thumbnail'])
+  await sent_message.edit(embed=embed)
+  
+
 
 @tree.command(name="neden", description="komke")
 async def neden(interaction):
