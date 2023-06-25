@@ -832,15 +832,17 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
     return
   info = ydt['entries'][0]
   played = last_played.get_video_data(interaction.guild.id)
+  print(f"Played: {played.title} Info: {info['title']}")
   
   if played.title == info['title']:
+    print("Aynı şarkı çalınıyor")
     audio_source = discord.FFmpegPCMAudio(f'{os.getcwd()}/cache/{interaction.guild.id}.mp3')
     voice.play(audio_source)
-    embed = discord.Embed(title="Şarkı Çalınıyor", description=f"[{info['title']}]")
+    embed = discord.Embed(title="Şarkı Çalınıyor", description=f"[{info['title']}]", color=cyan)
     embed.set_thumbnail(url=info['thumbnail'])
     await interaction.followup.send(embed=embed)
     return
-
+  last_played.set_video_data(guild_id=interaction.guild.id, video_data=youtube_tools.video_data(yt_dlp_dict=ydt))
   embed = discord.Embed(title="Şarkı indiriliyor", description=f"[{info['title']}]")
   embed.set_thumbnail(url=info['thumbnail'])
   sent_message = await interaction.followup.send(embed=embed, wait=True)
@@ -857,17 +859,13 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
   data = queue.get()
   print(f"data status: {data['status']}")
   while data['status'] == 'downloading':
-    try:
-      data = queue.get()
-      print(data['_percent_str'])
-      embed = discord.Embed(title="Şarkı indiriliyor", description=f"[{info['title']}]", url=info['thumbnail'])
-      embed.add_field(name="İndirilen", value=str(data['_percent_str']))
-      embed.set_thumbnail(url=info['thumbnail'])
-      await sent_message.edit(embed=embed)
-    except Empty as e:
-      print("no status updates available")
-    finally:
-      await asyncio.sleep(0.1)
+    data = queue.get()
+    print(data['_percent_str'])
+    embed = discord.Embed(title="Şarkı indiriliyor", description=f"[{info['title']}]", url=info['thumbnail'], color=cyan)
+    print(data['_percent_str'])
+    embed.add_field(name="İndirilen", value=str(data['_percent_str']))
+    embed.set_thumbnail(url=info['thumbnail'])
+    await sent_message.edit(embed=embed)
   loop.stop()
   # Play the audio in the voice channel
   audio_source = discord.FFmpegPCMAudio(f'{os.getcwd()}/cache/{interaction.guild.id}.mp3')
