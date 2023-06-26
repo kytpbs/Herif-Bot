@@ -33,5 +33,4 @@ if __name__ == "__main__":
     file_name = input(">>> ")
     print(jsonRead(file_name))
   elif inp == "2":
-    exit()
-  
+    exit()    
