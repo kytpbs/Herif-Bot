@@ -13,3 +13,5 @@ poetry.lock
 *.env
 log.txt
 birthdays.json
+spotify_tokens.py
+
