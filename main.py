@@ -402,6 +402,7 @@ class MyClient(discord.Client):
         await message.reply(Message_Content.split(" ")[1])
 
   async def on_error(self, event_method: str, /, *args, **kwargs):
+    print("Error: " + event_method)
     logger.error(event_method)
     return
     
@@ -415,6 +416,24 @@ def get_general_channel(guild: discord.Guild):
       return channel
   return None
 
+def get_user_and_date_from_string(dict: dict):
+  new_dict = {}
+  for user_id, date in dict.items():
+    user = client.get_user(int(user_id))
+    if user is None:
+      continue
+    dates = date.split("-")
+    if len(dates) != 3:
+      e = ValueError("Hatalı tarih formatı, lütfen düzeltin!")
+      print(e)
+      continue
+    date_obj = datetime(int(dates[0]), int(dates[1]), int(dates[2]))
+    print(f"{user} : {date_obj}")
+    if date_obj is None:
+      continue
+    new_dict[user] = date_obj
+
+  return new_dict
 
 def yt_dlp_hook(queue: LifoQueue, download):
     """
@@ -831,8 +850,6 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
 
   name = f"{os.getcwd()}/cache/{interaction.guild.id}.mp3"
   
-  loop = asyncio.new_event_loop()
-
   queue = LifoQueue()
 
   t = threading.Thread(target=youtube_download, args=(info['url'], queue, name))
@@ -848,7 +865,6 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
     embed.add_field(name="İndirilen", value=str(data['_percent_str']))
     embed.set_thumbnail(url=info['thumbnail'])
     await sent_message.edit(embed=embed)
-  loop.stop()
   # Play the audio in the voice channel
   audio_source = discord.FFmpegPCMAudio(f'{os.getcwd()}/cache/{interaction.guild.id}.mp3')
   voice.play(audio_source)
@@ -856,7 +872,6 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
   embed.set_thumbnail(url=info['thumbnail'])
   await sent_message.edit(embed=embed)
   
-
 
 @tree.command(name="neden", description="komke")
 async def neden(interaction):
@@ -891,7 +906,11 @@ async def sustur_ac(interaction: discord.Interaction, kullanıcı: discord.User)
 async def chatgpt(interaction: discord.Interaction, mesaj: str):
   await interaction.response.defer(ephemeral=False)
   print("ChatGPT istek:", mesaj)
-  cevap = gpt(mesaj, use_function=True)[['content']]
+  cevap1 = gpt(mesaj, use_function=True)
+  if cevap1 == -1:
+    await interaction.followup.send("Bir hata oluştu, lütfen tekrar deneyin", ephemeral=True)
+    return
+  cevap = cevap1[['content']]
   print(f"Cevap: {cevap}")
   if cevap.get("function_call"):
     function_name = cevap['function_call']['name']
@@ -909,10 +928,14 @@ async def foto(interaction: discord.Interaction, mesaj: str):
   embeds.append(embed)
   try:
     image = openai.Image.create(prompt=mesaj, n=1)
-    if image is not None:
+    if image is not None and isinstance(image, dict):
       images = image["data"]
       image_url = image["data"][0]["url"]
       embed.set_image(url=image_url)
+    else:
+      embed = discord.Embed(title="HATA", description="Bir hata oluştu: 'image bulunamadı'")
+      return
+  
   except openai.InvalidRequestError:
     embed = discord.Embed(title="HATA", description="+18 olduğu için izin verilmedi (kapatılamıyor)")
     return
