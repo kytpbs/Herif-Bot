@@ -707,16 +707,15 @@ async def cik(interaction: discord.Interaction, zorla: bool = False):
   self = interaction.client
   voices = self.voice_clients
 
-  if not isinstance(interaction.user, discord.Member):
-      await interaction.response.send_message("Bir kullanıcı değilsin hatası, lütfen tekrar deneyin",
-                                              ephemeral=True)
-      print(Warning("Bir Kullanıcı Değil"))
+  if not isinstance(interaction.user, discord.Member) or interaction.guild is None:
+      await interaction.response.send_message("Bu komutu bir sunucuda kullanmalısın", ephemeral=True)
       return
   
   if not isinstance(interaction.user.voice, discord.VoiceState):
     await interaction.response.send_message("Ses Kanalında Değilsin.",
                                             ephemeral=True)
     return
+    
   
   for i in voices:
     if not isinstance(i, discord.VoiceClient):
@@ -731,7 +730,7 @@ async def cik(interaction: discord.Interaction, zorla: bool = False):
         i.stop()
       await i.disconnect()
       await interaction.response.send_message(f"{i.channel} adlı kanaldan çıktım")
-      break
+      return
 
     if i.guild == interaction.guild:
       if zorla:
@@ -739,7 +738,7 @@ async def cik(interaction: discord.Interaction, zorla: bool = False):
           i.stop()
         await i.disconnect()
         await interaction.response.send_message(f"{i.channel} adlı kanaldan çıktım")
-        break
+        return
       
       if interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("Botla aynı kanalda değilsin, zorla kullanarak çıkabilirsin", ephemeral=True)
@@ -748,7 +747,7 @@ async def cik(interaction: discord.Interaction, zorla: bool = False):
       await interaction.response.send_message("Bot ile aynı kanalda değilsin", ephemeral=True)
 
   else:
-    await interaction.response.send_message(f'Seninle Aynı Kanalda değilim galiba...')
+    await interaction.response.send_message(f'Bot zaten {interaction.guild.name} adlı sunucuda bir sesli kanalda değil!', ephemeral=True)
 
 @tree.command(name="çal", description="Youtubedan bir şey çalmanı sağlar (yeni!)")
 async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False):
