@@ -3,7 +3,6 @@ import functools
 import json
 import threading
 import time
-import aiohttp
 import discord
 import yt_dlp
 import os
@@ -11,13 +10,12 @@ import random
 import openai
 import youtube_tools
 from Server_Check import is_server
-from queue import Empty, LifoQueue
+from queue import LifoQueue
 from Read import jsonRead
 from Read import log as logger
 from datetime import datetime, time, timezone
 from discord import app_commands
 from discord.ext import tasks
-from yt_dlp import YoutubeDL
 
 ydl_opts = {
   'format': 'bestaudio',
@@ -852,7 +850,7 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
   
   queue = LifoQueue()
 
-  t = threading.Thread(target=youtube_download, args=(info['url'], queue, name))
+  t = threading.Thread(target=youtube_download, args=(info['webpage_url'], queue, name))
   t.start()
   print("running thread")
   data = queue.get()
@@ -872,7 +870,6 @@ async def cal(interaction: discord.Interaction, mesaj: str, zorla: bool = False)
   embed.set_thumbnail(url=info['thumbnail'])
   await sent_message.edit(embed=embed)
   
-
 @tree.command(name="neden", description="komke")
 async def neden(interaction):
   await interaction.response.send_message("Kaplumbağa neden")
