@@ -1,17 +1,22 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
+# Editor Stuff
+*.idea/
+*.vscode/
+# Tokens
 Token.py
 OpenAiKey.py
-*.xml
-*.pyc
-Replit.txt
-*.iml
-Youtube.py
-*.mp3
-.replit
-replit.nix
-venv/
-poetry.lock
-*.env
-log.txt
-birthdays.json
 spotify_tokens.py
-
+*.env
+# Any log files
+*.log
+# Any kind of cache
+cache/
+__pycache__/
+birthdays.json
