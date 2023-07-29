@@ -16,7 +16,7 @@ if openai.api_key is None:
 
 
 # noinspection PyBroadException
-def question(message: str, user_name: str = "MISSING", server_name: str = SERVER_NAME) -> str | int:
+def question(message: str, user_name: str = "MISSING", server_name: str = SERVER_NAME):
   print(f"question: {message}")
   messages = [
     {
