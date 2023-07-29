@@ -49,7 +49,7 @@ def question(message: str, user_name: str = "MISSING", server_name: str = SERVER
 
 # noinspection PyBroadException
 def chat(message_response_dict: dict[str, str], new_message: str = "MISSING",
-         user_name: str = "MISSING", dont_send_token_usage: bool = True) -> dict | int:
+         user_name: str = "MISSING", dont_send_token_usage: bool = True):
   """
   message_response_dict: left is the message, right is the response from the bot
   """
