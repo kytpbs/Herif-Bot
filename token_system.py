@@ -44,7 +44,7 @@ def get_token() -> str:
   If there are any args when starting main, It will use that instead (main/dev)
   """
   if is_server():
-    if sys.argv[1] == "dev":
+    if len(sys.argv) > 1 and sys.argv[1] == "dev":
       return get_dev_token()
     return get_main_token()
 
