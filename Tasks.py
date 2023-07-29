@@ -16,7 +16,7 @@ class task_list:
   async def check_birthdays():
     import client as cl
     client = cl.get_client_instance()
-    birthdays = cl.get_client_instance()
+    birthdays = cl.get_birthdays()
     logging_system.log("Checking birthdays")
     general = client.get_channel(GENERAL_CHAT_ID)
     if not isinstance(general, discord.TextChannel):
