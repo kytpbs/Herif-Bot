@@ -1,12 +1,13 @@
 # Testing_Stuff
 
-name: unit_test
+name: Run main.py
 
 on:
   push:
-    branches: [ master, dev, Refactor ]
+    branches-ignore:
+      - none
   pull_request:
-    branches: [ master, dev, Refactor ]
+    branches: [ master ]
     
 jobs:
   test:
