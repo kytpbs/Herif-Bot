@@ -38,7 +38,7 @@ class MyClient(discord.Client):
     print(member.name, "Katıldı! ")
     log(f"{member.name}, joined {member.guild.name}", level=DEBUG)
     general_channel = get_general_channel(member.guild)
-    if isinstance(general_channel, discord.TextChannel):
+    if general_channel is not None:
       await general_channel.send(
         f"Zeki bir insan valrlığı olan {member.mention} Bu saçmalık {member.guild} serverına katıldı. Hoşgeldin!")
 
