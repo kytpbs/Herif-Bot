@@ -63,11 +63,11 @@ def yt_dlp_hook(progress_queue: LifoQueue, download):
     progress_queue.put(download)
 
 
-def youtube_download(video_url, progress_queue: LifoQueue, file_name):
+def youtube_download(video_url, progress_queue: LifoQueue, file_path_with_name):
     print("Downloading")
     yt_dlp_hook_partial = functools.partial(yt_dlp_hook, progress_queue)
 
-    ydl_opts["outtmpl"] = file_name
+    ydl_opts["outtmpl"] = file_path_with_name
     ydl_opts["progress_hooks"] = [yt_dlp_hook_partial]
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
