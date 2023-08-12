@@ -88,16 +88,17 @@ async def pause(interaction: discord.Interaction, edit: bool = False):
     if not voice.is_playing():
         await interaction.response.send_message("Şu anda bir şey çalmıyorum.", ephemeral=True)
         return
-    
+    import views
+    view = views.voice_pause_view(timeout=None)
     embed = discord.Embed(title="Şarkı duraklatıldı", color=CYAN)
     played = last_played.get_video_data(interaction.guild.id)
     if played.has_data():
         embed.set_thumbnail(url=played.thumbnail_url)
         embed.add_field(name="Şarkı", value=played.title, inline=False)
     if edit:
-        await interaction.response.edit_message(content=None, embed=embed)
+        await interaction.response.edit_message(content=None, view=view, embed=embed)
         return
-    await interaction.response.send_message(embed=embed)
+    await interaction.response.send_message(embed=embed, view=view)
 
 
 async def resume(interaction: discord.Interaction, edit: bool = False):
@@ -113,15 +114,17 @@ async def resume(interaction: discord.Interaction, edit: bool = False):
     if not voice.is_paused():
         await interaction.response.send_message("Şu anda bir şey durdurulmamış.", ephemeral=True)
         return
+    import views
+    view = views.voice_pause_view(timeout=None)
     embed = discord.Embed(title="Şarkı devam ettirildi", color=CYAN)
     played = last_played.get_video_data(interaction.guild.id)
     if played.has_data():
         embed.set_thumbnail(url=played.thumbnail_url)
         embed.add_field(name="Şarkı", value=played.title, inline=False)
     if edit:
-        await interaction.response.edit_message(content=None, embed=embed)
+        await interaction.edit_original_response(content=None, view=view, embed=embed)
         return
-    await interaction.response.send_message(embed=embed)
+    await interaction.response.send_message(embed=embed, view=view)
 
 
 async def play(interaction: discord.Interaction, search: str):
@@ -140,6 +143,10 @@ async def play(interaction: discord.Interaction, search: str):
         return
     
     info: dict = ydt['entries'][0]
+    
+    import views
+    voice_view = views.voice_play_view(timeout=info['duration'] + 5)
+    
     video_path = f"{os.getcwd()}cache/{info['id']}.mp3"
     last_played.set_video_data(interaction.guild_id, Youtube.video_data(info['title'], info['thumbnail']))
     
@@ -147,7 +154,7 @@ async def play(interaction: discord.Interaction, search: str):
         voice.play(discord.FFmpegPCMAudio(video_path))
         embed = discord.Embed(title="Şarkı çalınıyor", description=info['title'], color=CYAN)
         embed.set_thumbnail(url=info['thumbnail'])
-        await interaction.followup.send(embed=embed)
+        await interaction.followup.send(embed=embed, view=voice_view)
         return
     embed = discord.Embed(title="Şarkı indiriliyor", description=info['title'], color=CYAN)
     sent_message = await interaction.followup.send(embed=embed, wait=True)
@@ -172,4 +179,4 @@ async def play(interaction: discord.Interaction, search: str):
     voice.play(audio_source)
     embed = discord.Embed(title="Şarkı çalınıyor", description=info['title'], color=CYAN)
     embed.set_thumbnail(url=info['thumbnail'])
-    await sent_message.edit(embed=embed)
+    await sent_message.edit(embed=embed, view=voice_view)
