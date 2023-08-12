@@ -235,7 +235,7 @@ class special_commands(app_commands.Group):
 tree = app_commands.CommandTree(discord_client)
 
 @tree.command(name="ping", description="Botun pingini gösterir")
-async def ping(self, interaction: discord.Interaction):
+async def ping(interaction: discord.Interaction):
   await interaction.response.send_message(f"Pong: {round(discord_client.latency * 1000)}ms")
 
 def get_tree_instance():
