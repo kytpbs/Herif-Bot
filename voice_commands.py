@@ -43,9 +43,11 @@ async def join(interaction: discord.Interaction, channel: discord.VoiceChannel =
         await interaction.response.send_message("Bu komutu kullanmak için sunucuda olman gerek.", ephemeral=True)
         return True, None
     
-    if channel is None and (interaction.user.voice is None or interaction.user.voice.channel is None):
-        await interaction.response.send_message("Ses kanalında değilsin.", ephemeral=True)
-        return True, None
+    if channel is None:
+        if (interaction.user.voice is None or interaction.user.voice.channel is None):
+            await interaction.response.send_message("Ses kanalında değilsin.", ephemeral=True)
+            return True, None
+        channel = interaction.user.voice.channel # type: ignore
     
     voice = interaction.guild.voice_client
     if voice is not None and isinstance(voice, discord.VoiceClient):
@@ -125,6 +127,7 @@ async def resume(interaction: discord.Interaction, edit: bool = False):
 async def play(interaction: discord.Interaction, search: str):
     responded, voice = await join(interaction, only_respond_on_fail=True)
     if responded or voice is None or interaction.guild_id is None:
+        print("responded or voice is None or interaction.guild_id is None")
         return
     if not interaction.response.is_done():
         await interaction.response.defer()
