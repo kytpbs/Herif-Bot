@@ -4,7 +4,7 @@ import discord
 import yt_dlp
 import Youtube
 from queue import Queue, LifoQueue
-from typing import Optional, Union
+
 
 
 from Constants import CYAN
@@ -35,7 +35,7 @@ async def leave(interaction: discord.Interaction):
         return
 
 
-async def join(interaction: discord.Interaction, channel: discord.VoiceChannel = None, only_respond_on_fail: bool = False) -> Union(tuple[bool, discord.VoiceClient], None):  # type: ignore
+async def join(interaction: discord.Interaction, channel: discord.VoiceChannel = None, only_respond_on_fail: bool = False):  # type: ignore # -> Union(tuple[bool, discord.VoiceClient], None cannot use because of python 3.9
     """
     Returns: Returns True if it has responded to the interaction, False if it hasn't.
     """
