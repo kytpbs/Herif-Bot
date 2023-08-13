@@ -172,7 +172,7 @@ async def play(interaction: discord.Interaction, search: str):
     import views
     voice_view = views.voice_play_view(timeout=info['duration'] + 5)
     
-    video_path = f"cache\\{video_id}.mp3"
+    video_path = f"cache/{video_id}.mp3"
     last_played.set_video_data(interaction.guild_id, Youtube.video_data(info['title'], info['thumbnail']))
     
     if os.path.isfile(video_path):  # video is cached and can be played
@@ -224,7 +224,7 @@ async def add_to_queue(interaction: discord.Interaction, search: str):
     info: dict = ydt['entries'][0]
     video_id = info['id']
     url = info['webpage_url']
-    video_path = f"cache\\{video_id}.mp3"
+    video_path = f"cache/{video_id}.mp3"
     
     if os.path.isfile(video_path):  # the video has been downloaded before
         embed = discord.Embed(title="Şarkı Sıraya Eklendi", description=f"{info['title']}", url=url ,color=CYAN)
