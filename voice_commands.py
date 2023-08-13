@@ -264,11 +264,14 @@ def create_next(interaction: discord.Interaction, edit: bool = True):
 
 
 async def next(interaction: discord.Interaction, edit: bool = False): # will be used to continue playing the next song in the queue too.
+    # means the queue has ended
     if play_path_queue.empty():
+        import views
+        view = views.voice_over_view(timeout=5)
         embed = discord.Embed(title="Çalma Sırası Bitti", description="Çalma sırası bitmiştir, bir şey çalmak için '/çal' komutunu kullanabilirsiniz", color=CYAN)
         if edit:
-            await interaction.edit_original_response(embed=embed, view=None)
-        await interaction.response.send_message(embed=embed)
+            await interaction.edit_original_response(embed=embed, view=view)
+        await interaction.response.send_message(embed=embed, view=view)
         return
     
     if interaction.guild is None or interaction.guild_id is None or not isinstance(interaction.user, discord.Member):

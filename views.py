@@ -1,3 +1,4 @@
+from typing import Optional
 import discord
 
 import voice_commands
@@ -33,7 +34,7 @@ class voice_pause_view(discord.ui.View):
     self.add_buttons()
   
   def add_buttons(self):
-    resume_button = discord.ui.Button(label="▶️", style=discord.ButtonStyle.blurple, custom_id="resume")
+    resume_button = discord.ui.Button(label="▶️", style=discord.ButtonStyle.secondary, custom_id="resume")
     
     async def resume_callback(interaction: discord.Interaction):
       await voice_commands.resume(interaction, edit=True)
@@ -41,3 +42,14 @@ class voice_pause_view(discord.ui.View):
     resume_button.callback = resume_callback
     
     self.add_item(resume_button)
+
+class voice_over_view(discord.ui.View):
+  def __init__(self, *, timeout = 180):
+      super().__init__(timeout=timeout)
+      self.add_buttons()
+  
+  def add_buttons(self):
+    leave_button = discord.ui.Button(label="Çık", style=discord.ButtonStyle.danger, custom_id="exit")
+    
+    leave_button.callback = voice_commands.leave
+    self.add_item(leave_button)
