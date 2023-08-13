@@ -277,7 +277,7 @@ class MyClient(discord.Client):
       await message.reply(f"PONG, ping: {round(self.latency * 1000)}ms")
 
     if message_content_lower == "katıl":
-      if not isinstance(user, discord.Member) or guild is "DM":
+      if not isinstance(user, discord.Member) or guild == "DM":
         await message.reply("bu komut sadece sunucukarda kullanılabilir.")
         return
       if user.voice is None:
