@@ -9,15 +9,15 @@ class voice_play_view(discord.ui.View):
         self.add_buttons()
         
     def add_buttons(self):
-        pause_button = discord.ui.Button(label="⏸️", style=discord.ButtonStyle.primary, custom_id="pause")
+        pause_button = discord.ui.Button(label="⏸️", style=discord.ButtonStyle.gray, custom_id="pause")
         skip_button = discord.ui.Button(label="⏭️", style=discord.ButtonStyle.secondary, custom_id="skip")
-        leave_button = discord.ui.Button(label="çık", style=discord.ButtonStyle.danger, custom_id="exit")
+        leave_button = discord.ui.Button(label="Çık", style=discord.ButtonStyle.danger, custom_id="exit")
         
         async def pause_callback(interaction: discord.Interaction):
             await voice_commands.pause(interaction, edit=True)
         
         async def skip_callback(interaction: discord.Interaction):
-            await interaction.response.send_message("Bu özellik henüz yapılmadı", ephemeral=True)
+            await voice_commands.next(interaction, edit=True)
         
         pause_button.callback = pause_callback
         skip_button.callback = skip_callback

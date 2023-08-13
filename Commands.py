@@ -40,8 +40,16 @@ class voice_commands(app_commands.Group):
     await vc_cmds.leave(interaction)
 
   @app_commands.command(name="çal", description="Youtubedan bir şey çalmanı sağlar")
-  async def cal(self, interaction: discord.Interaction, message: str):
-    await vc_cmds.play(interaction, message)
+  async def cal(self, interaction: discord.Interaction, arat: str):
+    await vc_cmds.play(interaction, arat)
+    
+  @app_commands.command(name="ekle", description="Sıraya müzik ekle")
+  async def add(self, interaction: discord.Interaction, arat: str):
+    await vc_cmds.add_to_queue(interaction, arat)
+  
+  @app_commands.command(name="liste", description="Çalma Listesini Gösterir")
+  async def show_queue(self, interaction: discord.Interaction):
+    await vc_cmds.list_queue(interaction)
 
 
 class voice_admin_commands(app_commands.Group):
