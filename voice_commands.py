@@ -129,7 +129,7 @@ async def resume(interaction: discord.Interaction, edit: bool = False):
         await interaction.response.send_message("Şu anda bir şey durdurulmamış.", ephemeral=True)
         return
     import views
-    view = views.voice_pause_view(timeout=None)
+    view = views.voice_play_view(timeout=None)
     embed = discord.Embed(title="Şarkı devam ettirildi", color=CYAN)
     played = last_played.get_video_data(interaction.guild.id)
     if played.has_data():
