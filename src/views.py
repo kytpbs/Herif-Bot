@@ -34,13 +34,16 @@ class voice_pause_view(discord.ui.View):
   
   def add_buttons(self):
     resume_button = discord.ui.Button(label="▶️", style=discord.ButtonStyle.secondary, custom_id="resume")
+    leave_button = discord.ui.Button(label="Çık", style=discord.ButtonStyle.danger, custom_id="exit")
     
     async def resume_callback(interaction: discord.Interaction):
       await voice_commands.resume(interaction, edit=True)
     
     resume_button.callback = resume_callback
+    leave_button.callback = voice_commands.leave
     
     self.add_item(resume_button)
+    self.add_item(leave_button)
 
 class voice_over_view(discord.ui.View):
   def __init__(self, *, timeout = 180):
