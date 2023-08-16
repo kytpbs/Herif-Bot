@@ -4,19 +4,18 @@ from datetime import datetime, time, timezone
 import discord
 from discord.ext import tasks
 
-import logging_system
-from Constants import GENERAL_CHAT_ID, BIRTHDAY_ROLE_ID
-from Read import json_read
-from birthday_helpers import get_user_and_date_from_string
+from Constants import BIRTHDAY_ROLE_ID, GENERAL_CHAT_ID
+from src import logging_system
+from src.birthday_helpers import get_user_and_date_from_string
 
 
 class task_list:
   @staticmethod
   @tasks.loop(time=time(hour=6, minute=30, tzinfo=timezone.utc))  # 9.30 for +3 timezone
   async def check_birthdays():
-    import client as cl
-    client = cl.get_client_instance()
-    birthdays = cl.get_birthdays()
+    import client as Client
+    client = Client.get_client_instance()
+    birthdays = Client.get_birthdays()
     logging_system.log("Checking birthdays")
     general = client.get_channel(GENERAL_CHAT_ID)
     if not isinstance(general, discord.TextChannel):

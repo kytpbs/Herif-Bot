@@ -2,12 +2,12 @@ from datetime import datetime
 
 import discord
 
-import GPT
 from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID
-from Read import json_read
-from Tasks import start_tasks
-from helper_functions import get_general_channel
-from logging_system import log, DEBUG
+from src import GPT
+from src.helper_functions import get_general_channel
+from src.logging_system import DEBUG, log
+from src.Read import json_read
+from src.Tasks import start_tasks
 
 custom_responses = json_read('responses.json')
 birthdays = json_read('birthdays.json')
@@ -24,7 +24,7 @@ class MyClient(discord.Client):
 
     async def on_ready(self):
         await self.wait_until_ready()
-        import commands
+        from src import commands
         tree = commands.get_tree_instance()
         if not self.synced:
             await tree.sync()

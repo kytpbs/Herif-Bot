@@ -5,12 +5,10 @@ import discord
 import openai
 from discord import app_commands
 
-import GPT
-import voice_commands as vc_cmds
-import Youtube
-import client
-from Constants import CYAN, KYTPBS_TAG, BOT_ADMIN_SERVER_ID
-from birthday_helpers import get_user_and_date_from_string
+import src.voice_commands as vc_cmds
+from Constants import BOT_ADMIN_SERVER_ID, CYAN, KYTPBS_TAG
+from src import GPT, Youtube, client
+from src.birthday_helpers import get_user_and_date_from_string
 
 birthdays = client.get_birthdays()
 custom_responses = client.get_custom_responses()

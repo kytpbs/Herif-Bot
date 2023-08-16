@@ -3,9 +3,9 @@ import os
 
 import openai
 from dotenv import load_dotenv
-from Constants import BOT_NAME, SERVER_NAME
 
-from logging_system import log
+from Constants import BOT_NAME, SERVER_NAME
+from src.logging_system import log
 
 load_dotenv()
 

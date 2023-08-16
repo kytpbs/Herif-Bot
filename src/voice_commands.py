@@ -1,3 +1,4 @@
+__package__ = "src"
 import os
 import threading
 from queue import LifoQueue, Queue
@@ -6,9 +7,9 @@ from typing import Any
 import discord
 import yt_dlp
 
-import Youtube
 from Constants import CYAN
-from voice_helpers import play_path_queue_guild
+from src import Youtube
+from src.voice_helpers import play_path_queue_guild
 
 MISSING = discord.utils.MISSING
 last_played = Youtube.get_last_played_guilded()
@@ -48,6 +49,13 @@ async def leave(interaction: discord.Interaction):
             f"Bot ile aynı kanalda değilsin. Botun kanalı: {voice.channel.mention}"
         )
         return
+
+    channel = voice.channel
+    await voice.disconnect()
+    embed = discord.Embed(
+        title="Ayrıldı", description=f"Bot başarıyla {channel.mention} adlı kanaldan ayrıldı.", color=CYAN
+    )
+    await interaction.response.send_message(embed=embed)
 
 
 async def join(interaction: discord.Interaction, channel: discord.VoiceChannel = MISSING, only_respond_on_fail: bool = False):  # -> Union(tuple[bool, discord.VoiceClient], None) cannot use because of python 3.9
@@ -133,7 +141,7 @@ async def pause(
         voice.stop()
         return
 
-    import views
+    from src import views
 
     view = views.voice_pause_view(timeout=None)
     embed = discord.Embed(title="Şarkı duraklatıldı", color=CYAN)
@@ -167,7 +175,7 @@ async def resume(interaction: discord.Interaction, edit: bool = False):
             "Şu anda bir şey durdurulmamış.", ephemeral=True
         )
         return
-    import views
+    from src import views
 
     view = views.voice_play_view(timeout=None)
     embed = discord.Embed(title="Şarkı devam ettirildi", color=CYAN)
@@ -212,7 +220,7 @@ async def play(interaction: discord.Interaction, search: str):
     video_id = info["id"]
     url = info["webpage_url"]
 
-    import views
+    from src import views
 
     voice_view = views.voice_play_view(timeout=info["duration"] + 5)
 
@@ -245,11 +253,11 @@ async def play(interaction: discord.Interaction, search: str):
     while thread.is_alive():
         try:
             data = queue.get(
-                timeout=120
-            )  # wait 2 minutes in case the download fckes up
+                timeout=60
+            )  # wait a minute in case the download fckes up
         except Exception as e:
             await sent_message.edit(content="Şarkı indirilemedi.", embed=None)
-            raise e  # re-raise the exception so I can see it in the logs
+            raise e  # re-raise the exception, so I can see it in the logs
         percent_str = str(data["_percent_str"])[8:-4]
         embed.clear_fields().add_field(
             name="İndirme durumu", value=percent_str, inline=False
@@ -331,7 +339,7 @@ async def add_to_queue(interaction: discord.Interaction, search: str):
 
     play_path_queue.put(
         video
-    )   # might create a race contidion but I don't care In case it does, it will just download the same video twice. 
+    )   # might create a race condition, but I don't care In case it does, it will just download the same video twice.
         # (just implemented it, It won't, install the video twice...)
         # I don't think it will be a problem, but if it is, I will fix it later
 
@@ -357,9 +365,9 @@ async def next_song(interaction: discord.Interaction, edit: bool = False):
     """
     # means the queue has ended
     if play_path_queue.empty():
-        import views
+        from src import views
 
-        view = views.voice_over_view(timeout=5)
+        view = views.voice_over_view(timeout=None)
         embed = discord.Embed(
             title="Çalma Sırası Bitti",
             description="Çalma sırası bitmiştir, bir şey çalmak için '/çal' komutunu kullanabilirsiniz",
@@ -405,7 +413,7 @@ async def next_song(interaction: discord.Interaction, edit: bool = False):
 
     info, video_path = play_path_queue.get()
 
-    embed = discord.Embed(title="Şarkı Çalınıyor", description=info["title"])
+    embed = discord.Embed(title="Şarkı Çalınıyor", description=info["title"], color=CYAN)
     embed.set_thumbnail(url=info["thumbnail"])
     audio_source = discord.FFmpegPCMAudio(video_path)
     voice.play(audio_source, after=run_next)
@@ -413,7 +421,7 @@ async def next_song(interaction: discord.Interaction, edit: bool = False):
     if not edit:
         await interaction.response.send_message(embed=embed)
         return
-    import views
+    from src import views
 
     view = views.voice_play_view(timeout=int(info["duration"]) + 5)
     await interaction.edit_original_response(content=None, embed=embed, view=view)

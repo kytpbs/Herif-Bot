@@ -1,35 +1,34 @@
-from dotenv import load_dotenv
-from logging_system import log, is_server
 import logging
 import os
 import sys
 
-loaded = load_dotenv()
+from dotenv import load_dotenv
 
-if loaded:  # os.getenv
-  token = os.getenv("TOKEN")
-  dev_token = os.getenv("DEV_TOKEN")
-else:  # set them None
-  token = None
-  dev_token = None
+from src.logging_system import is_server, log
+
+loaded = load_dotenv()
+token = os.getenv("TOKEN")
+dev_token = os.getenv("DEV_TOKEN")
 
 
 def get_main_token() -> str:
   if loaded and token is not None:
     return token  # os.getenv("TOKEN")
   try:
+    #  it might not exist thats why we use try catch
     from Token import TOKEN  # type: ignore
     return TOKEN
   except ImportError:
-    log("No token found", logging.ERROR)
+    log("No token found", level=logging.ERROR)
     return input("Enter your token: ")
 
 
 def get_dev_token() -> str:
-  if loaded and dev_token is not None:
+  if dev_token is not None:
     return dev_token  # os.getenv("DEV_TOKEN")
   try:
-    from Token import DEV_TOKEN
+    #  it might not exist thats why we use try catch
+    from Token import DEV_TOKEN  # type: ignore
     return DEV_TOKEN
   except ImportError:
     log("No dev token found", logging.CRITICAL)
@@ -53,6 +52,9 @@ def get_token() -> str:
       return get_dev_token()
     elif sys.argv[1] == "main":
       return get_main_token()
+    else:
+      log("Unknown arg", logging.ERROR)
+      print("Unknown arg, please use main or dev")
 
   take = input("Do you want to use the dev token? (y/n): ")
 

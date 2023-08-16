@@ -1,7 +1,6 @@
-from typing import Optional
 import discord
 
-import voice_commands
+from src import voice_commands
 
 
 class voice_play_view(discord.ui.View):
@@ -10,9 +9,9 @@ class voice_play_view(discord.ui.View):
         self.add_buttons()
         
     def add_buttons(self):
-        pause_button = discord.ui.Button(label="⏸️", style=discord.ButtonStyle.gray, custom_id="pause")
-        skip_button = discord.ui.Button(label="⏭️", style=discord.ButtonStyle.secondary, custom_id="skip")
-        leave_button = discord.ui.Button(label="Çık", style=discord.ButtonStyle.danger, custom_id="exit")
+        pause_button = discord.ui.Button(label="⏸️", style=discord.ButtonStyle.gray, custom_id="pause", row=0)
+        skip_button = discord.ui.Button(label="⏭️", style=discord.ButtonStyle.secondary, custom_id="skip", row=1)
+        leave_button = discord.ui.Button(label="Çık", style=discord.ButtonStyle.danger, custom_id="exit", row=2)
         
         async def pause_callback(interaction: discord.Interaction):
             await voice_commands.pause(interaction, edit=True)
