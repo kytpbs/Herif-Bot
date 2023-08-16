@@ -13,7 +13,6 @@ from src.voice_helpers import play_path_queue_guild
 
 MISSING = discord.utils.MISSING
 last_played = Youtube.get_last_played_guilded()
-play_path_queue: Queue[tuple[dict[str, Any], str]] = Queue(8)
 
 queues = play_path_queue_guild()
 
@@ -184,7 +183,7 @@ async def resume(interaction: discord.Interaction, edit: bool = False):
         embed.set_thumbnail(url=played.thumbnail_url)
         embed.add_field(name="Şarkı", value=played.title, inline=False)
     if edit:
-        await interaction.edit_original_response(content=None, view=view, embed=embed)
+        await interaction.response.edit_message(content=None, view=view, embed=embed)
         return
     await interaction.response.send_message(embed=embed, view=view)
 
@@ -306,25 +305,14 @@ async def add_to_queue(interaction: discord.Interaction, search: str):
     url = info["webpage_url"]
     video_path = f"cache/{video_id}.mp3"
 
-    if os.path.isfile(video_path):  # the video has been downloaded before
-        embed = discord.Embed(
-            title="Şarkı Sıraya Eklendi",
-            description=f"{info['title']}",
-            url=url,
-            color=CYAN,
+
+    if not os.path.isfile(video_path):  # the video has not been downloaded before
+        extra_queue = LifoQueue()
+
+        t = threading.Thread(
+            target=Youtube.youtube_download, args=(url, extra_queue, video_path)
         )
-        embed.set_thumbnail(url=info["thumbnail"])
-        await interaction.followup.send(embed=embed)
-        video = info, video_path
-        play_path_queue.put(video)
-        return
-
-    extra_queue = LifoQueue()
-
-    t = threading.Thread(
-        target=Youtube.youtube_download, args=(url, extra_queue, video_path)
-    )
-    t.start()
+        t.start()
 
     video = info, video_path
 
@@ -337,7 +325,8 @@ async def add_to_queue(interaction: discord.Interaction, search: str):
     embed.set_thumbnail(url=info["thumbnail"])
     await interaction.followup.send(embed=embed)
 
-    play_path_queue.put(
+    queues.append_to_queue(
+        interaction.guild_id,
         video
     )   # might create a race condition, but I don't care In case it does, it will just download the same video twice.
         # (just implemented it, It won't, install the video twice...)
@@ -358,26 +347,13 @@ def create_next(interaction: discord.Interaction, edit: bool = True):
     return new_next
 
 
-async def next_song(interaction: discord.Interaction, edit: bool = False):
+async def next_song(interaction: discord.Interaction, edit: bool = False, from_button: bool = False):
     """
     is used to continue playing the next song in the queue too.
     if there are no more songs in the queue, it will send a message saying so.
     """
-    # means the queue has ended
-    if play_path_queue.empty():
-        from src import views
 
-        view = views.voice_over_view(timeout=None)
-        embed = discord.Embed(
-            title="Çalma Sırası Bitti",
-            description="Çalma sırası bitmiştir, bir şey çalmak için '/çal' komutunu kullanabilirsiniz",
-            color=CYAN,
-        )
-        if edit:
-            await interaction.edit_original_response(embed=embed, view=view)
-        await interaction.response.send_message(embed=embed, view=view)
-        return
-
+    # all are the same thing but type checking works this wayZ
     if (
         interaction.guild is None
         or interaction.guild_id is None
@@ -394,30 +370,58 @@ async def next_song(interaction: discord.Interaction, edit: bool = False):
         )
         # clear the queue, as we are not on a voice chat anymore
         print("Clearing Queue")
+        play_path_queue = queues.get_queue(interaction.guild_id)
         with play_path_queue.mutex:
             play_path_queue.queue.clear()
             play_path_queue.all_tasks_done.notify_all()
             play_path_queue.unfinished_tasks = 0
         return
 
+        # means the queue has ended
+    
+    # means the queue has ended or The user pressed the next button when the queue was empty
+    if queues.empty(interaction.guild_id):
+        if voice.is_playing():
+            # they just pressed the next button
+            await interaction.response.send_message("Sırada Daha Fazla Şarkı Yok", ephemeral=True)
+            return
+        
+        from src import views
+        view = views.voice_over_view(timeout=None)
+        embed = discord.Embed(
+            title="Çalma Sırası Bitti",
+            description="Çalma sırası bitmiştir, bir şey çalmak için '/çal' komutunu kullanabilirsiniz",
+            color=CYAN,
+        )
+        if edit:
+            await interaction.response.edit_message(content=None, embed=embed, view=view)
+            return
+        await interaction.response.send_message(embed=embed, view=view)
+        return
+    
     if voice.is_paused():
+        print("Music is paused")
         # they just paused the music this runs on any update And I forgor!
         return
 
     if voice.is_playing():
-        voice.stop()
-        await interaction.response.defer(thinking=False, ephemeral=True)
+        print("Music is playing")
+        # they just pressed the contine button you idiot... (I forgot that sometimes it runs on any update)
+        if from_button:
+            voice.stop()
+            await interaction.response.defer(thinking=False, ephemeral=True)
         return
 
     run_next = create_next(interaction)
 
-    info, video_path = play_path_queue.get()
+    info, video_path = queues.get(interaction.guild_id)
 
     embed = discord.Embed(title="Şarkı Çalınıyor", description=info["title"], color=CYAN)
     embed.set_thumbnail(url=info["thumbnail"])
     audio_source = discord.FFmpegPCMAudio(video_path)
     voice.play(audio_source, after=run_next)
-    play_path_queue.task_done()
+    last_played.set_video_data(interaction.guild_id,Youtube.video_data(yt_dlp_dict=info))
+    queues.task_done(interaction.guild_id)
     if not edit:
         await interaction.response.send_message(embed=embed)
         return
@@ -431,11 +435,15 @@ async def list_queue(interaction: discord.Interaction):
     """
     Will send the queue ephemerically
     """
-    if play_path_queue.empty():
+    if interaction.guild is None or interaction.guild_id is None:
+        await interaction.response.send_message("Bu komut sadece sunucularda çalışır.")
+        return
+    
+    if queues.empty(interaction.guild_id):
         await interaction.response.send_message("Çalma Sırası Boş", ephemeral=True)
         return
     embed = discord.Embed(title="Çalma Sırası", color=CYAN)
     embed.description = ""
-    for i, (info, _) in enumerate(play_path_queue.queue, start=1):
+    for i, (info, _) in enumerate(queues.get_queue(interaction.guild.id).queue, start=1):
         embed.description = embed.description + f"{i}. {info['title']}\n"
     await interaction.response.send_message(embed=embed, ephemeral=True)
