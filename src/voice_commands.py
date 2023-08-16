@@ -174,8 +174,12 @@ async def resume(interaction: discord.Interaction, edit: bool = False):
             "Şu anda bir şey durdurulmamış.", ephemeral=True
         )
         return
+    
+    voice.resume()
+    print("resumed")
+    
     from src import views
-
+    
     view = views.voice_play_view(timeout=None)
     embed = discord.Embed(title="Şarkı devam ettirildi", color=CYAN)
     played = last_played.get_video_data(interaction.guild.id)
@@ -185,7 +189,6 @@ async def resume(interaction: discord.Interaction, edit: bool = False):
     if edit:
         await interaction.response.edit_message(content=None, view=view, embed=embed)
         return
-    voice.resume()
     await interaction.response.send_message(embed=embed, view=view)
 
 
@@ -400,11 +403,13 @@ async def next_song(interaction: discord.Interaction, edit: bool = False, from_b
         await interaction.response.send_message(embed=embed, view=view)
         return
     
+    # if the music is paused we just don't do anything, as the user has to unpause it
     if voice.is_paused():
         print("Music is paused")
         # they just paused the music this runs on any update And I forgor!
         return
 
+    # if the music is playing and it was from a button stop so we continue with the next song
     if voice.is_playing():
         print("Music is playing")
         # they just pressed the contine button you idiot... (I forgot that sometimes it runs on any update)
@@ -423,12 +428,15 @@ async def next_song(interaction: discord.Interaction, edit: bool = False, from_b
     voice.play(audio_source, after=run_next)
     last_played.set_video_data(interaction.guild_id,Youtube.video_data(yt_dlp_dict=info))
     queues.task_done(interaction.guild_id)
-    if not edit:
-        await interaction.response.send_message(embed=embed)
-        return
+    
     from src import views
-
     view = views.voice_play_view(timeout=int(info["duration"]) + 5)
+    
+    if not edit:
+        await interaction.response.send_message(embed=embed, view=view)
+        return
+
+    print("Editing message to playing")
     await interaction.edit_original_response(content=None, embed=embed, view=view)
 
 
