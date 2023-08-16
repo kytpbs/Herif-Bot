@@ -185,6 +185,7 @@ async def resume(interaction: discord.Interaction, edit: bool = False):
     if edit:
         await interaction.response.edit_message(content=None, view=view, embed=embed)
         return
+    voice.resume()
     await interaction.response.send_message(embed=embed, view=view)
 
 
