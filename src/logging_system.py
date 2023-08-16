@@ -16,14 +16,21 @@ ERROR = logging.ERROR
 CRITICAL = logging.CRITICAL
 
 
-def is_server() -> bool:
+def is_server(only_true_if_cloud: bool = True) -> bool:
     dev = os.getenv("DEV")
+    cloud = os.getenv("CLOUD")
+    is_cloud = cloud == "true" 
+    if cloud is not None:
+        if not only_true_if_cloud:
+            return is_cloud
+        elif is_cloud:
+            return is_cloud
     if dev is not None and dev == "true":
         return False
     return platform == "linux" or platform == "linux2"
 
 
-if is_server():
+if is_server(only_true_if_cloud=False):
     google_client = google.cloud.logging.Client()
     google_client.setup_logging(log_level=logging.DEBUG)
 else:
