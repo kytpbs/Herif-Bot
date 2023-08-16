@@ -37,12 +37,6 @@ async def leave(interaction: discord.Interaction):
         )
         return
 
-    if voice.is_playing():
-        await interaction.response.send_message(
-            "Şu anda bir şey çalıyorum.", ephemeral=True
-        )
-        return
-
     if voice.channel.id != interaction.user.voice.channel.id:
         await interaction.response.send_message(
             f"Bot ile aynı kanalda değilsin. Botun kanalı: {voice.channel.mention}"
@@ -358,9 +352,7 @@ async def next_song(interaction: discord.Interaction, edit: bool = False, from_b
     """
 
     # all are the same thing but type checking works this wayZ
-    if (
-        interaction.guild is None
-        or interaction.guild_id is None
+    if (interaction.guild is None or interaction.guild_id is None
         or not isinstance(interaction.user, discord.Member)
     ):
         await interaction.response.send_message("Bu komut sadece sunucularda çalışır.")
@@ -426,6 +418,7 @@ async def next_song(interaction: discord.Interaction, edit: bool = False, from_b
     embed.set_thumbnail(url=info["thumbnail"])
     audio_source = discord.FFmpegPCMAudio(video_path)
     voice.play(audio_source, after=run_next)
+    print("Playing next song")
     last_played.set_video_data(interaction.guild_id,Youtube.video_data(yt_dlp_dict=info))
     queues.task_done(interaction.guild_id)
     
