@@ -7,7 +7,11 @@ class play_path_queue_guild:
         self.queue_dict: dict[int, Queue[tuple[dict[str, Any], str]]] = {}
 
     def get_queue(self, guild_id: int):
-        return self.queue_dict.get(guild_id, Queue(8))
+        queue = self.queue_dict.get(guild_id, None)
+        if queue is None:
+            queue = Queue(8)
+            self.queue_dict[guild_id] = queue
+        return queue
 
     def get(self, guild_id: int):
         return self.get_queue(guild_id).get()
@@ -16,6 +20,8 @@ class play_path_queue_guild:
         self.queue_dict[guild_id] = queue
 
     def append_to_queue(self, guild_id: int, item: tuple[dict[str, Any], str]):
+        if self.get_queue(guild_id).full():
+            raise ValueError("Queue is full")
         self.get_queue(guild_id).put(item)
 
     def task_done(self, guild_id: int):
