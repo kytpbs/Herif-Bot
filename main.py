@@ -1,4 +1,4 @@
-from Commands import setup_commands
+from commands import setup_commands
 from client import get_client_instance
 from token_system import get_token
 
