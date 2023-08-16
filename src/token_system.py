@@ -12,15 +12,15 @@ dev_token = os.getenv("DEV_TOKEN")
 
 
 def get_main_token() -> str:
-  if loaded and token is not None:
+  if token is not None:
     return token  # os.getenv("TOKEN")
   try:
     #  it might not exist thats why we use try catch
     from Token import TOKEN  # type: ignore
     return TOKEN
-  except ImportError:
+  except ImportError or ModuleNotFoundError:
     log("No token found", level=logging.ERROR)
-    return input("Enter your token: ")
+    raise ValueError("No token found")
 
 
 def get_dev_token() -> str:
@@ -30,7 +30,7 @@ def get_dev_token() -> str:
     #  it might not exist thats why we use try catch
     from Token import DEV_TOKEN  # type: ignore
     return DEV_TOKEN
-  except ImportError:
+  except ImportError or ModuleNotFoundError:
     log("No dev token found", logging.CRITICAL)
     return input("Enter your dev token: ")
 
