@@ -45,6 +45,12 @@ class VoiceCommands(app_commands.Group):
     async def add(self, interaction: discord.Interaction, arat: str):
         await vc_cmds.add_to_queue(interaction, arat)
     
+    @app_commands.command(name="boru", description="1 saatlik boru müziği çalar ama beklenmedik bir anda çalar" +
+                          "One hour of silence broken up by metal pipe falling sound effect")
+    async def pipe(self, interaction: discord.Interaction):
+        await vc_cmds.play(interaction, "https://www.youtube.com/watch?v=oZAGNaLrTd0")
+
+    
     @app_commands.command(name="liste", description="Çalma Listesini Gösterir")
     async def show_queue(self, interaction: discord.Interaction):
         await vc_cmds.list_queue(interaction)
