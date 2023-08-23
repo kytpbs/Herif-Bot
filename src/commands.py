@@ -22,7 +22,7 @@ discord_client = client.get_client_instance()
 class VoiceCommands(app_commands.Group):
     @app_commands.command(name="kanala_katıl",
                             description="belirlediğin ses kanalı, yoksa senin kanalına katılır")
-    async def channel_join(self, interaction: discord.Interaction, channel: discord.VoiceChannel = discord.utils.MISSING):  # type: ignore
+    async def channel_join(self, interaction: discord.Interaction, channel: discord.VoiceChannel = discord.utils.MISSING):
         await vc_cmds.join(interaction, channel)
 
     @app_commands.command(name="duraklat", description="Sesi duraklatır")
@@ -248,7 +248,17 @@ class SpecialCommands(app_commands.Group):
         await interaction.response.send_message(embed=embed)
 
 
+
 tree = app_commands.CommandTree(discord_client)
+
+@tree.context_menu(name="Test")
+async def test(interaction: discord.Interaction, message: discord.Message):
+    await interaction.response.send_message(f"The message You used this on was: {message.content} by {message.author.mention}", ephemeral=True)
+
+@tree.context_menu(name="Mesajı_Sabitle")
+async def pin_message(interaction: discord.Interaction, message: discord.Message):
+    await message.pin(reason=f"{interaction.user.name} Adlı kişi tarafından sabitlendi")
+    await interaction.response.send_message(f"{message.author.mention} adlı kişinin; **{message.content}** mesajı sabitlendi", ephemeral=True)
 
 @tree.command(name="ping", description="Botun pingini gösterir")
 async def ping(interaction: discord.Interaction):
