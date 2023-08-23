@@ -248,7 +248,6 @@ class SpecialCommands(app_commands.Group):
         await interaction.response.send_message(embed=embed)
 
 
-
 tree = app_commands.CommandTree(discord_client)
 
 @tree.context_menu(name="Test")
@@ -259,6 +258,19 @@ async def test(interaction: discord.Interaction, message: discord.Message):
 async def pin_message(interaction: discord.Interaction, message: discord.Message):
     await message.pin(reason=f"{interaction.user.name} Adlı kişi tarafından sabitlendi")
     await interaction.response.send_message(f"{message.author.mention} adlı kişinin; **{message.content}** mesajı sabitlendi", ephemeral=True)
+
+@tree.context_menu(name="Mesajdaki_Linki_Çal")
+async def find_and_play(interaction: discord.Interaction, message: discord.Message):
+    content = message.content
+    watch_link = "https://www.youtube.com/watch?v="
+    links = content.split(watch_link)
+    if len(links) > 1:  # we found a link
+        print(f"Found a link in the message {content} the link is {links[1].split(' ')[0]}")
+        await vc_cmds.play(interaction, watch_link + links[1].split(' ')[0])
+        return
+    # we didn't find a link
+    await interaction.response.send_message("Mesajda bir link bulamadım", ephemeral=True)
+
 
 @tree.command(name="ping", description="Botun pingini gösterir")
 async def ping(interaction: discord.Interaction):
