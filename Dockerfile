@@ -48,10 +48,7 @@ RUN apt-get update && apt-get install ffmpeg -y
 
 # Copy the source code into the container.
 COPY . .
-RUN chmod 666 Herif_Bot.log
-RUN chmod 666 birthdays.json
-RUN chmod 666 responses.json
-RUN chmod 666 cache
+
 USER root
 
 # Run the application.
