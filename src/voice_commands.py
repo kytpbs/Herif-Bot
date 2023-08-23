@@ -225,48 +225,43 @@ async def play(interaction: discord.Interaction, search: str):
     last_played.set_video_data(
         interaction.guild_id, Youtube.video_data(info["title"], info["thumbnail"])
     )
-
-    if os.path.isfile(video_path):  # video is cached and can be played
-        voice.play(discord.FFmpegPCMAudio(video_path), after=run_next)
+    sent_message_edit = interaction.followup.send
+    if not os.path.isfile(video_path):  # video is cached and can be played
         embed = discord.Embed(
-            title="Şarkı çalınıyor", description=info["title"], url=url, color=CYAN
+            title="Şarkı indiriliyor", description=info["title"], color=CYAN
         )
-        embed.set_thumbnail(url=info["thumbnail"])
-        await interaction.followup.send(embed=embed, view=voice_view)
-        return
-    embed = discord.Embed(
-        title="Şarkı indiriliyor", description=info["title"], color=CYAN
-    )
-    sent_message = await interaction.followup.send(embed=embed, wait=True)
-    del embed
+        sent_message_edit = await interaction.followup.send(embed=embed, wait=True)
+        sent_message_edit = sent_message_edit.edit
+        del embed
 
-    queue = LifoQueue()
+        queue = LifoQueue()
 
-    thread = threading.Thread(target=Youtube.youtube_download, args=(url, queue, video_path))
-    thread.start()
-    embed = discord.Embed(
-        title="Şarkı indiriliyor", description=info["title"], url=url, color=CYAN
-    )
-    while thread.is_alive():
-        try:
-            data = queue.get(
-                timeout=60
-            )  # wait a minute in case the download fckes up
-        except Exception as e:
-            await sent_message.edit(content="Şarkı indirilemedi.", embed=None)
-            raise e  # re-raise the exception, so I can see it in the logs
-        percent_str = str(data["_percent_str"])[8:-4]
-        embed.clear_fields().add_field(
-            name="İndirme durumu", value=percent_str, inline=False
+        thread = threading.Thread(target=Youtube.youtube_download, args=(url, queue, video_path))
+        thread.start()
+        embed = discord.Embed(
+            title="Şarkı indiriliyor", description=info["title"], url=url, color=CYAN
         )
-        await sent_message.edit(embed=embed)
+        while thread.is_alive():
+            try:
+                data = queue.get(
+                    timeout=60
+                )  # wait a minute in case the download fckes up
+            except Exception as e:
+                await sent_message_edit.edit(content="Şarkı indirilemedi.", embed=None)
+                raise e  # re-raise the exception, so I can see it in the logs
+            percent_str = str(data["_percent_str"])[8:-4]
+            embed.clear_fields().add_field(
+                name="İndirme durumu", value=percent_str, inline=False
+            )
+            await sent_message_edit.edit(embed=embed)
+    
     audio_source = discord.FFmpegPCMAudio(video_path)
     voice.play(audio_source, after=run_next)
     embed = discord.Embed(
         title="Şarkı çalınıyor", description=info["title"], color=CYAN
     )
     embed.set_thumbnail(url=info["thumbnail"])
-    await sent_message.edit(embed=embed, view=voice_view)
+    await sent_message_edit(embed=embed, view=voice_view)
 
 
 async def add_to_queue(interaction: discord.Interaction, search: str):
