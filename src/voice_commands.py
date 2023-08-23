@@ -345,7 +345,8 @@ def create_next(interaction: discord.Interaction, edit: bool = True):
     return new_next
 
 
-async def next_song(interaction: discord.Interaction, edit: bool = False, from_button: bool = False):
+async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.View = None, # type: ignore
+                    edit: bool = False, from_button: bool = False):
     """
     is used to continue playing the next song in the queue too.
     if there are no more songs in the queue, it will send a message saying so.
@@ -406,7 +407,7 @@ async def next_song(interaction: discord.Interaction, edit: bool = False, from_b
         print("Music is playing")
         # they just pressed the contine button you idiot... (I forgot that sometimes it runs on any update)
         if from_button:
-            voice.stop()
+            voice.stop()  # Stopping the current song runs the function again, so we do the next on the next run
             await interaction.response.defer(thinking=False, ephemeral=True)
         return
 
@@ -422,8 +423,11 @@ async def next_song(interaction: discord.Interaction, edit: bool = False, from_b
     last_played.set_video_data(interaction.guild_id,Youtube.video_data(yt_dlp_dict=info))
     queues.task_done(interaction.guild_id)
     
-    from src import views
-    view = views.voice_play_view(timeout=int(info["duration"]) + 5)
+    if view_to_use is None:
+        from src import views
+        view = views.voice_play_view(timeout=int(info["duration"]) + 5)
+    else:
+        view = view_to_use
     
     if not edit:
         await interaction.response.send_message(embed=embed, view=view)

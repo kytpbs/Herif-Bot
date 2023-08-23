@@ -17,7 +17,7 @@ class voice_play_view(discord.ui.View):
             await voice_commands.pause(interaction, edit=True)
         
         async def skip_callback(interaction: discord.Interaction):
-            await voice_commands.next_song(interaction, edit=True, from_button=True)
+            await voice_commands.next_song(interaction, edit=True, from_button=True, view_to_use=self)
         
         pause_button.callback = pause_callback
         skip_button.callback = skip_callback
