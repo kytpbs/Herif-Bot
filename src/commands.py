@@ -250,14 +250,17 @@ class SpecialCommands(app_commands.Group):
 
 tree = app_commands.CommandTree(discord_client)
 
+
 @tree.context_menu(name="Test")
 async def test(interaction: discord.Interaction, message: discord.Message):
     await interaction.response.send_message(f"The message You used this on was: {message.content} by {message.author.mention}", ephemeral=True)
+
 
 @tree.context_menu(name="Mesajı_Sabitle")
 async def pin_message(interaction: discord.Interaction, message: discord.Message):
     await message.pin(reason=f"{interaction.user.name} Adlı kişi tarafından sabitlendi")
     await interaction.response.send_message(f"{message.author.mention} adlı kişinin; **{message.content}** mesajı sabitlendi", ephemeral=True)
+
 
 @tree.context_menu(name="Mesajdaki_Linki_Çal")
 async def find_and_play(interaction: discord.Interaction, message: discord.Message):
@@ -287,6 +290,11 @@ def setup_commands():
                                             default_permissions=admin, parent=voice_cmds)
     ai_cmds = AiCommands(name="zeki", description="Botu zeki yapan komutlar")
     special_cmds = SpecialCommands(name="özel", description="Bota özel komutlar ekleyip görmen için komutlar")
+    birthday_cmds = BirthdayCommands(name="doğumgünü", description="Doğumgünü komutları")
+    admin_birthday_cmds = AdminBirthdayCommands(name="admin", description="Adminlerin kullanabileceği doğumgünü komutları",
+                                                default_permissions=admin, parent=birthday_cmds)
     tree.add_command(admin_voice_cmds)
+    tree.add_command(admin_birthday_cmds)
     tree.add_command(special_cmds)
     tree.add_command(ai_cmds)
+
