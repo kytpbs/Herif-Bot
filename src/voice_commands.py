@@ -1,7 +1,7 @@
 __package__ = "src"
 import os
 import threading
-from queue import LifoQueue, Queue
+from queue import LifoQueue, Empty, Queue
 from typing import Any
 
 import discord
@@ -225,14 +225,12 @@ async def play(interaction: discord.Interaction, search: str):
     last_played.set_video_data(
         interaction.guild_id, Youtube.video_data(info["title"], info["thumbnail"])
     )
-    sent_message_edit = interaction.followup.send
-    if not os.path.isfile(video_path):  # video is cached and can be played
+    send_next_message = interaction.followup.send
+    if not os.path.isfile(video_path):  # video is cached and can be played  # type: ignore  # For some reason Pylance thinks that os.path doesn't exist???
         embed = discord.Embed(
             title="Şarkı indiriliyor", description=info["title"], color=CYAN
         )
-        sent_message_edit = await interaction.followup.send(embed=embed, wait=True)
-        sent_message_edit = sent_message_edit.edit
-        del embed
+        send_next_message = (await interaction.followup.send(embed=embed, wait=True)).edit
 
         queue = LifoQueue()
 
@@ -244,16 +242,22 @@ async def play(interaction: discord.Interaction, search: str):
         while thread.is_alive():
             try:
                 data = queue.get(
-                    timeout=60
-                )  # wait a minute in case the download fckes up
-            except Exception as e:
-                await sent_message_edit.edit(content="Şarkı indirilemedi.", embed=None)
+                    timeout=30 # stop after 30 seconds, as it is probably stuck
+                )
+            except Empty as e:
+                embed = discord.Embed(
+                    title="Şarkı indirilemedi",
+                    description=info["title"],
+                    url=url,
+                    color=CYAN,
+                )
+                await send_next_message(content="Şarkı indirilemedi.", embed=None)
                 raise e  # re-raise the exception, so I can see it in the logs
             percent_str = str(data["_percent_str"])[8:-4]
             embed.clear_fields().add_field(
                 name="İndirme durumu", value=percent_str, inline=False
             )
-            await sent_message_edit.edit(embed=embed)
+            await send_next_message(embed=embed)
     
     audio_source = discord.FFmpegPCMAudio(video_path)
     voice.play(audio_source, after=run_next)
@@ -261,7 +265,7 @@ async def play(interaction: discord.Interaction, search: str):
         title="Şarkı çalınıyor", description=info["title"], color=CYAN
     )
     embed.set_thumbnail(url=info["thumbnail"])
-    await sent_message_edit(embed=embed, view=voice_view)
+    await send_next_message(embed=embed, view=voice_view)
 
 
 async def add_to_queue(interaction: discord.Interaction, search: str):
