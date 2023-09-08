@@ -69,7 +69,9 @@ class MyClient(discord.Client):
             self.deleted = True
 
     async def on_member_update(self, before: discord.Member, after: discord.Member):
-        embed = discord.Embed(title="Biri profilini deiğiştirdi amk.", description=after.mention, color=CYAN)
+        embed = discord.Embed(title=f"{after.mention} adlı kişi profilini değiştirdi", color=CYAN)
+        avatar = after.avatar if after.avatar is not None else after.default_avatar
+        embed.set_thumbnail(url=avatar.url)
         
         if before.nick != after.nick:
             log(f"{before.name}'s nickname changed from {before.nick} to {after.nick}", DEBUG)
