@@ -113,9 +113,11 @@ class MyClient(discord.Client):
             embed.add_field(name="Yeni Aktivite:", value=after.activity, inline=False)
         
         if before.display_name != after.display_name:
+            before_name = before.display_name if before.display_name is None else before.name
+            after_name = after.display_name if after.display_name is None else after.name
             log(f"{before.name}'s name changed from {before.name} to {after.name}", DEBUG)
-            embed.add_field(name="Eski İsim:", value=before.display_name, inline=False)
-            embed.add_field(name="Yeni İsim:", value=after.display_name, inline=False)
+            embed.add_field(name="Eski İsim:", value=before_name, inline=False)
+            embed.add_field(name="Yeni İsim:", value=after_name, inline=False)
 
         if before.discriminator != after.discriminator:
             log(f"{before.name}'s discriminator changed from {before.discriminator} to {after.discriminator}", DEBUG)
