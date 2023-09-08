@@ -2,10 +2,10 @@ from datetime import datetime
 
 import discord
 
-from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID
+from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID, BOSS_BOT_CHANNEL_ID
 from src import GPT
 from src.helper_functions import get_general_channel
-from src.logging_system import DEBUG, log
+from src.logging_system import DEBUG, WARNING, log
 from src.Read import json_read
 from src.Tasks import start_tasks
 
@@ -70,7 +70,7 @@ class MyClient(discord.Client):
 
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         embed = discord.Embed(title="Biri profilini deiğiştirdi amk.", description=after.mention, color=CYAN)
-
+        
         if before.nick != after.nick:
             log(f"{before.name}'s nickname changed from {before.nick} to {after.nick}", DEBUG)
             embed.add_field(name="Eski Nick:", value=before.nick, inline=False)
@@ -107,9 +107,53 @@ class MyClient(discord.Client):
             embed.add_field(name="Eski Durum:", value=before.status, inline=False)
             embed.add_field(name="Yeni Durum:", value=after.status, inline=False)
 
-        channel = self.get_channel(DELETED_MESSAGES_CHANNEL_ID)
-        if isinstance(channel, discord.TextChannel):
-            await channel.send(embed=embed)
+        if before.activity != after.activity:
+            log(f"{before.name}'s activity changed from {before.activity} to {after.activity}", DEBUG)
+            embed.add_field(name="Eski Aktivite:", value=before.activity, inline=False)
+            embed.add_field(name="Yeni Aktivite:", value=after.activity, inline=False)
+        
+        if before.display_name != after.display_name:
+            log(f"{before.name}'s name changed from {before.name} to {after.name}", DEBUG)
+            embed.add_field(name="Eski İsim:", value=before.display_name, inline=False)
+            embed.add_field(name="Yeni İsim:", value=after.display_name, inline=False)
+
+        if before.discriminator != after.discriminator:
+            log(f"{before.name}'s discriminator changed from {before.discriminator} to {after.discriminator}", DEBUG)
+            embed.add_field(name="Eski Discriminator:", value=before.discriminator, inline=False)
+            embed.add_field(name="Yeni Discriminator:", value=after.discriminator, inline=False)
+        
+        if before.premium_since != after.premium_since:
+            log(f"{before.name}'s boost status changed from {before.premium_since} to {after.premium_since}", DEBUG)
+            embed.add_field(name="Eski Boost Durumu:", value=before.premium_since, inline=False)
+            embed.add_field(name="Yeni Boost Durumu:", value=after.premium_since, inline=False)
+        
+        if before.accent_color != after.accent_color:
+            log(f"{before.name}'s accent color changed from {before.accent_color} to {after.accent_color}", DEBUG)
+            embed.add_field(name="Eski Renk:", value=before.accent_color, inline=False)
+            embed.add_field(name="Yeni Renk:", value=after.accent_color, inline=False)
+
+        if before.desktop_status != after.desktop_status:
+            log(f"{before.name}'s desktop status changed from {before.desktop_status} to {after.desktop_status}", DEBUG)
+            embed.add_field(name="Eski Masaüstü Durumu:", value=before.desktop_status, inline=False)
+            embed.add_field(name="Yeni Masaüstü Durumu:", value=after.desktop_status, inline=False)
+
+        if before.mobile_status != after.mobile_status:
+            log(f"{before.name}'s mobile status changed from {before.mobile_status} to {after.mobile_status}", DEBUG)
+            embed.add_field(name="Eski Mobil Durumu:", value=before.mobile_status, inline=False)
+            embed.add_field(name="Yeni Mobil Durumu:", value=after.mobile_status, inline=False)
+        
+        if before.web_status != after.web_status:
+            log(f"{before.name}'s web status changed from {before.web_status} to {after.web_status}", DEBUG)
+            embed.add_field(name="Eski Web Durumu:", value=before.web_status, inline=False)
+            embed.add_field(name="Yeni Web Durumu:", value=after.web_status, inline=False)
+        
+        channel = self.get_channel(BOSS_BOT_CHANNEL_ID)
+        if not isinstance(channel, discord.TextChannel):
+            raise ValueError(f"Channel Not Found! Searched id: {BOSS_BOT_CHANNEL_ID}")
+        if len(embed.fields) == 0:
+            log(f"{before.name}'s profile was updated, but nothing changed, we probably missed something.", WARNING)
+            return
+        await channel.send(embed=embed)
 
     async def on_member_ban(self, guild: discord.Guild, user: discord.Member):
         channel = get_general_channel(guild)
@@ -127,7 +171,8 @@ class MyClient(discord.Client):
             await channel.send(
                 f"{user.name} bu mal gibi {guild.name} sunucusuna geri girebilme hakkı kazanmılştır"
             )
-        invite = await guild.text_channels[0].create_invite(target_user=user,
+        text_channel = guild.text_channels[0]  # type: ignore  # why tf is this warning me that i can't get[0] of a list
+        invite = await text_channel.create_invite(target_user=user,
                                                             reason="Ban kaldırıldı, sunucuya geri davet ediliyor", max_uses=1)
         try:
             await user.send(f"artık {guild.name} sunucusuna geri girebilirsin. giriş linkin: {invite}")
