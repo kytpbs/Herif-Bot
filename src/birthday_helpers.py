@@ -3,7 +3,7 @@ from datetime import datetime
 
 def get_user_and_date_from_string(dictinary: dict):
   new_dict = {}
-  import client
+  import src.client as client
   client = client.get_client_instance()
   for user_id, date in dictinary.items():
     user = client.get_user(int(user_id))
