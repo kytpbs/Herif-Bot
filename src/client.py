@@ -1,11 +1,11 @@
 from datetime import datetime
+import logging
 
 import discord
 
 from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID, BOSS_BOT_CHANNEL_ID
 from src import GPT
 from src.helper_functions import get_general_channel
-from src.logging_system import DEBUG, WARNING, log
 from src.Read import json_read
 from src.Tasks import start_tasks
 
@@ -24,34 +24,31 @@ class MyClient(discord.Client):
 
     async def on_ready(self):
         await self.wait_until_ready()
-        from src import commands
-        tree = commands.get_tree_instance()
         if not self.synced:
+            from src import commands
+            tree = commands.get_tree_instance()
             await tree.sync()
             start_tasks()
             self.synced = True
-        print('Logged on as', self.user)
-        log(f"Logged on as {self.user}", level=DEBUG)
+        logging.info(f"Logged on as {self.user}")
 
     async def on_member_join(self, member: discord.Member):
-        print(member.name, "Katıldı! ")
-        log(f"{member.name}, joined {member.guild.name}", level=DEBUG)
+        logging.debug(f"{member.name}, joined {member.guild.name}")
         general_channel = get_general_channel(member.guild)
         if general_channel is not None:
             await general_channel.send(
                 f"Zeki bir insan valrlığı olan {member.mention} Bu saçmalık {member.guild} serverına katıldı. Hoşgeldin!")
 
     async def on_member_remove(self, member: discord.Member):
-        log(f"{member.name}, left {member.guild.name}", DEBUG)
+        logging.debug(f"{member.name}, left {member.guild.name}")
         channel = get_general_channel(member.guild)
         if isinstance(channel, discord.TextChannel):
             await channel.send("Zeki bir insan valrlığı olan " + "**" + str(member) +
                                "**" + " Bu saçmalık serverdan ayrıldı")
-        print(member, "Ayrıldı! ")
 
     async def on_guild_channel_create(self, channel):
-        print(channel, "Oluşturuldu")
-        log(f"At {channel.guild.name}, {channel} was created.", DEBUG)
+        logging.debug(channel, "Oluşturuldu")
+        logging.debug(f"At {channel.guild.name}, {channel} was created.")
 
         deleted_messages_channel = self.get_channel(DELETED_MESSAGES_CHANNEL_ID)
         if isinstance(deleted_messages_channel, discord.TextChannel):
@@ -59,7 +56,7 @@ class MyClient(discord.Client):
                 f"**{channel}** adlı kanal oluşturuldu")
 
     async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
-        log(f"At {channel.guild.name}, {channel} was deleted.", DEBUG)
+        logging.debug(f"At {channel.guild.name}, {channel} was deleted.")
         deleted_messages_channel = self.get_channel(DELETED_MESSAGES_CHANNEL_ID)
         if isinstance(deleted_messages_channel, discord.TextChannel):
             message = await deleted_messages_channel.send(
@@ -74,12 +71,12 @@ class MyClient(discord.Client):
         embed.set_thumbnail(url=avatar.url)
 
         if before.nick != after.nick:
-            log(f"{before.name}'s nickname changed from {before.nick} to {after.nick}", DEBUG)
+            logging.debug(f"{before.name}'s nickname changed from {before.nick} to {after.nick}")
             embed.add_field(name="Eski Nick:", value=before.nick, inline=False)
             embed.add_field(name="Yeni Nick:", value=after.nick, inline=False)
 
         if before.avatar != after.avatar:
-            log(f"{before.name}'s profile picture changed.", DEBUG)
+            logging.debug(f"{before.name}'s profile picture changed.")
 
             if before.avatar is None:
                 embed.add_field(name="Eski Profil Fotoğrafı:", value="Yok", inline=False)
@@ -94,7 +91,7 @@ class MyClient(discord.Client):
                 embed.set_thumbnail(url=after.avatar.url)
 
         if before.roles != after.roles:
-            log(f"{before.name}'s roles changed.", DEBUG)
+            logging.debug(f"{before.name}'s roles changed.")
 
         for role in before.roles:
             if role not in after.roles:
@@ -105,49 +102,49 @@ class MyClient(discord.Client):
                 embed.add_field(name="Rol Eklendi:", value=role.mention, inline=False)
 
         if before.status != after.status:
-            log(f"{before.name}'s status changed from {before.status} to {after.status}", DEBUG)
+            logging.debug(f"{before.name}'s status changed from {before.status} to {after.status}")
             embed.add_field(name="Eski Durum:", value=before.status, inline=False)
             embed.add_field(name="Yeni Durum:", value=after.status, inline=False)
 
         if before.activity != after.activity:
-            log(f"{before.name}'s activity changed from {before.activity} to {after.activity}", DEBUG)
+            logging.debug(f"{before.name}'s activity changed from {before.activity} to {after.activity}")
             embed.add_field(name="Eski Aktivite:", value=before.activity, inline=False)
             embed.add_field(name="Yeni Aktivite:", value=after.activity, inline=False)
 
         if before.display_name != after.display_name:
             before_name = before.display_name if before.display_name is None else before.name
             after_name = after.display_name if after.display_name is None else after.name
-            log(f"{before.name}'s name changed from {before.name} to {after.name}", DEBUG)
+            logging.debug(f"{before.name}'s name changed from {before.name} to {after.name}")
             embed.add_field(name="Eski İsim:", value=before_name, inline=False)
             embed.add_field(name="Yeni İsim:", value=after_name, inline=False)
 
         if before.discriminator != after.discriminator:
-            log(f"{before.name}'s discriminator changed from {before.discriminator} to {after.discriminator}", DEBUG)
+            logging.debug(f"{before.name}'s discriminator changed from {before.discriminator} to {after.discriminator}")
             embed.add_field(name="Eski Discriminator:", value=before.discriminator, inline=False)
             embed.add_field(name="Yeni Discriminator:", value=after.discriminator, inline=False)
 
         if before.premium_since != after.premium_since:
-            log(f"{before.name}'s boost status changed from {before.premium_since} to {after.premium_since}", DEBUG)
+            logging.debug(f"{before.name}'s boost status changed from {before.premium_since} to {after.premium_since}")
             embed.add_field(name="Eski Boost Durumu:", value=before.premium_since, inline=False)
             embed.add_field(name="Yeni Boost Durumu:", value=after.premium_since, inline=False)
 
         if before.accent_color != after.accent_color:
-            log(f"{before.name}'s accent color changed from {before.accent_color} to {after.accent_color}", DEBUG)
+            logging.debug(f"{before.name}'s accent color changed from {before.accent_color} to {after.accent_color}")
             embed.add_field(name="Eski Renk:", value=before.accent_color, inline=False)
             embed.add_field(name="Yeni Renk:", value=after.accent_color, inline=False)
 
         if before.desktop_status != after.desktop_status:
-            log(f"{before.name}'s desktop status changed from {before.desktop_status} to {after.desktop_status}", DEBUG)
+            logging.debug(f"{before.name}'s desktop status changed from {before.desktop_status} to {after.desktop_status}")
             embed.add_field(name="Eski Masaüstü Durumu:", value=before.desktop_status, inline=False)
             embed.add_field(name="Yeni Masaüstü Durumu:", value=after.desktop_status, inline=False)
 
         if before.mobile_status != after.mobile_status:
-            log(f"{before.name}'s mobile status changed from {before.mobile_status} to {after.mobile_status}", DEBUG)
+            logging.debug(f"{before.name}'s mobile status changed from {before.mobile_status} to {after.mobile_status}")
             embed.add_field(name="Eski Mobil Durumu:", value=before.mobile_status, inline=False)
             embed.add_field(name="Yeni Mobil Durumu:", value=after.mobile_status, inline=False)
 
         if before.web_status != after.web_status:
-            log(f"{before.name}'s web status changed from {before.web_status} to {after.web_status}", DEBUG)
+            logging.debug(f"{before.name}'s web status changed from {before.web_status} to {after.web_status}")
             embed.add_field(name="Eski Web Durumu:", value=before.web_status, inline=False)
             embed.add_field(name="Yeni Web Durumu:", value=after.web_status, inline=False)
 
@@ -155,13 +152,13 @@ class MyClient(discord.Client):
         if not isinstance(channel, discord.TextChannel):
             raise ValueError(f"Channel Not Found! Searched id: {BOSS_BOT_CHANNEL_ID}")
         if len(embed.fields) == 0:
-            log(f"{before.name}'s profile was updated, but nothing changed, we probably missed something.", WARNING)
+            logging.warning(f"{before.name}'s profile was updated, but nothing changed, we probably missed something.")
             return
         await channel.send(embed=embed)
 
     async def on_member_ban(self, guild: discord.Guild, user: discord.Member):
         channel = get_general_channel(guild)
-        log(f"{user.name} was banned from {guild.name}", DEBUG)
+        logging.debug(f"{user.name} was banned from {guild.name}")
         if isinstance(channel, discord.TextChannel):
             await channel.send("Ah Lan " + str(user) + " Adlı kişi " + str(guild) +
                                " serverından banlandı ")
@@ -169,7 +166,7 @@ class MyClient(discord.Client):
         raise ValueError(f"Kanal Bulunamadı: aranan id: {GENERAL_CHAT_ID}")
 
     async def on_member_unban(self, guild: discord.Guild, user: discord.User):
-        log(f"{user.name} was unbanned from {guild.name}", DEBUG)
+        logging.debug(f"{user.name} was unbanned from {guild.name}")
         channel = self.get_channel(GENERAL_CHAT_ID)
         if isinstance(channel, discord.TextChannel):
             await channel.send(
@@ -181,7 +178,7 @@ class MyClient(discord.Client):
         try:
             await user.send(f"artık {guild.name} sunucusuna geri girebilirsin. giriş linkin: {invite}")
         except discord.Forbidden:
-            log(f"Couldn't send message to {user.name}")
+            logging.info(f"Couldn't send message to {user.name}")
         channel = self.get_channel(GENERAL_CHAT_ID)
         if isinstance(channel, discord.TextChannel):
             await channel.send(
@@ -213,7 +210,7 @@ class MyClient(discord.Client):
 
         if message.guild is not None:
             async for entry in message.guild.audit_logs(action=discord.AuditLogAction.message_delete, limit=10):
-                print(f'{entry.user} deleted {entry.target} at {entry.created_at}')
+                logging.debug(f'{entry.user} deleted {entry.target} at {entry.created_at}')
                 who_deleted = entry.user
                 break
             else:
@@ -256,7 +253,7 @@ class MyClient(discord.Client):
         data = f'{str(time)} {str(guild)} {str(channel)} {str(user.name)}: {str(message_content)}'
         print(data)
         if message.embeds is None:
-            log(data)
+            logging.debug(data)
 
         if message.author == self.user:
             return
@@ -265,7 +262,8 @@ class MyClient(discord.Client):
             await message.reply(custom_responses[message.content])
 
         if isinstance(channel, discord.DMChannel) or message.guild is None:
-            answer = GPT.question("You are talking on a dm channel!" + message_content, message.author.name)
+            async with channel.typing():
+                answer = GPT.question("You are talking on a dm channel!" + message_content, message.author.name)
             if answer != -1:
                 await message.reply("Botta bir hata oluştu, Lütfen tekrar dene!")
                 return
@@ -277,7 +275,6 @@ class MyClient(discord.Client):
 
         son_mesaj = message.content.lower().split(" ")[-1]
         if son_mesaj == "nerde" or son_mesaj == "nerede" or son_mesaj == "neredesin" or son_mesaj == "nerdesin":
-            print(son_mesaj)
             await message.reply(
                 f'Ebenin amında. Ben sonu "{son_mesaj}" diye biten bütün mesajlara cevap vermek için kodlanmış bi botum. Seni kırdıysam özür dilerim.'
             )
@@ -300,10 +297,11 @@ class MyClient(discord.Client):
                 return
             kanal = user.voice.channel
             if kanal is not None:
-                print(kanal.mention + "a katılınıyor")
+                logging.debug(f"Joining {kanal.name}")
                 await kanal.connect()
             else:
-                print("Kanal bulunamadı")
+                logging.debug("User is not in a voice channel.")
+                await message.reply("herhangi bir ses kanalında değilsin!")
 
         if message_content_lower == "söyle":
             if len(message.content.split(" ")) > 1:
