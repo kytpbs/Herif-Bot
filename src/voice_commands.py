@@ -7,7 +7,7 @@ from queue import LifoQueue, Empty
 import discord
 import yt_dlp
 
-from Constants import CYAN
+from Constants import CYAN, KYTPBS_TAG
 from src import Youtube
 from src.voice_helpers import play_path_queue_guild
 
@@ -241,19 +241,22 @@ async def play(interaction: discord.Interaction, search: str):
         embed = discord.Embed(
             title="Şarkı indiriliyor", description=info["title"], url=url, color=CYAN
         )
+        # Download progress
         while thread.is_alive():
             try:
                 data = queue.get(
-                    timeout=30  # stop after 30 seconds, as it is probably stuck
+                    timeout=10  # stop after 10 seconds, as it is probably stuck
                 )
             except Empty as e:
+                if thread.is_alive():
+                    continue
                 embed = discord.Embed(
                     title="Şarkı indirilemedi",
-                    description=info["title"],
+                    description=info["title"] + f"lütfen {KYTPBS_TAG} ile iletişime geçin.",
                     url=url,
                     color=CYAN,
                 )
-                await send_next_message(content="Şarkı indirilemedi.", embed=None)
+                await send_next_message(embed=embed)
                 raise e  # re-raise the exception, so I can see it in the logs
             percent_str = str(data["_percent_str"])[8:-4]
             embed.clear_fields().add_field(
