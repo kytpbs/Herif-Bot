@@ -175,7 +175,7 @@ class MyClient(discord.Client):
             await channel.send(
                 f"{user.name} bu mal gibi {guild.name} sunucusuna geri girebilme hakkı kazanmılştır"
             )
-        text_channel = guild.text_channels[0]  # type: ignore  # why tf is this warning me that i can't get[0] of a list
+        text_channel = guild.text_channels[0]
         invite = await text_channel.create_invite(target_user=user,
                                                   reason="Ban kaldırıldı, sunucuya geri davet ediliyor", max_uses=1)
         try:
@@ -212,8 +212,7 @@ class MyClient(discord.Client):
         channel = self.get_channel(DELETED_MESSAGES_CHANNEL_ID)
 
         if message.guild is not None:
-            async for entry in message.guild.audit_logs(
-                action=discord.AuditLogAction.message_delete, limit=10):
+            async for entry in message.guild.audit_logs(action=discord.AuditLogAction.message_delete, limit=10):
                 print(f'{entry.user} deleted {entry.target} at {entry.created_at}')
                 who_deleted = entry.user
                 break
@@ -277,8 +276,7 @@ class MyClient(discord.Client):
             await channel.send("🛫🛬💥🏢🏢")
 
         son_mesaj = message.content.lower().split(" ")[-1]
-        if son_mesaj == "nerde" or son_mesaj == "nerede" or son_mesaj == (
-            "neredesin") or son_mesaj == "nerdesin":
+        if son_mesaj == "nerde" or son_mesaj == "nerede" or son_mesaj == "neredesin" or son_mesaj == "nerdesin":
             print(son_mesaj)
             await message.reply(
                 f'Ebenin amında. Ben sonu "{son_mesaj}" diye biten bütün mesajlara cevap vermek için kodlanmış bi botum. Seni kırdıysam özür dilerim.'
