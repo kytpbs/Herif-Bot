@@ -197,8 +197,7 @@ async def play(interaction: discord.Interaction, search: str):
 
     run_next = create_next(interaction)
 
-    if (
-        (not queues.empty(interaction.guild_id) and voice.is_playing())
+    if (not queues.empty(interaction.guild_id) and voice.is_playing()
         or voice.is_playing()
         or voice.is_paused()
     ):
@@ -386,7 +385,7 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
             color=CYAN,
         )
         if edit:
-            await interaction.response.edit_message(content=None, embed=embed, view=view)
+            await interaction.edit_original_response(content=None, embed=embed, view=view)
             return
         await interaction.response.send_message(embed=embed, view=view)
         return
