@@ -31,10 +31,11 @@ class task_list:
       raise RuntimeError(f"Kanal Bulunamadı aranan id: {GENERAL_CHAT_ID}")
 
     # remove birthday role from members that have it.
-    for member in client.get_all_members():
-      if member.get_role(BIRTHDAY_ROLE_ID) is not None:
-        print(f"{member} adlı kişinin doğum günü rolü kaldırılıyor")
-        await member.remove_roles(rol)
+    if rol is not None:
+      for member in client.get_all_members():
+        if member.get_role(BIRTHDAY_ROLE_ID) is not None:
+          print(f"{member} adlı kişinin doğum günü rolü kaldırılıyor")
+          await member.remove_roles(rol)
 
     for user, birthday in usable_dict.items():
       if birthday.month == today.month and birthday.day == today.day:
