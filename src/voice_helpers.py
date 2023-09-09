@@ -6,12 +6,16 @@ class play_path_queue_guild:
     def __init__(self) -> None:
         self.queue_dict: dict[int, Queue[tuple[dict[str, Any], str]]] = {}
 
-    def get_queue(self, guild_id: int):
-        queue = self.queue_dict.get(guild_id, None)
-        if queue is None:
-            queue = Queue(8)
-            self.queue_dict[guild_id] = queue
-        return queue
+    def get_queue(self, guild_id: int) -> Queue[tuple[dict[str, Any], str]]:
+        """returns the queue for the guild_id, if it doesn't exist, it creates an empty one
+
+        Args:
+            guild_id (int): the guild_id to get the queue for
+
+        Returns:
+            Queue[tuple[dict[str, Any], str]]: returns the queue that has the youtube_dl output and the path to the file
+        """
+        return self.queue_dict.setdefault(guild_id, Queue(8))
 
     def get(self, guild_id: int):
         return self.get_queue(guild_id).get()
