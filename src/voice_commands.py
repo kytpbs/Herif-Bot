@@ -1,8 +1,7 @@
 __package__ = "src"
 import os
 import threading
-from queue import LifoQueue, Empty, Queue
-from typing import Any
+from queue import LifoQueue, Empty
 
 import discord
 import yt_dlp
