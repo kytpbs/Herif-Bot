@@ -9,6 +9,8 @@
 # Editor Stuff
 *.idea/
 *.vscode/
+# Virtualenv
+*.venv/
 # Tokens
 Token.py
 OpenAiKey.py
