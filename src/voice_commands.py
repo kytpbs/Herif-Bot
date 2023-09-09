@@ -351,7 +351,7 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
     if there are no more songs in the queue, it will send a message saying so.
     """
 
-    # all are the same thing but type checking works this wayZ
+    # all are the same thing but type checking works this way...
     if (interaction.guild is None or interaction.guild_id is None
         or not isinstance(interaction.user, discord.Member)
     ):
