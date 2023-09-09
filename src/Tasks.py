@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime, time, timezone
 
@@ -13,9 +14,9 @@ class task_list:
   @staticmethod
   @tasks.loop(time=time(hour=6, minute=30, tzinfo=timezone.utc))  # 9.30 for +3 timezone
   async def check_birthdays():
-    import client as Client
-    client = Client.get_client_instance()
-    birthdays = Client.get_birthdays()
+    import client as discord_client
+    client = discord_client.get_client_instance()
+    birthdays = discord_client.get_birthdays()
     logging_system.log("Checking birthdays")
     general = client.get_channel(GENERAL_CHAT_ID)
     if not isinstance(general, discord.TextChannel):
@@ -25,7 +26,7 @@ class task_list:
     usable_dict = get_user_and_date_from_string(birthdays)
 
     if not isinstance(rol, discord.Role):
-      raise RuntimeError(f"Rol Bulunamadı aranan id: {BIRTHDAY_ROLE_ID}")
+      logging.error(f"Rol Bulunamadı aranan id: {BIRTHDAY_ROLE_ID}")
     if not isinstance(general, discord.TextChannel):
       raise RuntimeError(f"Kanal Bulunamadı aranan id: {GENERAL_CHAT_ID}")
 
@@ -38,7 +39,8 @@ class task_list:
     for user, birthday in usable_dict.items():
       if birthday.month == today.month and birthday.day == today.day:
         age = today.year - birthday.year
-        await user.add_roles(rol)  # add birthday role to user.
+        if rol is not None:
+          await user.add_roles(rol)  # add birthday role to user. if it exists
         await general.send(f"{user.mention} {age} yaşına girdi. Doğum günün kutlu olsun!")
 
   @staticmethod
