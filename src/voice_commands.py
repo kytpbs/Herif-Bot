@@ -407,7 +407,8 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
 
     run_next = create_next(interaction)
 
-    info, video_path = queues.get(interaction.guild_id)
+    ydt, video_path = queues.get(interaction.guild_id)
+    info = ydt["entries"][0]
 
     embed = discord.Embed(title="Şarkı Çalınıyor", description=info["title"], color=CYAN)
     embed.set_thumbnail(url=info["thumbnail"])
