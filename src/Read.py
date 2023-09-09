@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 
 
@@ -36,4 +37,4 @@ def write_json(name: str, data: dict[str, str]) -> None:
     with open(name, 'w+') as outfile:
         json.dump(data, outfile, indent=4)
         outfile.close()
-    print(f"Writing {name}")
+    logging.debug(f"Writing to {name}")
