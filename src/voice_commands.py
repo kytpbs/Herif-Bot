@@ -1,4 +1,5 @@
 __package__ = "src"
+
 import os
 import threading
 from queue import LifoQueue, Empty
@@ -50,7 +51,8 @@ async def leave(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
-async def join(interaction: discord.Interaction, channel: discord.VoiceChannel = MISSING, only_respond_on_fail: bool = False):  # -> Union(tuple[bool, discord.VoiceClient], None) cannot use because of python 3.9
+async def join(interaction: discord.Interaction, channel: discord.VoiceChannel = MISSING,
+               only_respond_on_fail: bool = False):  # -> Union(tuple[bool, discord.VoiceClient], None) cannot use because of python 3.9
     """
     Returns: Returns True if it has responded to the interaction, False if it hasn't.
     """
@@ -167,12 +169,12 @@ async def resume(interaction: discord.Interaction, edit: bool = False):
             "Şu anda bir şey durdurulmamış.", ephemeral=True
         )
         return
-    
+
     voice.resume()
     print("resumed")
-    
+
     from src import views
-    
+
     view = views.voice_play_view(timeout=None)
     embed = discord.Embed(title="Şarkı devam ettirildi", color=CYAN)
     played = last_played.get_video_data(interaction.guild.id)
@@ -225,7 +227,8 @@ async def play(interaction: discord.Interaction, search: str):
         interaction.guild_id, Youtube.video_data(info["title"], info["thumbnail"])
     )
     send_next_message = interaction.followup.send
-    if not os.path.isfile(video_path):  # video is cached and can be played  # type: ignore  # For some reason Pylance thinks that os.path doesn't exist???
+    if not os.path.isfile(
+        video_path):  # video is cached and can be played  # type: ignore  # For some reason Pylance thinks that os.path doesn't exist???
         embed = discord.Embed(
             title="Şarkı indiriliyor", description=info["title"], color=CYAN
         )
@@ -241,7 +244,7 @@ async def play(interaction: discord.Interaction, search: str):
         while thread.is_alive():
             try:
                 data = queue.get(
-                    timeout=30 # stop after 30 seconds, as it is probably stuck
+                    timeout=30  # stop after 30 seconds, as it is probably stuck
                 )
             except Empty as e:
                 embed = discord.Embed(
@@ -257,7 +260,7 @@ async def play(interaction: discord.Interaction, search: str):
                 name="İndirme durumu", value=percent_str, inline=False
             )
             await send_next_message(embed=embed)
-    
+
     audio_source = discord.FFmpegPCMAudio(video_path)
     voice.play(audio_source, after=run_next)
     embed = discord.Embed(
@@ -301,7 +304,6 @@ async def add_to_queue(interaction: discord.Interaction, search: str):
     url = info["webpage_url"]
     video_path = f"cache/{video_id}.mp3"
 
-
     if not os.path.isfile(video_path):  # the video has not been downloaded before
         extra_queue = LifoQueue()
 
@@ -324,9 +326,9 @@ async def add_to_queue(interaction: discord.Interaction, search: str):
     queues.append_to_queue(
         interaction.guild_id,
         video
-    )   # might create a race condition, but I don't care In case it does, it will just download the same video twice.
-        # (just implemented it, It won't, install the video twice...)
-        # I don't think it will be a problem, but if it is, I will fix it later
+    )  # might create a race condition, but I don't care In case it does, it will just download the same video twice.
+    # (just implemented it, It won't, install the video twice...)
+    # I don't think it will be a problem, but if it is, I will fix it later
 
 
 def create_next(interaction: discord.Interaction, edit: bool = True):
@@ -343,7 +345,7 @@ def create_next(interaction: discord.Interaction, edit: bool = True):
     return new_next
 
 
-async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.View = None, # type: ignore
+async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.View = None,  # type: ignore
                     edit: bool = False, from_button: bool = False):
     """
     is used to continue playing the next song in the queue too.
@@ -369,14 +371,13 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
         queues.clear_queue(interaction.guild_id)
         return
 
-
     # means the queue has ended or The user pressed the next button when the queue was empty
     if queues.empty(interaction.guild_id):
         if voice.is_playing():
             # they just pressed the next button
             await interaction.response.send_message("Sırada Daha Fazla Şarkı Yok", ephemeral=True)
             return
-        
+
         from src import views
         view = views.voice_over_view(timeout=None)
         embed = discord.Embed(
@@ -389,7 +390,7 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
             return
         await interaction.response.send_message(embed=embed, view=view)
         return
-    
+
     # if the music is paused we just don't do anything, as the user has to unpause it
     if voice.is_paused():
         print("Music is paused")
@@ -414,15 +415,15 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
     audio_source = discord.FFmpegPCMAudio(video_path)
     voice.play(audio_source, after=run_next)
     print("Playing next song")
-    last_played.set_video_data(interaction.guild_id,Youtube.video_data(yt_dlp_dict=info))
+    last_played.set_video_data(interaction.guild_id, Youtube.video_data(yt_dlp_dict=info))
     queues.task_done(interaction.guild_id)
-    
+
     if view_to_use is None:
         from src import views
         view = views.voice_play_view(timeout=int(info["duration"]) + 5)
     else:
         view = view_to_use
-    
+
     if not edit:
         await interaction.response.send_message(embed=embed, view=view)
         return
@@ -438,7 +439,7 @@ async def list_queue(interaction: discord.Interaction):
     if interaction.guild is None or interaction.guild_id is None:
         await interaction.response.send_message("Bu komut sadece sunucularda çalışır.")
         return
-    
+
     if queues.empty(interaction.guild_id):
         await interaction.response.send_message("Çalma Sırası Boş", ephemeral=True)
         return
