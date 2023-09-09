@@ -186,8 +186,7 @@ class AdminBirthdayCommands(app_commands.Group):
         if not isinstance(interaction.user, discord.Member):
             await interaction.response.send_message("Sadece Sunucularda çalışır")
             return
-        if interaction.user != user and (
-            not interaction.user.guild_permissions.administrator) or user.guild.id != BOT_ADMIN_SERVER_ID:
+        if (interaction.user != user and not interaction.user.guild_permissions.administrator) or user.guild.id != BOT_ADMIN_SERVER_ID:
             await interaction.response.send_message("Sadece Kendi Doğumgününü Silebilirsin", ephemeral=True)
             return
         user_id = str(user.id)

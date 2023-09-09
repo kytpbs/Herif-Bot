@@ -227,8 +227,7 @@ async def play(interaction: discord.Interaction, search: str):
         interaction.guild_id, Youtube.video_data(info["title"], info["thumbnail"])
     )
     send_next_message = interaction.followup.send
-    if not os.path.isfile(
-        video_path):  # video is cached and can be played  # type: ignore  # For some reason Pylance thinks that os.path doesn't exist???
+    if not os.path.isfile(video_path):  # video is cached and can be played
         embed = discord.Embed(
             title="Şarkı indiriliyor", description=info["title"], color=CYAN
         )
@@ -356,9 +355,7 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
     """
 
     # all are the same thing but type checking works this way...
-    if (interaction.guild is None or interaction.guild_id is None
-        or not isinstance(interaction.user, discord.Member)
-    ):
+    if interaction.guild is None or interaction.guild_id is None or not isinstance(interaction.user, discord.Member):
         await interaction.response.send_message("Bu komut sadece sunucularda çalışır.")
         raise RuntimeError("Command run area not server", interaction)
 
@@ -400,10 +397,10 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
         # they just paused the music this runs on any update And I forgor!
         return
 
-    # if the music is playing and it was from a button stop so we continue with the next song
+    # if the music is playing, and it was from a button stop, so we continue with the next song
     if voice.is_playing():
         print("Music is playing")
-        # they just pressed the contine button you idiot... (I forgot that sometimes it runs on any update)
+        # they just pressed the continue button you idiot... (I forgot that sometimes it runs on any update)
         if from_button:
             voice.stop()  # Stopping the current song runs the function again, so we do the next on the next run
             await interaction.response.defer(thinking=False, ephemeral=True)
@@ -437,7 +434,7 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
 
 async def list_queue(interaction: discord.Interaction):
     """
-    Will send the queue ephemerically
+    Will send the queue ephemerally
     """
     if interaction.guild is None or interaction.guild_id is None:
         await interaction.response.send_message("Bu komut sadece sunucularda çalışır.")
