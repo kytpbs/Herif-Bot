@@ -4,6 +4,7 @@ from datetime import datetime
 import discord
 import openai
 from discord import app_commands
+from Read import write_json
 
 import src.voice_commands as vc_cmds
 from Constants import BOT_ADMIN_SERVER_ID, CYAN, KYTPBS_TAG
@@ -148,8 +149,7 @@ class BirthdayCommands(app_commands.Group):
                 f"Değiştirmek için lütfen {KYTPBS_TAG} kişisine ulaşın", ephemeral=True)
             return
         birthdays[str(user_id)] = date_string
-        with open("birthdays.json", "w", encoding="utf-8") as f:
-            json.dump(birthdays, f)
+        write_json("birthdays.json", birthdays)
         await interaction.response.send_message(
             f"{user.mention} adlı kişinin doğum günü '{date_string}' olarak ayarlandı")
 
@@ -194,9 +194,8 @@ class AdminBirthdayCommands(app_commands.Group):
             await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü zaten kayıtlı değil",
                                                     ephemeral=True)
             return
-        birthdays.pop(user_id)
-        with open("birthdays.json", "w", encoding="utf-8") as f:
-            json.dump(birthdays, f)
+        del birthdays[user_id]
+        write_json("birthdays.json", birthdays)
         await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü silindi")
         return
 
@@ -206,8 +205,7 @@ class SpecialCommands(app_commands.Group):
     async def create_command(self, interaction: discord.Interaction, text: str, answer: str, degistir: bool = False):
         if custom_responses.get(text) is None:
             custom_responses[text] = answer
-            with open("responses.json", "w", encoding="utf-8") as f:
-                json.dump(custom_responses, f, indent=4)
+            write_json("responses.json", custom_responses)
             await interaction.response.send_message(f"Yeni bir cevap oluşturuldu. {text} : {answer}")
             return
 
@@ -229,8 +227,7 @@ class SpecialCommands(app_commands.Group):
                 return
         eski_cevap = custom_responses[text]
         custom_responses[text] = answer
-        with open("responses.json", "w", encoding="utf-8") as f:
-            json.dump(custom_responses, f, indent=4)
+        write_json("responses.json", custom_responses)
         embed = discord.Embed(title="Cevap Değiştirildi", description=f"'{text} : {answer}' a değiştirildi", color=CYAN)
         embed.add_field(name="Eski Cevap", value=eski_cevap, inline=False)
         await interaction.response.send_message(embed=embed)
