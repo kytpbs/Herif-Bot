@@ -313,7 +313,7 @@ async def add_to_queue(interaction: discord.Interaction, search: str):
         )
         t.start()
 
-    video = info, video_path
+    video = ydt, video_path
 
     embed = discord.Embed(
         title="Şarkı Sıraya Eklendi",
