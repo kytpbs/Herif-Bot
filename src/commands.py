@@ -15,7 +15,7 @@ custom_responses = client.get_custom_responses()
 last_played = Youtube.get_last_played_guilded()
 
 admin = discord.Permissions()
-admin.administrator = True
+admin.update(administrator=True)
 discord_client = client.get_client_instance()
 
 
