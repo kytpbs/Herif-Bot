@@ -35,8 +35,8 @@ if is_server(only_true_if_cloud=False):
     google_client = google.cloud.logging.Client()
     google_client.setup_logging(log_level=logging.DEBUG)
 else:
-    logging.basicConfig(level=logging.DEBUG, filename=f'{BOT_NAME}.log')
-logger = logging.getLogger(BOT_NAME)
+    logging.basicConfig(level=logging.DEBUG, filename=f'{BOT_NAME}.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
+logger: logging.Logger = logging.getLogger(BOT_NAME)
 
 
 def log(message: str, level: int = INFO):
