@@ -36,3 +36,10 @@ class play_path_queue_guild:
 
     def full(self, guild_id: int):
         return self.get_queue(guild_id).full()
+
+    def clear_queue(self, guild_id: int):
+        queue = self.get_queue(guild_id)
+        with queue.mutex:
+            queue.queue.clear()
+            queue.all_tasks_done.notify_all()
+            queue.unfinished_tasks = 0

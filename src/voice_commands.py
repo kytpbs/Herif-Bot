@@ -359,21 +359,17 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
 
     voice = interaction.guild.voice_client
     if voice is None or not isinstance(voice, discord.VoiceClient):
+        # The bot probably got kicked from the voice channel, or the bot left after the last command
         await interaction.response.send_message(
             "Bot artık sesli bir kanalda değil Çalma Sırası Temizleniyor...",
             ephemeral=True,
         )
         # clear the queue, as we are not on a voice chat anymore
         print("Clearing Queue")
-        play_path_queue = queues.get_queue(interaction.guild_id)
-        with play_path_queue.mutex:
-            play_path_queue.queue.clear()
-            play_path_queue.all_tasks_done.notify_all()
-            play_path_queue.unfinished_tasks = 0
+        queues.clear_queue(interaction.guild_id)
         return
 
-        # means the queue has ended
-    
+
     # means the queue has ended or The user pressed the next button when the queue was empty
     if queues.empty(interaction.guild_id):
         if voice.is_playing():
