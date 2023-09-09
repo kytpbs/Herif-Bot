@@ -46,7 +46,7 @@ class MyClient(discord.Client):
         channel = get_general_channel(member.guild)
         if isinstance(channel, discord.TextChannel):
             await channel.send("Zeki bir insan valrlığı olan " + "**" + str(member) +
-                            "**" + " Bu saçmalık serverdan ayrıldı")
+                               "**" + " Bu saçmalık serverdan ayrıldı")
         print(member, "Ayrıldı! ")
 
     async def on_guild_channel_create(self, channel):
@@ -72,7 +72,7 @@ class MyClient(discord.Client):
         embed = discord.Embed(title=f"{after.mention} adlı kişi profilini değiştirdi", color=CYAN)
         avatar = after.avatar if after.avatar is not None else after.default_avatar
         embed.set_thumbnail(url=avatar.url)
-        
+
         if before.nick != after.nick:
             log(f"{before.name}'s nickname changed from {before.nick} to {after.nick}", DEBUG)
             embed.add_field(name="Eski Nick:", value=before.nick, inline=False)
@@ -113,7 +113,7 @@ class MyClient(discord.Client):
             log(f"{before.name}'s activity changed from {before.activity} to {after.activity}", DEBUG)
             embed.add_field(name="Eski Aktivite:", value=before.activity, inline=False)
             embed.add_field(name="Yeni Aktivite:", value=after.activity, inline=False)
-        
+
         if before.display_name != after.display_name:
             before_name = before.display_name if before.display_name is None else before.name
             after_name = after.display_name if after.display_name is None else after.name
@@ -125,12 +125,12 @@ class MyClient(discord.Client):
             log(f"{before.name}'s discriminator changed from {before.discriminator} to {after.discriminator}", DEBUG)
             embed.add_field(name="Eski Discriminator:", value=before.discriminator, inline=False)
             embed.add_field(name="Yeni Discriminator:", value=after.discriminator, inline=False)
-        
+
         if before.premium_since != after.premium_since:
             log(f"{before.name}'s boost status changed from {before.premium_since} to {after.premium_since}", DEBUG)
             embed.add_field(name="Eski Boost Durumu:", value=before.premium_since, inline=False)
             embed.add_field(name="Yeni Boost Durumu:", value=after.premium_since, inline=False)
-        
+
         if before.accent_color != after.accent_color:
             log(f"{before.name}'s accent color changed from {before.accent_color} to {after.accent_color}", DEBUG)
             embed.add_field(name="Eski Renk:", value=before.accent_color, inline=False)
@@ -145,12 +145,12 @@ class MyClient(discord.Client):
             log(f"{before.name}'s mobile status changed from {before.mobile_status} to {after.mobile_status}", DEBUG)
             embed.add_field(name="Eski Mobil Durumu:", value=before.mobile_status, inline=False)
             embed.add_field(name="Yeni Mobil Durumu:", value=after.mobile_status, inline=False)
-        
+
         if before.web_status != after.web_status:
             log(f"{before.name}'s web status changed from {before.web_status} to {after.web_status}", DEBUG)
             embed.add_field(name="Eski Web Durumu:", value=before.web_status, inline=False)
             embed.add_field(name="Yeni Web Durumu:", value=after.web_status, inline=False)
-        
+
         channel = self.get_channel(BOSS_BOT_CHANNEL_ID)
         if not isinstance(channel, discord.TextChannel):
             raise ValueError(f"Channel Not Found! Searched id: {BOSS_BOT_CHANNEL_ID}")
@@ -164,7 +164,7 @@ class MyClient(discord.Client):
         log(f"{user.name} was banned from {guild.name}", DEBUG)
         if isinstance(channel, discord.TextChannel):
             await channel.send("Ah Lan " + str(user) + " Adlı kişi " + str(guild) +
-                                " serverından banlandı ")
+                               " serverından banlandı ")
             return
         raise ValueError(f"Kanal Bulunamadı: aranan id: {GENERAL_CHAT_ID}")
 
@@ -177,7 +177,7 @@ class MyClient(discord.Client):
             )
         text_channel = guild.text_channels[0]  # type: ignore  # why tf is this warning me that i can't get[0] of a list
         invite = await text_channel.create_invite(target_user=user,
-                                                            reason="Ban kaldırıldı, sunucuya geri davet ediliyor", max_uses=1)
+                                                  reason="Ban kaldırıldı, sunucuya geri davet ediliyor", max_uses=1)
         try:
             await user.send(f"artık {guild.name} sunucusuna geri girebilirsin. giriş linkin: {invite}")
         except discord.Forbidden:
@@ -186,7 +186,7 @@ class MyClient(discord.Client):
         if isinstance(channel, discord.TextChannel):
             await channel.send(
                 f"{user.name} bu mal gibi {guild.name} sunucusuna geri girebilme hakkı kazanmılştır"
-                )
+            )
 
     async def on_message_edit(self, before, message):
         if message.author == self.user:
@@ -222,8 +222,8 @@ class MyClient(discord.Client):
         else:
             who_deleted = None
         embed = discord.Embed(
-        title="Mesaj silindi.", description="Silinen Mesaj: " + str(message.content),
-        color=CYAN)
+            title="Mesaj silindi.", description="Silinen Mesaj: " + str(message.content),
+            color=CYAN)
 
         embed.add_field(name="Silinen kanal:", value=message.channel, inline=False)
         embed.add_field(name="Gönderen kişi:", value=message.author, inline=False)
@@ -278,7 +278,7 @@ class MyClient(discord.Client):
 
         son_mesaj = message.content.lower().split(" ")[-1]
         if son_mesaj == "nerde" or son_mesaj == "nerede" or son_mesaj == (
-        "neredesin") or son_mesaj == "nerdesin":
+            "neredesin") or son_mesaj == "nerdesin":
             print(son_mesaj)
             await message.reply(
                 f'Ebenin amında. Ben sonu "{son_mesaj}" diye biten bütün mesajlara cevap vermek için kodlanmış bi botum. Seni kırdıysam özür dilerim.'
