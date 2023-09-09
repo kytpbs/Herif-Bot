@@ -173,8 +173,7 @@ class MyClient(discord.Client):
                 f"{user.name} bu mal gibi {guild.name} sunucusuna geri girebilme hakkı kazanmılştır"
             )
         text_channel = guild.text_channels[0]
-        invite = await text_channel.create_invite(target_user=user,
-                                                  reason="Ban kaldırıldı, sunucuya geri davet ediliyor", max_uses=1)
+        invite = await text_channel.create_invite(reason="Ban kaldırıldı, sunucuya geri davet ediliyor", max_uses=1)
         try:
             await user.send(f"artık {guild.name} sunucusuna geri girebilirsin. giriş linkin: {invite}")
         except discord.Forbidden:
