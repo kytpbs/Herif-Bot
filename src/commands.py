@@ -21,8 +21,9 @@ discord_client = client.get_client_instance()
 
 class VoiceCommands(app_commands.Group):
     @app_commands.command(name="kanala_katıl",
-                            description="belirlediğin ses kanalı, yoksa senin kanalına katılır")
-    async def channel_join(self, interaction: discord.Interaction, channel: discord.VoiceChannel = discord.utils.MISSING):
+                          description="belirlediğin ses kanalı, yoksa senin kanalına katılır")
+    async def channel_join(self, interaction: discord.Interaction,
+                           channel: discord.VoiceChannel = discord.utils.MISSING):
         await vc_cmds.join(interaction, channel)
 
     @app_commands.command(name="duraklat", description="Sesi duraklatır")
@@ -40,16 +41,15 @@ class VoiceCommands(app_commands.Group):
     @app_commands.command(name="çal", description="Youtubedan bir şey çalmanı sağlar")
     async def cal(self, interaction: discord.Interaction, arat: str):
         await vc_cmds.play(interaction, arat)
-        
+
     @app_commands.command(name="ekle", description="Sıraya müzik ekle")
     async def add(self, interaction: discord.Interaction, arat: str):
         await vc_cmds.add_to_queue(interaction, arat)
-    
+
     @app_commands.command(name="boru", description="1 saat boyunca rastegele zamanlarda boru ses efektini çalar")
     async def pipe(self, interaction: discord.Interaction):
         await vc_cmds.play(interaction, "https://www.youtube.com/watch?v=oZAGNaLrTd0")
 
-    
     @app_commands.command(name="liste", description="Çalma Listesini Gösterir")
     async def show_queue(self, interaction: discord.Interaction):
         await vc_cmds.list_queue(interaction)
@@ -69,7 +69,7 @@ class VoiceAdminCommands(app_commands.Group):
         await interaction.response.send_message(f"{user} susturuldu")
 
     @app_commands.command(name="susturma_kaldır",
-                            description="Susturulmuş birinin susturmasını kapatmanı sağlar")
+                          description="Susturulmuş birinin susturmasını kapatmanı sağlar")
     async def unmute(self, interaction: discord.Interaction, user: discord.Member):
         if not isinstance(user, discord.Member):
             await interaction.response.send_message("Kullanıcıyı bulamadım lütfen tekrar dene", ephemeral=True)
@@ -135,7 +135,8 @@ class AiCommands(app_commands.Group):
 
 class BirthdayCommands(app_commands.Group):
     @app_commands.command(name="dogumgunu_ekle", description="Doğumgününü eklemeni sağlar")
-    async def add_birthday(self, interaction: discord.Interaction, day: str, month: str, year: str, user: discord.Member = None): # type: ignore 
+    async def add_birthday(self, interaction: discord.Interaction, day: str, month: str, year: str,
+                           user: discord.Member = None):  # type: ignore
         if user is None:
             user = interaction.user  # type: ignore
         user_id = user.id
@@ -150,7 +151,7 @@ class BirthdayCommands(app_commands.Group):
         with open("birthdays.json", "w", encoding="utf-8") as f:
             json.dump(birthdays, f)
         await interaction.response.send_message(
-        f"{user.mention} adlı kişinin doğum günü '{date_string}' olarak ayarlandı")
+            f"{user.mention} adlı kişinin doğum günü '{date_string}' olarak ayarlandı")
 
     @app_commands.command(name="dogumgunu_goster", description="Kişinin doğumgününü gösterir")
     async def show_birthday(self, interaction: discord.Interaction, user: discord.Member):
@@ -180,17 +181,19 @@ class AdminBirthdayCommands(app_commands.Group):
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="doğumgünü_sil",
-                            description="Doğumgününü silmeni sağlar")
+                          description="Doğumgününü silmeni sağlar")
     async def delete_birthday(self, interaction: discord.Interaction, user: discord.Member):
         if not isinstance(interaction.user, discord.Member):
             await interaction.response.send_message("Sadece Sunucularda çalışır")
             return
-        if interaction.user != user and (not interaction.user.guild_permissions.administrator) or user.guild.id != BOT_ADMIN_SERVER_ID:
+        if interaction.user != user and (
+            not interaction.user.guild_permissions.administrator) or user.guild.id != BOT_ADMIN_SERVER_ID:
             await interaction.response.send_message("Sadece Kendi Doğumgününü Silebilirsin", ephemeral=True)
             return
         user_id = str(user.id)
         if birthdays.get(user_id) is None:
-            await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü zaten kayıtlı değil", ephemeral=True)
+            await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü zaten kayıtlı değil",
+                                                    ephemeral=True)
             return
         birthdays.pop(user_id)
         with open("birthdays.json", "w", encoding="utf-8") as f:
@@ -208,19 +211,19 @@ class SpecialCommands(app_commands.Group):
                 json.dump(custom_responses, f, indent=4)
             await interaction.response.send_message(f"Yeni bir cevap oluşturuldu. {text} : {answer}")
             return
-        
+
         if not isinstance(interaction.user, discord.Member) or not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message(f"Bu mesaja zaten bir cevap var: {custom_responses[text]}, " +
                                                     "lütfen başka bir mesaj deneyin",
                                                     ephemeral=True)
             return
-        
+
         if not degistir:
             await interaction.response.send_message(f"Bu mesaja zaten bir cevap var: {custom_responses[text]}, " +
                                                     "değiştirmek için komutta 'degistir' argümanını kullanın",
                                                     ephemeral=True)
             return
-    
+
         if degistir and not interaction.user.guild_permissions.administrator:
             if not interaction.user.guild_permissions.administrator:
                 await interaction.response.send_message("Bu komutu kullanmak için gerekli iznin yok", ephemeral=True)
@@ -233,8 +236,6 @@ class SpecialCommands(app_commands.Group):
         embed.add_field(name="Eski Cevap", value=eski_cevap, inline=False)
         await interaction.response.send_message(embed=embed)
         return
-
-        
 
     @app_commands.command(name="cevaplar", description="Bütün özel eklenmiş cevapları gösterir")
     async def answers(self, interaction: discord.Interaction):
@@ -253,13 +254,15 @@ tree = app_commands.CommandTree(discord_client)
 
 @tree.context_menu(name="Test")
 async def test(interaction: discord.Interaction, message: discord.Message):
-    await interaction.response.send_message(f"The message You used this on was: {message.content} by {message.author.mention}", ephemeral=True)
+    await interaction.response.send_message(
+        f"The message You used this on was: {message.content} by {message.author.mention}", ephemeral=True)
 
 
 @tree.context_menu(name="Mesajı_Sabitle")
 async def pin_message(interaction: discord.Interaction, message: discord.Message):
     await message.pin(reason=f"{interaction.user.name} Adlı kişi tarafından sabitlendi")
-    await interaction.response.send_message(f"{message.author.mention} adlı kişinin; **{message.content}** mesajı sabitlendi", ephemeral=True)
+    await interaction.response.send_message(
+        f"{message.author.mention} adlı kişinin; **{message.content}** mesajı sabitlendi", ephemeral=True)
 
 
 @tree.context_menu(name="Mesajdaki_Linki_Çal")
@@ -287,14 +290,14 @@ def get_tree_instance():
 def setup_commands():
     voice_cmds = VoiceCommands(name="ses", description="Ses komutları!", guild_only=True)
     admin_voice_cmds = VoiceAdminCommands(name="admin", description="Adminsen kullanabileceğin ses komutları",
-                                            default_permissions=admin, parent=voice_cmds)
+                                          default_permissions=admin, parent=voice_cmds)
     ai_cmds = AiCommands(name="zeki", description="Botu zeki yapan komutlar")
     special_cmds = SpecialCommands(name="özel", description="Bota özel komutlar ekleyip görmen için komutlar")
     birthday_cmds = BirthdayCommands(name="doğumgünü", description="Doğumgünü komutları")
-    admin_birthday_cmds = AdminBirthdayCommands(name="admin", description="Adminlerin kullanabileceği doğumgünü komutları",
+    admin_birthday_cmds = AdminBirthdayCommands(name="admin",
+                                                description="Adminlerin kullanabileceği doğumgünü komutları",
                                                 default_permissions=admin, parent=birthday_cmds)
     tree.add_command(admin_voice_cmds)
     tree.add_command(admin_birthday_cmds)
     tree.add_command(special_cmds)
     tree.add_command(ai_cmds)
-
