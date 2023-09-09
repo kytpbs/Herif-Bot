@@ -14,7 +14,7 @@ class task_list:
   @staticmethod
   @tasks.loop(time=time(hour=6, minute=30, tzinfo=timezone.utc))  # 9.30 for +3 timezone
   async def check_birthdays():
-    import client as discord_client
+    import src.client as discord_client
     client = discord_client.get_client_instance()
     birthdays = discord_client.get_birthdays()
     logging_system.log("Checking birthdays")
