@@ -415,7 +415,7 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
     audio_source = discord.FFmpegPCMAudio(video_path)
     voice.play(audio_source, after=run_next)
     print("Playing next song")
-    last_played.set_video_data(interaction.guild_id, Youtube.video_data(yt_dlp_dict=info))
+    last_played.set_video_data(interaction.guild_id, Youtube.video_data(yt_dlp_dict=ydt))
     queues.task_done(interaction.guild_id)
 
     if view_to_use is None:
