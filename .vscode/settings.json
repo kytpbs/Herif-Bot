@@ -1,8 +1,5 @@
 {
     "python.analysis.typeCheckingMode": "basic",
-    "cSpell.enableFiletypes": [
-        "!python"
-    ],
     "[python]": {
         // set max line length to 120
         "editor.codeActionsOnSave": {

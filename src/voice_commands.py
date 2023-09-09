@@ -262,7 +262,7 @@ async def play(interaction: discord.Interaction, search: str):
     audio_source = discord.FFmpegPCMAudio(video_path)
     voice.play(audio_source, after=run_next)
     embed = discord.Embed(
-        title="Şarkı çalınıyor", description=info["title"], color=CYAN
+        title="Şarkı çalınıyor", description=info["title"], color=CYAN, url=url
     )
     embed.set_thumbnail(url=info["thumbnail"])
     await send_next_message(embed=embed, view=voice_view)
