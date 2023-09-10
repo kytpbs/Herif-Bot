@@ -313,7 +313,7 @@ async def add_to_queue(interaction: discord.Interaction, search: str):
         )
         t.start()
 
-    video = ydt, video_path
+    video = info, video_path
 
     embed = discord.Embed(
         title="Şarkı Sıraya Eklendi",
@@ -407,15 +407,18 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
 
     run_next = create_next(interaction)
 
-    ydt, video_path = queues.get(interaction.guild_id)
-    info = ydt["entries"][0]
+    info, video_path = queues.get(interaction.guild_id)
 
-    embed = discord.Embed(title="Şarkı Çalınıyor", description=info["title"], color=CYAN)
+    title = info["title"]
+    webpage_url = info["webpage_url"]
+    image_url = info["thumbnail"]
+    
+    embed = discord.Embed(title="Şarkı Çalınıyor", description=title, url=webpage_url, color=CYAN)
     embed.set_thumbnail(url=info["thumbnail"])
     audio_source = discord.FFmpegPCMAudio(video_path)
     voice.play(audio_source, after=run_next)
     print("Playing next song")
-    last_played.set_video_data(interaction.guild_id, Youtube.video_data(yt_dlp_dict=ydt)) # I had to debug this for 2 hours, because I forgot to use ydt instead of info...
+    last_played.set_video_data(interaction.guild_id, Youtube.video_data(title=title, image_url=image_url)) # I had to debug this for 2 hours, because I forgot to use ydt instead of info...
     queues.task_done(interaction.guild_id)
 
     if view_to_use is None:
