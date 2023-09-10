@@ -4,7 +4,7 @@ import sys
 
 from dotenv import load_dotenv
 
-from src.logging_system import is_server, log
+from src.logging_system import is_server
 
 loaded = load_dotenv()
 token = os.getenv("TOKEN")
@@ -19,7 +19,7 @@ def get_main_token() -> str:
     from Token import TOKEN  # type: ignore
     return TOKEN
   except ImportError or ModuleNotFoundError:
-    log("No token found", level=logging.ERROR)
+    logging.critical("No token found", stack_info=True)
     raise ValueError("No token found")
 
 
@@ -31,7 +31,7 @@ def get_dev_token() -> str:
     from Token import DEV_TOKEN  # type: ignore
     return DEV_TOKEN
   except ImportError or ModuleNotFoundError:
-    log("No dev token found", logging.CRITICAL)
+    logging.critical("No dev token found", stack_info=True)
     return input("Enter your dev token: ")
 
 
@@ -53,8 +53,7 @@ def get_token() -> str:
     elif sys.argv[1] == "main":
       return get_main_token()
     else:
-      log("Unknown arg", logging.ERROR)
-      print("Unknown arg, please use main or dev")
+      logging.error("Unknown arg, please use main or dev")
 
   take = input("Do you want to use the dev token? (y/n): ")
 

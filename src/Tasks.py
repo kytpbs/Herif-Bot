@@ -17,7 +17,7 @@ class task_list:
     import src.client as discord_client
     client = discord_client.get_client_instance()
     birthdays = discord_client.get_birthdays()
-    logging_system.log("Checking birthdays")
+    logging.info("Checking birthdays")
     general = client.get_channel(GENERAL_CHAT_ID)
     if not isinstance(general, discord.TextChannel):
       raise ValueError(f"Kanal Bulunamadı aranan id: {GENERAL_CHAT_ID}")
@@ -34,7 +34,7 @@ class task_list:
     if rol is not None:
       for member in client.get_all_members():
         if member.get_role(BIRTHDAY_ROLE_ID) is not None:
-          print(f"{member} adlı kişinin doğum günü rolü kaldırılıyor")
+          logging.info(f"{member} adlı kişinin doğum günü rolü kaldırılıyor")
           await member.remove_roles(rol)
 
     for user, birthday in usable_dict.items():
@@ -47,7 +47,7 @@ class task_list:
   @staticmethod
   @tasks.loop(hours=72)
   async def clear_cache():
-    logging_system.log("clearing cache", logging_system.DEBUG)
+    logging.debug("clearing cache", logging_system.DEBUG)
     folder_directory = f"{os.getcwd()}/cache"
     for file in os.listdir(folder_directory):
       os.remove(f"{folder_directory}/{file}")

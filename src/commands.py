@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+import logging
 
 import discord
 import openai
@@ -86,9 +87,9 @@ class AiCommands(app_commands.Group):
     @app_commands.command(name="soru", description="bota bir soru sor")
     async def chatgpt(self, interaction: discord.Interaction, message: str):
         await interaction.response.defer(ephemeral=False)
-        print("ChatGPT istek:", message)
+        logging.debug("ChatGPT istek:", message)
         answer = GPT.question(message)
-        print(f"Cevap: {answer}")
+        logging.debug(f"Cevap: {answer}")
         if answer == -1:
             await interaction.followup.send("Bir hata oluştu, lütfen tekrar deneyin", ephemeral=True)
             return
@@ -267,7 +268,7 @@ async def find_and_play(interaction: discord.Interaction, message: discord.Messa
     watch_link = "https://www.youtube.com/watch?v="
     links = content.split(watch_link)
     if len(links) > 1:  # we found a link
-        print(f"Found a link in the message {content} the link is {links[1].split(' ')[0]}")
+        logging.debug(f"Found a link in the message {content} the link is {links[1].split(' ')[0]}", links)
         await vc_cmds.play(interaction, watch_link + links[1].split(' ')[0])
         return
     # we didn't find a link

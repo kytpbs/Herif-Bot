@@ -250,9 +250,7 @@ class MyClient(discord.Client):
         if guild is None:
             guild = "DM"
         data = f'{str(time)} {str(guild)} {str(channel)} {str(user.name)}: {str(message_content)}'
-        print(data)
-        if message.embeds is None:
-            logging.debug(data)
+        logging.debug(data, message.embeds if len(message.embeds) > 0 else "No embeds")
 
         if message.author == self.user:
             return

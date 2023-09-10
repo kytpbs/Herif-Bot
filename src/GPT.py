@@ -5,19 +5,18 @@ import openai
 from dotenv import load_dotenv
 
 from Constants import BOT_NAME, SERVER_NAME
-from src.logging_system import log
 
 load_dotenv()
 
 ERROR = -1
 openai.api_key = os.getenv("OPEN_AI_KEY")
 if openai.api_key is None:
-  log("OPEN_AI_KEY is not set in .env file", logging.ERROR)
+  logging.critical("OPEN_AI_KEY is not set in .env file")
 
 
 # noinspection PyBroadException
 def question(message: str, user_name: str = "MISSING", server_name: str = SERVER_NAME):
-  print(f"question: {message}")
+  logging.debug(f"new question: {message} to {BOT_NAME} in {server_name}")
   messages = [
     {
       "role": "system",
@@ -42,8 +41,7 @@ def question(message: str, user_name: str = "MISSING", server_name: str = SERVER
     return ERROR
   answer = response['choices'][0]['message']['content']
   tokens = response['usage']['total_tokens']
-  print(f"{tokens} tokens used")
-  log(f"{tokens} tokens used")
+  logging.debug(f"{tokens} tokens used")
   return answer
 
 
@@ -53,7 +51,7 @@ def chat(message_response_dict: dict[str, str], new_message: str = "MISSING",
   """
   message_response_dict: left is the message, right is the response from the bot
   """
-  print(f"chat: {message_response_dict}")
+  logging.debug(f"new chat: {message_response_dict}")
   messages = [
     {
       "role": "system",
@@ -92,8 +90,7 @@ def chat(message_response_dict: dict[str, str], new_message: str = "MISSING",
   if not isinstance(response, dict):
     return ERROR
   tokens = response['usage']['total_tokens']
-  print(f"{tokens} tokens used")
-  log(f"{tokens} tokens used")
+  logging.debug(f"{tokens} tokens used")
   answer = response['choices'][0]['message']
   if not dont_send_token_usage:
     return answer

@@ -1,5 +1,6 @@
 __package__ = "src"
 
+import logging
 import os
 import threading
 from queue import LifoQueue, Empty
@@ -171,7 +172,7 @@ async def resume(interaction: discord.Interaction, edit: bool = False):
         return
 
     voice.resume()
-    print("resumed")
+    logging.debug(f"voice resumed at {interaction.guild_id}")
 
     from src import views
 
@@ -336,11 +337,12 @@ def create_next(interaction: discord.Interaction, edit: bool = True):
     def new_next(exception):
         # No exceptions
         if exception is None:
-            print("function RAN!")
+            logging.debug("new next called with no exception")
             interaction.client.loop.create_task(
                 next_song(interaction, edit=edit), name="Run Next Song"
             )
         else:
+            logging.warning("new next called with exception")
             raise exception
 
     return new_next
@@ -366,7 +368,7 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
             ephemeral=True,
         )
         # clear the queue, as we are not on a voice chat anymore
-        print("Clearing Queue")
+        logging.debug("Clearing queue")
         queues.clear_queue(interaction.guild_id)
         return
 
@@ -392,7 +394,7 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
 
     # if the music is paused we just don't do anything, as the user has to unpause it
     if voice.is_paused():
-        print("Music is paused")
+        logging.debug("Music got paused (probably)")
         # they just paused the music this runs on any update And I forgor!
         return
 
@@ -417,7 +419,7 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
     embed.set_thumbnail(url=info["thumbnail"])
     audio_source = discord.FFmpegPCMAudio(video_path)
     voice.play(audio_source, after=run_next)
-    print("Playing next song")
+    logging.debug("Playing next song")
     last_played.set_video_data(interaction.guild_id, Youtube.video_data(title=title, image_url=image_url)) # I had to debug this for 2 hours, because I forgot to use ydt instead of info...
     queues.task_done(interaction.guild_id)
 
@@ -431,7 +433,7 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
         await interaction.response.send_message(embed=embed, view=view)
         return
 
-    print("Editing message to playing")
+    logging.debug("Editing message to playing")
     await interaction.edit_original_response(content=None, embed=embed, view=view)
 
 

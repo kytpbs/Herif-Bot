@@ -18,7 +18,7 @@ def json_read(name: str) -> dict:
         write_json(name, {})
         return {}
     with open(name) as json_file:
-        print(f"Reading {name}")
+        logging.debug(f"Reading {name}")
         data = json.load(json_file)
         json_file.close()
     return data
