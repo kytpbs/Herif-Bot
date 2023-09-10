@@ -363,10 +363,16 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
     voice = interaction.guild.voice_client
     if voice is None or not isinstance(voice, discord.VoiceClient):
         # The bot probably got kicked from the voice channel, or the bot left after the last command
-        await interaction.response.send_message(
-            "Bot artık sesli bir kanalda değil Çalma Sırası Temizleniyor...",
-            ephemeral=True,
-        )
+        embed = discord.Embed(title="Çalma Sırası Bitti", description="Çalma sırası bitmiştir, bir şey çalmak için '/çal' komutunu kullanabilirsiniz", color=CYAN)
+        if edit:
+            await interaction.edit_original_response(content=None, embed=embed, view=None)
+            return
+        
+        if not interaction.response.is_done():  # if the response is not sent yet
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        else:
+            # The response might be already sent so we use followup in that case:
+            await interaction.followup.send(embed=embed, ephemeral=True)
         # clear the queue, as we are not on a voice chat anymore
         logging.debug("Clearing queue")
         queues.clear_queue(interaction.guild_id)
