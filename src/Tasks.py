@@ -23,7 +23,7 @@ class task_list:
       raise ValueError(f"Kanal Bulunamadı aranan id: {GENERAL_CHAT_ID}")
     rol = general.guild.get_role(BIRTHDAY_ROLE_ID)
     today = datetime.now()
-    usable_dict = get_user_and_date_from_string(birthdays)
+    usable_dict = get_user_and_date_from_string(birthdays, guild_to_check=general.guild)
 
     if not isinstance(rol, discord.Role):
       logging.error(f"Rol Bulunamadı aranan id: {BIRTHDAY_ROLE_ID}")
@@ -40,9 +40,9 @@ class task_list:
     for user, birthday in usable_dict.items():
       if birthday.month == today.month and birthday.day == today.day:
         age = today.year - birthday.year
-        if rol is not None:
-          await user.add_roles(rol)  # add birthday role to user. if it exists
         await general.send(f"{user.mention} {age} yaşına girdi. Doğum günün kutlu olsun!")
+        if rol is not None and isinstance(user, discord.Member):
+          await user.add_roles(rol)  # add birthday role to user. if it exists
 
   @staticmethod
   @tasks.loop(hours=72)

@@ -1,15 +1,20 @@
 from datetime import datetime
 import logging
 
+import discord
 
-def get_user_and_date_from_string(dictinary: dict[int, str]):
+
+def get_user_and_date_from_string(dictinary: dict[int, str], guild_to_check: discord.Guild | None = None) -> dict[discord.User | discord.Member, datetime]:
   new_dict = {}
+  member = None
   import src.client as client  # we import here to avoid circular imports
   client = client.get_client_instance()
-  delete_non_users(dictinary)
+  
   for user_id, date in dictinary.items():
     user = client.get_user(int(user_id))
-    if user is None:
+    if guild_to_check is not None:
+      member = guild_to_check.get_member(int(user_id))
+    if user is None and member is None:
       continue
     dates = date.split("-")
     if len(dates) != 3:
@@ -20,7 +25,10 @@ def get_user_and_date_from_string(dictinary: dict[int, str]):
     print(f"{user} : {date_obj}")
     if date_obj is None:
       continue
-    new_dict[user] = date_obj
+    if member is not None:
+      new_dict[member] = date_obj
+    else:
+      new_dict[user] = date_obj
 
   return new_dict
 
