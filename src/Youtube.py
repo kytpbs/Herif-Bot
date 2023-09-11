@@ -16,11 +16,13 @@ ydl_opts = {
 
 class video_data(object):
 
-    def __init__(self, title=None, image_url=None, yt_dlp_dict=None):
+    def __init__(self, title=None, image_url=None, webpage_url=None, yt_dlp_dict=None):
         if image_url is not None:
             self.thumbnail_url = image_url
         else:
             self.thumbnail_url = None
+
+        self.webpage_url = webpage_url
 
         if title is not None:
             self.title = title
@@ -28,12 +30,13 @@ class video_data(object):
             self.title = None
 
         if yt_dlp_dict is not None:
-            video_info = yt_dlp_dict['entries'][0]
+            video_info:dict = yt_dlp_dict['entries'][0]
             self.title = video_info['title']
             self.thumbnail_url = video_info['thumbnail']
+            self.webpage_url = video_info.get('webpage_url', None)
 
     def has_data(self) -> bool:
-        if (self.thumbnail_url is None) and (self.title is None):
+        if (self.thumbnail_url is None) and (self.title is None) and (self.webpage_url is None):
             return False
         return True
 
@@ -43,6 +46,9 @@ class video_data(object):
     def set_thumbnail_url(self, thumbnail_url: str) -> None:
         self.thumbnail_url = thumbnail_url
 
+    def set_webpage_url(self, webpage_url: str) -> None:
+        self.webpage_url = webpage_url
+        
     def set_yt_dlp_dict(self, yt_dlp_dict: dict) -> None:
         video_info = yt_dlp_dict['entries'][0]
         self.title = video_info['title']

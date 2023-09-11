@@ -426,7 +426,7 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
     audio_source = discord.FFmpegPCMAudio(video_path)
     voice.play(audio_source, after=run_next)
     logging.debug("Playing next song")
-    last_played.set_video_data(interaction.guild_id, Youtube.video_data(title=title, image_url=image_url)) # I had to debug this for 2 hours, because I forgot to use ydt instead of info...
+    last_played.set_video_data(interaction.guild_id, Youtube.video_data(title=title, image_url=image_url, webpage_url=webpage_url)) # I had to debug this for 2 hours, because I forgot to use ydt instead of info...
     queues.task_done(interaction.guild_id)
 
     if view_to_use is None:
