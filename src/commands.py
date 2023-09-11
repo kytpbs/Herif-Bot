@@ -243,6 +243,19 @@ class SpecialCommands(app_commands.Group):
         await interaction.response.send_message(embed=embed)
 
 
+class AdminSpecialCommands(app_commands.Group):
+    @app_commands.command(name="sil", description="Özel eklenmiş bir cevabı siler")
+    async def delete_command(self, interaction: discord.Interaction, text: str):
+        if custom_responses.get(text) is not None:
+            response = custom_responses[text]
+            del custom_responses[text]
+            write_json("responses.json", custom_responses)
+            embed = discord.Embed(title="Cevap Silindi", description=f"'{text}: {response}' adlı cevap silindi", color=CYAN)
+            await interaction.response.send_message(embed=embed)
+        else:
+            await interaction.response.send_message(f"Cevap bulunamadı: {text}", ephemeral=True)
+
+
 tree = app_commands.CommandTree(discord_client)
 
 
