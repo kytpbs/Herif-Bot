@@ -222,10 +222,7 @@ class SpecialCommands(app_commands.Group):
                                                     ephemeral=True)
             return
 
-        if degistir and not interaction.user.guild_permissions.administrator:
-            if not interaction.user.guild_permissions.administrator:
-                await interaction.response.send_message("Bu komutu kullanmak için gerekli iznin yok", ephemeral=True)
-                return
+
         eski_cevap = custom_responses[text]
         custom_responses[text] = answer
         write_json("responses.json", custom_responses)
