@@ -250,8 +250,8 @@ class MyClient(discord.Client):
         time = datetime.now().strftime("%H:%M:")
         if guild is None:
             guild = "DM"
-        data = f'{str(time)} {str(guild)} {str(channel)} {str(user.name)}: {str(message_content)}'
-        logging.debug(data, message.embeds if len(message.embeds) > 0 else "No embeds")
+        data = f'{str(guild)} {str(channel)} / {str(user.name)}: {str(message_content)}'
+        logging.getLogger("chat").debug(data)
 
         if message.author == self.user:
             return
