@@ -107,9 +107,7 @@ async def join(interaction: discord.Interaction, channel: discord.VoiceChannel =
     return True, voice
 
 
-async def pause(
-    interaction: discord.Interaction, edit: bool = False, stop: bool = False
-):
+async def pause(interaction: discord.Interaction, edit: bool = False, stop: bool = False):
     """
     Warning: WILL NOT RESPOND IF STOP IS TRUE
     """
