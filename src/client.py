@@ -167,6 +167,7 @@ class MyClient(discord.Client):
 
     async def on_member_unban(self, guild: discord.Guild, user: discord.User):
         logging.debug(f"{user.name} was unbanned from {guild.name}")
+        embed = discord.Embed(title=f"{user.name} bu mal gibi sunucuya geri girme hakkı kazandı", color=CYAN)
         channel = self.get_channel(GENERAL_CHAT_ID)
         if isinstance(channel, discord.TextChannel):
             await channel.send(
@@ -175,14 +176,14 @@ class MyClient(discord.Client):
         text_channel = guild.text_channels[0]
         invite = await text_channel.create_invite(reason="Ban kaldırıldı, sunucuya geri davet ediliyor", max_uses=1)
         try:
-            await user.send(f"artık {guild.name} sunucusuna geri girebilirsin. giriş linkin: {invite}")
+            await user.send(f"Artık {guild.name} sunucusuna geri girebilirsin! işte giriş linkin: {invite}")
+            embed.description = "Davet linki kişiye gönderildi"
         except discord.Forbidden:
             logging.info(f"Couldn't send message to {user.name}")
+            embed.description = "Davet linki kişiye gönderilemedi, lütfen gönderin"
         channel = self.get_channel(GENERAL_CHAT_ID)
         if isinstance(channel, discord.TextChannel):
-            await channel.send(
-                f"{user.name} bu mal gibi {guild.name} sunucusuna geri girebilme hakkı kazanmılştır"
-            )
+            await channel.send(embed=embed)
 
     async def on_message_edit(self, before, message):
         if message.author == self.user:
