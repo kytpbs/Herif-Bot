@@ -36,3 +36,6 @@ if is_server(only_true_if_cloud=False):
     google_client.setup_logging(log_level=logging.DEBUG)
 else:
     logging.basicConfig(level=logging.DEBUG, filename=f'{BOT_NAME}.log', filemode='w', format='%(asctime)s: %(name)s - %(levelname)s - %(message)s in %(filename)s:%(lineno)d')
+    console = logging.StreamHandler()
+    console.setLevel(logging.DEBUG)
+    logging.getLogger().addHandler(console)
