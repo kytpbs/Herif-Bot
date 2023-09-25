@@ -261,7 +261,7 @@ class MyClient(discord.Client):
         if isinstance(channel, discord.DMChannel) or message.guild is None:
             async with channel.typing():
                 answer = GPT.question("You are talking on a dm channel!" + message_content, message.author.name)
-            if answer != -1:
+            if answer == -1:
                 await message.reply("Botta bir hata oluştu, Lütfen tekrar dene!")
                 return
             await message.reply(str(answer))
