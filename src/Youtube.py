@@ -54,6 +54,8 @@ class video_data(object):
         self.title = video_info['title']
         self.thumbnail_url = video_info['thumbnail']
 
+    def __hash__(self) -> int:
+        return hash((self.title, self.thumbnail_url, self.webpage_url))
 
 class video_data_guild:
     def __init__(self) -> None:

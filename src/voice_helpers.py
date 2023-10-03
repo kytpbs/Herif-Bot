@@ -6,6 +6,9 @@ class play_path_queue_guild:
     def __init__(self) -> None:
         self.queue_dict: dict[int, Queue[tuple[dict[str, Any], str]]] = {}
 
+    def __hash__(self) -> int:
+        return hash(self.queue_dict)
+
     def get_queue(self, guild_id: int) -> Queue[tuple[dict[str, Any], str]]:
         """returns the queue for the guild_id, if it doesn't exist, it creates an empty one
 
