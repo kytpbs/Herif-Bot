@@ -6,7 +6,6 @@ import discord
 from discord.ext import tasks
 
 from Constants import BIRTHDAY_ROLE_ID, GENERAL_CHAT_ID
-from src import logging_system
 from src.birthday_helpers import get_user_and_date_from_string
 
 
@@ -47,7 +46,7 @@ class task_list:
   @staticmethod
   @tasks.loop(hours=72)
   async def clear_cache():
-    logging.debug("clearing cache", logging_system.DEBUG)
+    logging.debug("clearing cache", logging.DEBUG)
     folder_directory = f"{os.getcwd()}/cache"
     for file in os.listdir(folder_directory):
       os.remove(f"{folder_directory}/{file}")

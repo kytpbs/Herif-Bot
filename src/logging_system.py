@@ -10,13 +10,6 @@ from Constants import BOT_NAME
 load_dotenv()
 
 
-DEBUG = logging.DEBUG
-INFO = logging.INFO
-WARNING = logging.WARNING
-ERROR = logging.ERROR
-CRITICAL = logging.CRITICAL
-
-
 def is_server(only_true_if_cloud: bool = True) -> bool:
     dev = os.getenv("DEV")
     cloud = os.getenv("CLOUD")
