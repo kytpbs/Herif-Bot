@@ -87,7 +87,7 @@ class AiCommands(app_commands.Group):
     @app_commands.command(name="soru", description="bota bir soru sor")
     async def chatgpt(self, interaction: discord.Interaction, message: str):
         await interaction.response.defer(ephemeral=False)
-        logging.debug("ChatGPT istek:", message)
+        logging.debug("ChatGPT istek: %s", message)
         answer = GPT.question(message)
         logging.debug(f"Cevap: {answer}")
         if answer == -1:
