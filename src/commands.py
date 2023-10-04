@@ -300,11 +300,13 @@ def setup_commands():
                                           default_permissions=admin, parent=voice_cmds)
     ai_cmds = AiCommands(name="zeki", description="Botu zeki yapan komutlar")
     special_cmds = SpecialCommands(name="özel", description="Bota özel komutlar ekleyip görmen için komutlar")
+    special_admin_cmds = AdminSpecialCommands(name="admin", description="Adminlerin kullanabileceği özel komutlar",
+                                              default_permissions=admin, parent=special_cmds)
     birthday_cmds = BirthdayCommands(name="doğumgünü", description="Doğumgünü komutları")
     admin_birthday_cmds = AdminBirthdayCommands(name="admin",
                                                 description="Adminlerin kullanabileceği doğumgünü komutları",
                                                 default_permissions=admin, parent=birthday_cmds)
     tree.add_command(admin_voice_cmds)
     tree.add_command(admin_birthday_cmds)
-    tree.add_command(special_cmds)
+    tree.add_command(special_admin_cmds)
     tree.add_command(ai_cmds)
