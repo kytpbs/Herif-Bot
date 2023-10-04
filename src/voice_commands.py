@@ -1,5 +1,4 @@
-__package__ = "src"
-
+import functools
 import logging
 import os
 import threading
@@ -9,6 +8,7 @@ import discord
 import yt_dlp
 
 from Constants import CYAN, KYTPBS_TAG
+from src import views
 from src import Youtube
 from src.voice_helpers import play_path_queue_guild
 
@@ -134,7 +134,7 @@ async def pause(interaction: discord.Interaction, edit: bool = False, stop: bool
         voice.stop()
         return
 
-    from src import views
+    # from src import views
 
     view = views.voice_pause_view(timeout=None)
     embed = discord.Embed(title="Şarkı duraklatıldı", color=CYAN)
@@ -170,9 +170,9 @@ async def resume(interaction: discord.Interaction, edit: bool = False):
         return
 
     voice.resume()
-    logging.debug(f"voice resumed at {interaction.guild_id}")
+    logging.debug("voice resumed at %s", interaction.guild_id)
 
-    from src import views
+    # from src import views
 
     view = views.voice_play_view(timeout=None)
     embed = discord.Embed(title="Şarkı devam ettirildi", color=CYAN)
@@ -194,7 +194,7 @@ async def play(interaction: discord.Interaction, search: str):
     if not interaction.response.is_done():
         await interaction.response.defer()
 
-    run_next = create_next(interaction)
+    run_next = functools.partial(next_sync, interaction=interaction)
 
     if (not queues.empty(interaction.guild_id) and voice.is_playing()
         or voice.is_playing()
@@ -216,7 +216,7 @@ async def play(interaction: discord.Interaction, search: str):
     video_id = info["id"]
     url = info["webpage_url"]
 
-    from src import views
+    # from src import views
 
     voice_view = views.voice_play_view(timeout=info["duration"] + 5)
 
@@ -244,7 +244,7 @@ async def play(interaction: discord.Interaction, search: str):
                 data = queue.get(
                     timeout=10  # stop after 10 seconds, as it is probably stuck
                 )
-            except Empty as e:
+            except Empty as err:
                 if thread.is_alive():
                     continue
                 embed = discord.Embed(
@@ -254,7 +254,7 @@ async def play(interaction: discord.Interaction, search: str):
                     color=CYAN,
                 )
                 await send_next_message(embed=embed)
-                raise e  # re-raise the exception, so I can see it in the logs
+                raise err  # re-raise the exception, so I can see it in the logs
             percent_str = str(data["_percent_str"])[8:-4]
             embed.clear_fields().add_field(
                 name="İndirme durumu", value=percent_str, inline=False
@@ -307,10 +307,9 @@ async def add_to_queue(interaction: discord.Interaction, search: str):
     if not os.path.isfile(video_path):  # the video has not been downloaded before
         extra_queue = LifoQueue()
 
-        t = threading.Thread(
+        threading.Thread(
             target=Youtube.youtube_download, args=(url, extra_queue, video_path)
-        )
-        t.start()
+        ).start()
 
     video = info, video_path
 
@@ -331,19 +330,14 @@ async def add_to_queue(interaction: discord.Interaction, search: str):
     # I don't think it will be a problem, but if it is, I will fix it later
 
 
-def create_next(interaction: discord.Interaction, edit: bool = True):
-    def new_next(exception):
-        # No exceptions
-        if exception is None:
-            logging.debug("new next called with no exception")
-            interaction.client.loop.create_task(
-                next_song(interaction, edit=edit), name="Run Next Song"
-            )
-        else:
-            logging.warning("new next called with exception")
-            raise exception
-
-    return new_next
+def next_sync(exception: Exception | None, interaction: discord.Interaction, edit: bool = True):
+    if exception is None:
+        logging.debug("next called with no exception")
+        interaction.client.loop.create_task(
+            next_song(interaction, edit=edit), name="Run Next Song")
+    else:
+        logging.warning("next called with exception")
+        raise exception
 
 
 async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.View = None,  # type: ignore
@@ -365,7 +359,7 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
         if edit:
             await interaction.edit_original_response(content=None, embed=embed, view=None)
             return
-        
+
         if not interaction.response.is_done():  # if the response is not sent yet
             await interaction.response.send_message(embed=embed, ephemeral=True)
         else:
@@ -383,7 +377,7 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
             await interaction.response.send_message("Sırada Daha Fazla Şarkı Yok", ephemeral=True)
             return
 
-        from src import views
+        # from src import views
         view = views.voice_over_view(timeout=None)
         embed = discord.Embed(
             title="Çalma Sırası Bitti",
@@ -411,14 +405,14 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
             await interaction.response.defer(thinking=False, ephemeral=True)
         return
 
-    run_next = create_next(interaction)
+    run_next = functools.partial(next_sync, interaction=interaction)
 
     info, video_path = queues.get(interaction.guild_id)
 
     title = info["title"]
     webpage_url = info["webpage_url"]
     image_url = info["thumbnail"]
-    
+
     embed = discord.Embed(title="Şarkı Çalınıyor", description=title, url=webpage_url, color=CYAN)
     embed.set_thumbnail(url=info["thumbnail"])
     audio_source = discord.FFmpegPCMAudio(video_path)
@@ -428,7 +422,7 @@ async def next_song(interaction: discord.Interaction, view_to_use: discord.ui.Vi
     queues.task_done(interaction.guild_id)
 
     if view_to_use is None:
-        from src import views
+        # from src import views
         view = views.voice_play_view(timeout=int(info["duration"]) + 5)
     else:
         view = view_to_use
