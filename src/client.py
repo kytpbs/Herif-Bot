@@ -5,7 +5,6 @@ import discord
 
 from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID, BOSS_BOT_CHANNEL_ID
 from src import GPT
-from src import commands
 from src.helper_functions import get_general_channel
 from src.Read import json_read
 from src.Tasks import start_tasks
@@ -26,6 +25,7 @@ class MyClient(discord.Client):
     async def on_ready(self):
         await self.wait_until_ready()
         if not self.synced:
+            import src.commands as commands
             tree = commands.get_tree_instance()
             await tree.sync()
             start_tasks()

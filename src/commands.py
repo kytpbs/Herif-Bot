@@ -9,7 +9,8 @@ from discord import app_commands
 from Constants import BOT_ADMIN_SERVER_ID, CYAN, KYTPBS_TAG
 from src.Read import write_json
 import src.voice_commands as vc_cmds
-from src import GPT, Youtube, client
+import src.client as client
+from src import GPT, Youtube
 from src.birthday_helpers import get_user_and_date_from_string
 
 birthdays = client.get_birthdays()
