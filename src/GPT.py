@@ -76,9 +76,11 @@ def chat(main_message: str, message_history: dict[discord.User, str]):
         messages=messages,
         max_tokens=400,
         )
-    except openai.OpenAIError:
+    except openai.OpenAIError as error:
+        logging.error(error, stack_info=True)
         return ERROR2
     if not isinstance(response, dict):
+        logging.error("response is not a dict: %s", response)
         return ERROR2
     answer = response['choices'][0]['message']['content']
     logging.debug("replying to DM, %d tokens used", response['usage']['total_tokens'])
