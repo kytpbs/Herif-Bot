@@ -1,5 +1,6 @@
 import logging
 import os
+import discord
 
 import openai
 from dotenv import load_dotenv
@@ -9,6 +10,7 @@ from Constants import BOT_NAME, SERVER_NAME
 load_dotenv()
 
 ERROR = -1
+ERROR2 = "ERROR: GPT-3 API Error"
 openai.api_key = os.getenv("OPEN_AI_KEY")
 if openai.api_key is None:
     logging.critical("OPEN_AI_KEY is not set in .env file")
@@ -44,54 +46,40 @@ def question(message: str, user_name: str = "MISSING", server_name: str = SERVER
     logging.debug(f"{tokens} tokens used")
     return answer
 
-
-# noinspection PyBroadException
-def chat(message_response_dict: dict[str, str], new_message: str = "MISSING",
-         user_name: str = "MISSING", dont_send_token_usage: bool = True):
-    """
-    message_response_dict: left is the message, right is the response from the bot
-    """
-    logging.debug(f"new chat: {message_response_dict}")
+def chat(message: str, message_history: dict[discord.User, str]):
     messages = [
         {
         "role": "system",
-        "content": "You are a discord bot named 'Cupids' in a discord server named Cupids",
+        "content": f"You are a discord bot named '{BOT_NAME}' in a discord server named {SERVER_NAME}",
         },
     ]
-
-    if user_name != "MISSING":
-        messages.append({
-        "role": "system",
-        "content": f"You Are Talking With {user_name}",
-        })
-
-    for message, response in message_response_dict.items():
-        messages.append({
+    for user, message in message_history.items():
+        if user.bot:
+            messages.append({
+            "role": "assistant",
+            "content": message,
+            })
+        else:
+            messages.append({
+            "role": "user",
+            "name": user.name,
+            "content": message,
+            })
+    
+    messages.append({
         "role": "user",
         "content": message,
-        })
-        messages.append({
-        "role": "assistant",
-        "content": response,
-        })
-
-    if new_message != "MISSING":
-        messages.append({
-        "role": "user",
-        "content": new_message,
         })
     try:
         response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=messages,
+        max_tokens=400,
         )
-    except Exception:
-        return ERROR
+    except openai.OpenAIError:
+        return ERROR2
     if not isinstance(response, dict):
-        return ERROR
-    tokens = response['usage']['total_tokens']
-    logging.debug(f"{tokens} tokens used")
-    answer = response['choices'][0]['message']
-    if not dont_send_token_usage:
-        return answer
+        return ERROR2
+    answer = response['choices'][0]['message']['content']
+    logging.debug("replying to DM, %d tokens used", response['usage']['total_tokens'])
     return answer
