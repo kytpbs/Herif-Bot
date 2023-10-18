@@ -46,7 +46,7 @@ def question(message: str, user_name: str = "MISSING", server_name: str = SERVER
     logging.debug(f"{tokens} tokens used")
     return answer
 
-def chat(message: str, message_history: dict[discord.User, str]):
+def chat(main_message: str, message_history: dict[discord.User, str]):
     messages = [
         {
         "role": "system",
@@ -54,21 +54,15 @@ def chat(message: str, message_history: dict[discord.User, str]):
         },
     ]
     for user, message in message_history.items():
-        if user.bot:
-            messages.append({
-            "role": "assistant",
-            "content": message,
-            })
-        else:
-            messages.append({
-            "role": "user",
-            "name": user.name,
-            "content": message,
-            })
+        messages.append({
+        "role": "assistant" if user.bot else "user",
+        "name": user.name,
+        "content": message,
+        })
     
     messages.append({
         "role": "user",
-        "content": message,
+        "content": main_message,
         })
     try:
         response = openai.ChatCompletion.create(
