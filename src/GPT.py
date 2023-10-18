@@ -54,11 +54,17 @@ def chat(main_message: str, message_history: dict[discord.User, str]):
         },
     ]
     for user, message in message_history.items():
-        messages.append({
-        "role": "assistant" if user.bot else "user",
-        "name": user.name,
-        "content": message,
-        })
+        if user.bot:
+            messages.append({
+            "role": "assistant",
+            "content": message,
+            })
+        else:
+            messages.append({
+            "role": "user",
+            "name": user.name,
+            "content": message,
+            })
     
     messages.append({
         "role": "user",
