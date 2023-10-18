@@ -261,11 +261,7 @@ class MyClient(discord.Client):
 
         if isinstance(channel, discord.DMChannel) or message.guild is None:
             async with channel.typing():
-                answer = GPT.question("You are talking on a dm channel!" + message_content, message.author.name)
-            if answer == -1:
-                await message.reply("Botta bir hata oluştu, Lütfen tekrar dene!")
-                return
-            await message.reply(str(answer))
+                await self.on_dm(message)
             return
 
         if time == "06:11:":  # 9:11 for +3 timezone
@@ -306,6 +302,15 @@ class MyClient(discord.Client):
                 await message.channel.send(" ".join(message.content.split(" ")[1:]))
             else:
                 await message.reply("Ne söyleyeyim?")
+
+    @staticmethod
+    async def on_dm(message: discord.Message):
+        messages_dict: dict = {}
+        last_messages = message.channel.history(limit=10)
+        async for msg in last_messages:
+            messages_dict[msg.author] = msg.content
+        answer = GPT.chat(message.content, messages_dict)
+        await message.reply(answer) # not using an embed because it's easier to parse history this way.
 
 
 client = MyClient()
