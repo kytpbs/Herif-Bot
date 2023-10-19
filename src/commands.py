@@ -113,18 +113,14 @@ class AiCommands(app_commands.Group):
                 return
 
         except openai.InvalidRequestError:
-            embed = discord.Embed(title="HATA", description="+18 olduğu için izin verilmedi (kapatılamıyor)")
+            embed = discord.Embed(title="HATA", description="+18 olduğu için izin verilmedi")
             await interaction.response.send_message(embed=embed)
             return
 
-        except openai.OpenAIError:
-            embed = discord.Embed(title="HATA", description="Bir hata oluştu, hata: 'OpenAIError'")
+        except openai.OpenAIError as error:
+            embed = discord.Embed(title="HATA", description=f"Bir şey ters gitti, hata ayıklaması: 'OpenAIError: ' {error.user_message}")
             await interaction.response.send_message(embed=embed)
-            return
-
-        except Exception as e:
-            embed = discord.Embed(title="HATA", description=f"Bir hata oluştu: {e.__class__.__name__}")
-            await interaction.response.send_message(embed=embed)
+            logging.error(error)
             return
 
         if image is None:
