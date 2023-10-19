@@ -148,6 +148,11 @@ class MyClient(discord.Client):
             embed.add_field(name="Eski Web Durumu:", value=before.web_status, inline=False)
             embed.add_field(name="Yeni Web Durumu:", value=after.web_status, inline=False)
 
+        if before.is_on_mobile() != after.is_on_mobile():
+            logging.debug(f"{before.name}'s mobile status changed from {before.is_on_mobile()} to {after.is_on_mobile()}")
+            embed.add_field(name="Eski Mobil Durumu:", value=before.is_on_mobile(), inline=False)
+            embed.add_field(name="Yeni Mobil Durumu:", value=after.is_on_mobile(), inline=False)
+
         channel = self.get_channel(BOSS_BOT_CHANNEL_ID)
         if not isinstance(channel, discord.TextChannel):
             raise ValueError(f"Channel Not Found! Searched id: {BOSS_BOT_CHANNEL_ID}")
