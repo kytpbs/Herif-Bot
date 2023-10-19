@@ -218,7 +218,7 @@ class MyClient(discord.Client):
         else:
             who_deleted = None
         embed = discord.Embed(
-            title="Mesaj silindi.", description="Silinen Mesaj: " + str(message.content),
+            title="Mesaj silindi.", description=f"Silinen Mesaj: {message.content} ",
             color=CYAN)
 
         embed.add_field(name="Silinen kanal:", value=message.channel, inline=False)
@@ -233,11 +233,10 @@ class MyClient(discord.Client):
             else:
                 for attachment in message.attachments:
                     embed.add_field(name="Eklentiler:", value=attachment.url, inline=False)
-        if message.embeds is not None:
-            embeds2 = message.embeds
-        else:
-            embeds2 = None
-        if isinstance(channel, discord.TextChannel) and embeds2 is not None:
+        
+        embeds2 = [embed]
+        embeds2 += message.embeds
+        if isinstance(channel, discord.TextChannel):
             await channel.send(embeds=embeds2)
 
     async def on_message(self, message: discord.Message):
