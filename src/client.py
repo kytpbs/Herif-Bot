@@ -309,11 +309,9 @@ class MyClient(discord.Client):
 
     @staticmethod
     async def on_dm(message: discord.Message):
-        messages_dict: dict = {}
-        last_messages = message.channel.history(limit=10)
-        async for msg in last_messages:
-            messages_dict[msg.author] = msg.content
-        answer = GPT.chat(message.content, messages_dict)
+        if not isinstance(message.channel, discord.DMChannel):
+            raise ValueError("This function is only for DMs")
+        answer = GPT.chat(message.content, await GPT.create_message_history(message.channel, limit=5))
         await message.reply(answer) # not using an embed because it's easier to parse history this way.
 
 
