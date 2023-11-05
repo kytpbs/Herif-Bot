@@ -310,7 +310,7 @@ class MyClient(discord.Client):
     async def on_dm(message: discord.Message):
         if not isinstance(message.channel, discord.DMChannel):
             raise ValueError("This function is only for DMs")
-        answer = GPT.chat(message.content, await GPT.create_message_history(message.channel, limit=5))
+        answer = GPT.chat(message.content, (await GPT.create_message_history(message.channel, limit=8)))
         await message.reply(answer) # not using an embed because it's easier to parse history this way.
 
 
