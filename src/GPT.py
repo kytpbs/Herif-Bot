@@ -1,6 +1,5 @@
 import logging
 import os
-from typing import OrderedDict
 import discord
 
 import openai
@@ -17,10 +16,9 @@ if openai.api_key is None:
     logging.critical("OPEN_AI_KEY is not set in .env file")
 
 async def create_message_history(channel: discord.abc.Messageable, limit:int = 10):
-    message_history = OrderedDict()
+    message_history = []
     async for message in channel.history(limit=limit):
-        if message.author not in message_history:
-            message_history[message.author] = message.content
+        message_history.append((message.author, message.content))
     return message_history
 
 
@@ -54,14 +52,14 @@ def question(message: str, user_name: str = "MISSING", server_name: str = SERVER
     logging.debug(f"{tokens} tokens used")
     return answer
 
-def chat(main_message: str, message_history: OrderedDict[discord.User, str]):
+def chat(main_message: str, message_history: list[tuple[discord.User, str]]):
     messages = [
         {
         "role": "system",
         "content": f"You are a discord bot named '{BOT_NAME}' in a discord server named {SERVER_NAME}",
         },
     ]
-    for user, message in message_history.items():
+    for user, message in message_history:
         if user.bot:
             messages.append({
             "role": "assistant",
