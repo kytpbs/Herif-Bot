@@ -30,25 +30,24 @@ class MyClient(discord.Client):
             await tree.sync()
             start_tasks()
             self.synced = True
-        logging.info(f"Logged on as {self.user}")
+        logging.info("Logged on as %s", self.user)
 
     async def on_member_join(self, member: discord.Member):
-        logging.debug(f"{member.name}, joined {member.guild.name}")
+        logging.debug("%s, joined %s",member.name, member.guild.name)
         general_channel = get_general_channel(member.guild)
         if general_channel is not None:
             await general_channel.send(
                 f"Zeki bir insan valrlığı olan {member.mention} Bu saçmalık {member.guild} serverına katıldı. Hoşgeldin!")
 
     async def on_member_remove(self, member: discord.Member):
-        logging.debug(f"{member.name}, left {member.guild.name}")
+        logging.debug("%s, left %s", member.name, member.guild.name)
         channel = get_general_channel(member.guild)
         if isinstance(channel, discord.TextChannel):
             await channel.send("Zeki bir insan valrlığı olan " + "**" + str(member) +
                                "**" + " Bu saçmalık serverdan ayrıldı")
 
     async def on_guild_channel_create(self, channel):
-        logging.debug(channel, "Oluşturuldu")
-        logging.debug(f"At {channel.guild.name}, {channel} was created.")
+        logging.debug("At %s, %s was created.",channel.guild.name, channel)
 
         deleted_messages_channel = self.get_channel(DELETED_MESSAGES_CHANNEL_ID)
         if isinstance(deleted_messages_channel, discord.TextChannel):
@@ -56,7 +55,7 @@ class MyClient(discord.Client):
                 f"**{channel}** adlı kanal oluşturuldu")
 
     async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
-        logging.debug(f"At {channel.guild.name}, {channel} was deleted.")
+        logging.debug("At %s, %s was deleted.", channel.guild.name, channel)
         deleted_messages_channel = self.get_channel(DELETED_MESSAGES_CHANNEL_ID)
         if isinstance(deleted_messages_channel, discord.TextChannel):
             message = await deleted_messages_channel.send(
@@ -71,12 +70,12 @@ class MyClient(discord.Client):
         embed.set_thumbnail(url=avatar.url)
 
         if before.nick != after.nick:
-            logging.debug(f"{before.name}'s nickname changed from {before.nick} to {after.nick}")
+            logging.debug("%s's nickname changed from %s to %s", before.name, before.nick, after.nick)
             embed.add_field(name="Eski Nick:", value=before.nick, inline=False)
             embed.add_field(name="Yeni Nick:", value=after.nick, inline=False)
 
         if before.avatar != after.avatar:
-            logging.debug(f"{before.name}'s profile picture changed.")
+            logging.debug("%s's profile picture changed.", before.name)
 
             if before.avatar is None:
                 embed.add_field(name="Eski Profil Fotoğrafı:", value="Yok", inline=False)
@@ -91,7 +90,7 @@ class MyClient(discord.Client):
                 embed.set_thumbnail(url=after.avatar.url)
 
         if before.roles != after.roles:
-            logging.debug(f"{before.name}'s roles changed.")
+            logging.debug("%s's roles changed.", before.name)
 
         for role in before.roles:
             if role not in after.roles:
@@ -102,7 +101,7 @@ class MyClient(discord.Client):
                 embed.add_field(name="Rol Eklendi:", value=role.mention, inline=False)
 
         if before.status != after.status:
-            logging.debug(f"{before.name}'s status changed from {before.status} to {after.status}")
+            logging.debug("%s's status changed from %s to %s", before.name, before.status, after.status)
             embed.add_field(name="Eski Durum:", value=before.status, inline=False)
             embed.add_field(name="Yeni Durum:", value=after.status, inline=False)
 
