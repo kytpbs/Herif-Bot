@@ -19,9 +19,9 @@ if openai.api_key is None:
 
 async def create_message_history(channel: discord.abc.Messageable, limit:int = 10) -> list[tuple[discord.User, str]]:
     message_history = []
-    async for message in channel.history(limit=limit):
+    async for message in channel.history(limit=limit + 1):
         message_history.append((message.author, message.content))
-    return message_history
+    return message_history[:-1] # remove the last message because it is the message that was just sent
 
 def modified_create(queue: LifoQueue, *args, **kwargs):
     queue.put(openai.ChatCompletion.create(*args, **kwargs))
