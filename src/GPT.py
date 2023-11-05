@@ -16,6 +16,13 @@ openai.api_key = os.getenv("OPEN_AI_KEY")
 if openai.api_key is None:
     logging.critical("OPEN_AI_KEY is not set in .env file")
 
+async def create_message_history(channel: discord.abc.Messageable, limit:int = 10):
+    message_history = OrderedDict()
+    async for message in channel.history(limit=limit):
+        if message.author not in message_history:
+            message_history[message.author] = message.content
+    return message_history
+
 
 # noinspection PyBroadException
 def question(message: str, user_name: str = "MISSING", server_name: str = SERVER_NAME):
