@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import OrderedDict
 import discord
 
 import openai
@@ -46,7 +47,7 @@ def question(message: str, user_name: str = "MISSING", server_name: str = SERVER
     logging.debug(f"{tokens} tokens used")
     return answer
 
-def chat(main_message: str, message_history: dict[discord.User, str]):
+def chat(main_message: str, message_history: OrderedDict[discord.User, str]):
     messages = [
         {
         "role": "system",
