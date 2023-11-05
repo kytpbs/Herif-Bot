@@ -17,7 +17,7 @@ openai.api_key = os.getenv("OPEN_AI_KEY")
 if openai.api_key is None:
     logging.critical("OPEN_AI_KEY is not set in .env file")
 
-async def create_message_history(channel: discord.abc.Messageable, limit:int = 10):
+async def create_message_history(channel: discord.abc.Messageable, limit:int = 10) -> list[tuple[discord.User, str]]:
     message_history = []
     async for message in channel.history(limit=limit):
         message_history.append((message.author, message.content))
