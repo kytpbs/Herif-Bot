@@ -21,6 +21,7 @@ async def create_message_history(channel: discord.abc.Messageable, limit:int = 1
     message_history = []
     async for message in channel.history(limit=limit + 1):
         message_history.append((message.author, message.content))
+    message_history.reverse() # reverse the list so that the oldest message is first
     return message_history[:-1] # remove the last message because it is the message that was just sent
 
 def modified_create(queue: LifoQueue, *args, **kwargs):
