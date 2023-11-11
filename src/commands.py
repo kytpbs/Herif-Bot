@@ -61,7 +61,7 @@ class VoiceAdminCommands(app_commands.Group):
 
     @app_commands.command(name="sustur", description='birisini susturmanı sağlar')
     async def mute(self, interaction: discord.Interaction, user: discord.Member):
-        if not user.guild == interaction.guild:
+        if user.guild != interaction.guild:
             await interaction.response.send_message("Kullanıcı bu sunucuda değil", ephemeral=True)
             return
         if not isinstance(user, discord.Member):
@@ -194,7 +194,7 @@ class AdminBirthdayCommands(app_commands.Group):
         del birthdays[user_id]
         write_json("birthdays.json", birthdays)
         await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü silindi")
-        return
+
 
 
 class SpecialCommands(app_commands.Group):
@@ -225,7 +225,6 @@ class SpecialCommands(app_commands.Group):
         embed = discord.Embed(title="Cevap Değiştirildi", description=f"'{text} : {answer}' a değiştirildi", color=CYAN)
         embed.add_field(name="Eski Cevap", value=eski_cevap, inline=False)
         await interaction.response.send_message(embed=embed)
-        return
 
     @app_commands.command(name="cevaplar", description="Bütün özel eklenmiş cevapları gösterir")
     async def answers(self, interaction: discord.Interaction):
@@ -274,7 +273,7 @@ async def find_and_play(interaction: discord.Interaction, message: discord.Messa
     watch_link = "https://www.youtube.com/watch?v="
     links = content.split(watch_link)
     if len(links) > 1:  # we found a link
-        logging.debug(f"Found a link in the message {content} the link is {links[1].split(' ')[0]}", links)
+        logging.debug(f"Found a link in the message {content} the link is {links[1].split(' ')[0]}")
         await vc_cmds.play(interaction, watch_link + links[1].split(' ')[0])
         return
     # we didn't find a link

@@ -17,7 +17,7 @@ def json_read(name: str) -> dict:
     if not os.path.exists(name):
         write_json(name, {})
         return {}
-    with open(name) as json_file:
+    with open(name, encoding="utf-8") as json_file:
         logging.debug(f"Reading {name}")
         data = json.load(json_file)
         json_file.close()
@@ -34,7 +34,7 @@ def write_json(name: str, data: dict[str, str]) -> None:
         name = "jsons/" + name
     if not name.endswith(".json"):
         name += ".json"
-    with open(name, 'w+') as f:
+    with open(name, 'w+', encoding="utf-8") as f:
         json.dump(data, f, indent=4)
         f.close()
     logging.debug(f"Writing to {name}")
