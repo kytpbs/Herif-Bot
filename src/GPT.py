@@ -53,7 +53,7 @@ def question(message: str, user_name: str = "MISSING", server_name: str = SERVER
         messages=messages,
         max_tokens=500,
         )
-    except Exception:
+    except openai.OpenAIError:
         return ERROR
     if not isinstance(response, dict):
         return ERROR
