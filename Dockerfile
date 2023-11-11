@@ -49,6 +49,7 @@ RUN apt-get update && apt-get install ffmpeg -y
 # Copy the source code into the container.
 COPY . .
 
+# Fuck it, im going to use root, as all the write operations fail for some reason... (can't be bothered to fix it)
 USER root
 
 # Run the application.
