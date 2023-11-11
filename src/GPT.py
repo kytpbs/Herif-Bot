@@ -8,11 +8,16 @@ import openai
 from dotenv import load_dotenv
 
 from Constants import BOT_NAME, SERVER_NAME
+from gpt_helpers import GPTError
 
 load_dotenv()
 
 ERROR = -1
-ERROR2 = "ERROR: GPT-3 API Error"
+
+UNKNOWN_ERROR = "ERROR: Unknown Error Accured"
+NONDICT_ERROR = "ERROR: Response is not a dict, Please Try Again"
+TIMEOUT_ERROR = "ERROR: Request Timed out, Please Try Again after a few seconds"
+
 openai.api_key = os.getenv("OPEN_AI_KEY")
 if openai.api_key is None:
     logging.critical("OPEN_AI_KEY is not set in .env file")
@@ -57,7 +62,7 @@ def question(message: str, user_name: str = "MISSING", server_name: str = SERVER
     logging.debug(f"{tokens} tokens used")
     return answer
 
-def chat(main_message: str, message_history: list[tuple[discord.User, str]]):
+def chat(main_message: str, message_history: list[tuple[discord.User, str]]) -> (str | GPTError):
     messages = [
         {
         "role": "system",
@@ -93,14 +98,14 @@ def chat(main_message: str, message_history: list[tuple[discord.User, str]]):
         thread.join(30)
         if thread.is_alive():
             logging.error("thread timed out")
-            return ERROR2
+            return GPTError(TIMEOUT_ERROR)
         response = queue.get()
     except openai.OpenAIError as error:
         logging.error(error, stack_info=True)
-        return ERROR2
+        return GPTError(UNKNOWN_ERROR)
     if not isinstance(response, dict):
         logging.error("response is not a dict: %s", response)
-        return ERROR2
+        return GPTError(NONDICT_ERROR)
     answer = response['choices'][0]['message']['content']
     logging.debug("replying to DM, %d tokens used", response['usage']['total_tokens'])
     return answer
