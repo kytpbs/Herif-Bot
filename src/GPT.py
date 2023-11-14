@@ -8,7 +8,7 @@ import openai
 from dotenv import load_dotenv
 
 from Constants import BOT_NAME, SERVER_NAME
-from gpt_helpers import GPTError
+from src.gpt_helpers import GPTError
 
 load_dotenv()
 

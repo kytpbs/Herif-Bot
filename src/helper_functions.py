@@ -1,7 +1,7 @@
 from typing import Any
 import discord
 
-import Read
+from src import Read
 
 
 def get_general_channel(guild: discord.Guild):
