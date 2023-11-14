@@ -5,7 +5,7 @@ import discord
 import openai
 from discord import app_commands
 
-from Constants import BOT_ADMIN_SERVER_ID, CYAN, KYTPBS_TAG
+from Constants import BOT_ADMIN_SERVER_ID, CYAN, KYTPBS_TAG, RESPONSES_FILE
 from src.Read import write_json
 import src.voice_commands as vc_cmds
 import src.client as client
@@ -202,7 +202,7 @@ class SpecialCommands(app_commands.Group):
     async def create_command(self, interaction: discord.Interaction, text: str, answer: str, degistir: bool = False):
         if custom_responses.get(text) is None:
             custom_responses[text] = answer
-            write_json("responses.json", custom_responses)
+            write_json(RESPONSES_FILE, custom_responses)
             await interaction.response.send_message(f"Yeni bir cevap oluşturuldu. {text} : {answer}")
             return
 
@@ -221,7 +221,7 @@ class SpecialCommands(app_commands.Group):
 
         eski_cevap = custom_responses[text]
         custom_responses[text] = answer
-        write_json("responses.json", custom_responses)
+        write_json(RESPONSES_FILE, custom_responses)
         embed = discord.Embed(title="Cevap Değiştirildi", description=f"'{text} : {answer}' a değiştirildi", color=CYAN)
         embed.add_field(name="Eski Cevap", value=eski_cevap, inline=False)
         await interaction.response.send_message(embed=embed)
@@ -244,7 +244,7 @@ class AdminSpecialCommands(app_commands.Group):
         if custom_responses.get(text) is not None:
             response = custom_responses[text]
             del custom_responses[text]
-            write_json("responses.json", custom_responses)
+            write_json(RESPONSES_FILE, custom_responses)
             embed = discord.Embed(title="Cevap Silindi", description=f"'{text}: {response}' adlı cevap silindi", color=CYAN)
             await interaction.response.send_message(embed=embed)
         else:

@@ -1,3 +1,4 @@
+#pylint: disable=invalid-name  # it is normal to have the constants in a file named "Constants.py"
 BOT_NAME = "O K B A"
 SERVER_NAME = "AIKO # उच्च शिक्षा परीक्षा"
 
@@ -12,3 +13,5 @@ KYTPBS_TAG = "<@474944711358939170>"
 CYAN = 0x00FFFF  # The Main Color Used in the Bot
 GREEN = 0x00FF00
 FUNNY_COLOR = 696969
+
+RESPONSES_FILE = "responses.json"
