@@ -5,8 +5,7 @@ import discord
 import openai
 from discord import app_commands
 
-from Constants import BOT_ADMIN_SERVER_ID, BOT_OWNER_ID, CYAN, KYTPBS_TAG, RESPONSES_FILE
-from src.Read import write_json
+from Constants import BOT_ADMIN_SERVER_ID, BOT_OWNER_ID, CYAN, KYTPBS_TAG
 import src.voice_commands as vc_cmds
 import src.client as client
 from src import GPT, Youtube
@@ -146,7 +145,6 @@ class BirthdayCommands(app_commands.Group):
                 f"Değiştirmek için lütfen {KYTPBS_TAG} kişisine ulaşın", ephemeral=True)
             return
         birthdays[str(user_id)] = date_string
-        write_json("birthdays.json", birthdays)
         await interaction.response.send_message(
             f"{user.mention} adlı kişinin doğum günü '{date_string}' olarak ayarlandı")
 
@@ -192,7 +190,6 @@ class AdminBirthdayCommands(app_commands.Group):
                                                     ephemeral=True)
             return
         del birthdays[user_id]
-        write_json("birthdays.json", birthdays)
         await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü silindi")
 
 
@@ -201,7 +198,6 @@ class SpecialCommands(app_commands.Group):
     async def create_command(self, interaction: discord.Interaction, text: str, answer: str, degistir: bool = False):
         if custom_responses.get(text) is None:
             custom_responses[text] = answer
-            write_json(RESPONSES_FILE, custom_responses)
             await interaction.response.send_message(f"Yeni bir cevap oluşturuldu. {text} : {answer}")
             return
 
@@ -220,7 +216,6 @@ class SpecialCommands(app_commands.Group):
 
         eski_cevap = custom_responses[text]
         custom_responses[text] = answer
-        write_json(RESPONSES_FILE, custom_responses)
         embed = discord.Embed(title="Cevap Değiştirildi", description=f"'{text} : {answer}' a değiştirildi", color=CYAN)
         embed.add_field(name="Eski Cevap", value=eski_cevap, inline=False)
         await interaction.response.send_message(embed=embed)
@@ -243,7 +238,6 @@ class AdminSpecialCommands(app_commands.Group):
         if custom_responses.get(text) is not None:
             response = custom_responses[text]
             del custom_responses[text]
-            write_json(RESPONSES_FILE, custom_responses)
             embed = discord.Embed(title="Cevap Silindi", description=f"'{text}: {response}' adlı cevap silindi", color=CYAN)
             await interaction.response.send_message(embed=embed)
         else:
