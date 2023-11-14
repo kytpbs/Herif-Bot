@@ -5,7 +5,7 @@ import discord
 import openai
 from discord import app_commands
 
-from Constants import BOT_ADMIN_SERVER_ID, CYAN, KYTPBS_TAG, RESPONSES_FILE
+from Constants import BOT_ADMIN_SERVER_ID, BOT_OWNER_ID, CYAN, KYTPBS_TAG, RESPONSES_FILE
 from src.Read import write_json
 import src.voice_commands as vc_cmds
 import src.client as client
@@ -196,7 +196,6 @@ class AdminBirthdayCommands(app_commands.Group):
         await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü silindi")
 
 
-
 class SpecialCommands(app_commands.Group):
     @app_commands.command(name="olustur", description="botun senin ayarladığın mesajlara cevap verebilmesini sağlar")
     async def create_command(self, interaction: discord.Interaction, text: str, answer: str, degistir: bool = False):
@@ -250,6 +249,31 @@ class AdminSpecialCommands(app_commands.Group):
         else:
             await interaction.response.send_message(f"Cevap bulunamadı: {text}", ephemeral=True)
 
+class AdminServerCommands(app_commands.Group):
+    @app_commands.command(name="run-code", description="Runs any code you want")
+    async def run_code(self, interaction: discord.Interaction, code: str):
+        if interaction.user.id == BOT_OWNER_ID:
+            pass # if the user is the bot owner, then they can use this command
+        elif interaction.guild_id is None or interaction.guild_id != BOT_ADMIN_SERVER_ID:
+            await interaction.response.send_message("This command can only be used in the bot admin server", ephemeral=True)
+            return
+        elif not isinstance(interaction.user, discord.Member) or not interaction.user.guild_permissions.administrator:
+            await interaction.response.send_message("You don't have permission to use this command", ephemeral=True)
+            return
+
+        from contextlib import redirect_stdout #pylint: disable=import-outside-toplevel #this is a command for admins only
+        from io import StringIO #pylint: disable=import-outside-toplevel #this is a command for admins only
+
+        with StringIO() as buf, redirect_stdout(buf):
+            data = None
+            try:
+                data = eval(code, globals()) #pylint: disable=eval-used #this is a command for admins only
+            except Exception as e:  #pylint: disable=broad-exception-caught  #this is a command for admins only, and we want to catch all errors so we can send them to the user
+                data = e
+            finally:
+                data_str = "" if data is None else str(data)
+                embed = discord.Embed(title="Code Output", description=f"{buf.getvalue()}{data_str}", color=CYAN)
+                await interaction.response.send_message(embed=embed, ephemeral=isinstance(data_str, Exception))
 
 tree = app_commands.CommandTree(discord_client)
 
@@ -301,7 +325,10 @@ def setup_commands():
     admin_birthday_cmds = AdminBirthdayCommands(name="admin",
                                                 description="Adminlerin kullanabileceği doğumgünü komutları",
                                                 default_permissions=admin, parent=birthday_cmds)
+    admin_server_cmds = AdminServerCommands(name="owner", description="Bot Sahibinin Kullanacağı Komutlar",
+                                             default_permissions=admin, guild_only=True)
     tree.add_command(admin_voice_cmds)
     tree.add_command(admin_birthday_cmds)
     tree.add_command(special_admin_cmds)
     tree.add_command(ai_cmds)
+    tree.add_command(admin_server_cmds)
