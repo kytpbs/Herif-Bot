@@ -46,7 +46,7 @@ class task_list:
   @staticmethod
   @tasks.loop(hours=72)
   async def clear_cache():
-    logging.debug("clearing cache", logging.DEBUG)
+    logging.debug("clearing cache")
     folder_directory = f"{os.getcwd()}/cache"
     for file in os.listdir(folder_directory):
       os.remove(f"{folder_directory}/{file}")
