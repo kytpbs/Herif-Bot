@@ -14,14 +14,14 @@ def get_general_channel(guild: discord.Guild):
 class DiskDict(dict):
     def __init__(self, filename, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.file = filename
+        self.filename = filename
         self.load()
 
     def save(self):
-        Read.write_json(self.file, self)
+        Read.write_json(self.filename, self)
 
     def load(self):
-        self.update(Read.json_read(self.file))
+        self.update(Read.json_read(self.filename))
 
     def __delitem__(self, __key: Any) -> None:
         super().__delitem__(__key)
