@@ -34,3 +34,13 @@ class DiskDict(dict):
         if load:
             self.load()
         return super().__getitem__(__key)
+
+    def __del__(self):
+        self.save()
+
+    def __enter__(self):
+        self.load() # load the file before returning self, as why would they use it using "with" if they didn't want to load it?
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.save() # save the file before exiting the "with" block
