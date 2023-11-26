@@ -1,7 +1,7 @@
 import logging
 import os
 import threading
-from queue import LifoQueue
+from queue import Empty, LifoQueue
 import discord
 
 import openai
@@ -81,7 +81,7 @@ def chat(main_message: str, message_history: list[tuple[discord.User, str]]) -> 
             "name": user.name,
             "content": message,
             })
-    
+   
     messages.append({
         "role": "user",
         "content": main_message,
@@ -99,10 +99,13 @@ def chat(main_message: str, message_history: list[tuple[discord.User, str]]) -> 
         if thread.is_alive():
             logging.error("thread timed out")
             return GPTError(TIMEOUT_ERROR)
-        response = queue.get()
+        response = queue.get(timeout=15)
     except openai.OpenAIError as error:
         logging.error(error, stack_info=True)
         return GPTError(UNKNOWN_ERROR)
+    except Empty:
+        logging.error("queue is empty", stack_info=True, stacklevel=3)
+        return GPTError(TIMEOUT_ERROR)
     if not isinstance(response, dict):
         logging.error("response is not a dict: %s", response)
         return GPTError(NONDICT_ERROR)
