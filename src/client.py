@@ -1,9 +1,12 @@
-from datetime import datetime
 import logging
+import os
+from datetime import UTC, datetime, timedelta
 
 import discord
+import requests
 
-from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID, BOSS_BOT_CHANNEL_ID
+from Constants import (BOSS_BOT_CHANNEL_ID, CYAN, DELETED_MESSAGES_CHANNEL_ID,
+                       GENERAL_CHAT_ID)
 from src import GPT
 from src.Helpers.helper_functions import DiskDict, get_general_channel
 from src.Tasks import start_tasks
@@ -24,7 +27,7 @@ class MyClient(discord.Client):
     async def on_ready(self):
         await self.wait_until_ready()
         if not self.synced:
-            import src.commands as commands # pylint: disable=import-outside-toplevel # to avoid circular imports
+            import src.commands as commands  # pylint: disable=import-outside-toplevel # to avoid circular imports
             tree = commands.get_tree_instance()
             await tree.sync()
             start_tasks()
@@ -209,17 +212,24 @@ class MyClient(discord.Client):
         if message.author == self.user:
             return
 
-        channel = self.get_channel(DELETED_MESSAGES_CHANNEL_ID)
+        send_channel = self.get_channel(DELETED_MESSAGES_CHANNEL_ID)
+
+        if not isinstance(send_channel, discord.TextChannel):
+            logging.critical("Text Channel Not Found! Searched id: %d",DELETED_MESSAGES_CHANNEL_ID)
+            return
 
         if message.guild is not None:
-            async for entry in message.guild.audit_logs(action=discord.AuditLogAction.message_delete, limit=10):
+            async for entry in message.guild.audit_logs(action=discord.AuditLogAction.message_delete, after=datetime.now(UTC) - timedelta(minutes=2)):
                 logging.debug(f'{entry.user} deleted {entry.target} at {entry.created_at}')
                 who_deleted = entry.user
+                if who_deleted is None:
+                    continue
                 break
             else:
-                who_deleted = None
+                # if it isn't in the audit log, it was probably deleted by the user
+                who_deleted = message.author
         else:
-            who_deleted = None
+            who_deleted = message.author
         embed = discord.Embed(
             title="Mesaj silindi.", description=f"Silinen Mesaj: {message.content} ",
             color=CYAN)
@@ -231,16 +241,21 @@ class MyClient(discord.Client):
             embed.add_field(name="Silen kişi:", value=who_deleted, inline=False)
 
         if message.attachments is not None:
-            if len(message.attachments) == 1:
-                embed.set_image(url=message.attachments[0].url)
-            else:
-                for attachment in message.attachments:
-                    embed.add_field(name="Eklentiler:", value=attachment.url, inline=False)
-
-        embeds2 = [embed]
-        embeds2 += message.embeds
-        if isinstance(channel, discord.TextChannel):
-            await channel.send(embeds=embeds2)
+            files = []
+            #downlad the attachment and reupload it
+            for attachment in message.attachments:
+                file_path = os.path.join("downloads", "attachments", attachment.filename)
+                file_data = requests.get(attachment.url).content
+                with open(file_path, "wb") as file:
+                    file.write(file_data)
+                files.append(discord.File(file_path, filename=attachment.filename, spoiler=attachment.is_spoiler()))
+                
+                if len(message.attachments) == 1:
+                    embed.set_image(url="attachment://" + attachment.filename)
+                else:
+                    embed.add_field(name="Eklentiler:", value="attachment://" + attachment.filename, inline=False)
+        
+        await send_channel.send(embeds=[embed] + message.embeds, files=files)
 
     async def on_message(self, message: discord.Message):
         message_content = message.content
