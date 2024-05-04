@@ -4,7 +4,7 @@ import sys
 
 from dotenv import load_dotenv
 
-from src.logging_system import is_server
+from src.Helpers.logging_system import is_server
 
 loaded = load_dotenv()
 token = os.getenv("TOKEN")
@@ -18,9 +18,9 @@ def get_main_token() -> str:
     #  it might not exist that's why we use try catch
     from Token import TOKEN  # type: ignore
     return TOKEN
-  except ImportError or ModuleNotFoundError:
+  except ImportError as e:
     logging.critical("No token found", stack_info=True)
-    raise ValueError("No token found")
+    raise ValueError("No token found") from e
 
 
 def get_dev_token() -> str:

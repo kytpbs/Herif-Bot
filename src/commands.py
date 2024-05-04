@@ -1,15 +1,15 @@
-from datetime import datetime
 import logging
+from datetime import datetime
 
 import discord
 import openai
 from discord import app_commands
 
-from Constants import BOT_ADMIN_SERVER_ID, BOT_OWNER_ID, CYAN, KYTPBS_TAG
-import src.voice_commands as vc_cmds
 import src.client as client
+import src.voice_commands as vc_cmds
+from Constants import BOT_ADMIN_SERVER_ID, BOT_OWNER_ID, CYAN, KYTPBS_TAG
 from src import GPT, Youtube
-from src.birthday_helpers import get_user_and_date_from_string
+from src.Helpers.birthday_helpers import get_user_and_date_from_string
 
 birthdays = client.get_birthdays()
 custom_responses = client.get_custom_responses()
@@ -255,8 +255,10 @@ class AdminServerCommands(app_commands.Group):
             await interaction.response.send_message("You don't have permission to use this command", ephemeral=True)
             return
 
-        from contextlib import redirect_stdout #pylint: disable=import-outside-toplevel #this is a command for admins only
-        from io import StringIO #pylint: disable=import-outside-toplevel #this is a command for admins only
+        from contextlib import \
+            redirect_stdout  # pylint: disable=import-outside-toplevel #this is a command for admins only
+        from io import \
+            StringIO  # pylint: disable=import-outside-toplevel #this is a command for admins only
 
         with StringIO() as buf, redirect_stdout(buf):
             data = None

@@ -2,13 +2,13 @@ import logging
 import os
 import threading
 from queue import Empty, LifoQueue
-import discord
 
+import discord
 import openai
 from dotenv import load_dotenv
 
 from Constants import BOT_NAME, SERVER_NAME
-from src.gpt_helpers import GPTError
+from src.Helpers.gpt_helpers import GPTError
 
 load_dotenv()
 
@@ -27,7 +27,7 @@ async def create_message_history(channel: discord.abc.Messageable, limit:int = 1
     async for message in channel.history(limit=limit + 1):
         message_history.append((message.author, message.content))
     message_history.reverse() # reverse the list so that the oldest message is first
-    return message_history[:-1] # remove the last message because it is the message that was just sent
+    return message_history[:-1] # remove the message that was just sent
 
 def modified_create(queue: LifoQueue, *args, **kwargs):
     queue.put(openai.ChatCompletion.create(*args, **kwargs))

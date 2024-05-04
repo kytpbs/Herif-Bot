@@ -6,7 +6,7 @@ import discord
 from discord.ext import tasks
 
 from Constants import BIRTHDAY_ROLE_ID, GENERAL_CHAT_ID
-from src.birthday_helpers import get_user_and_date_from_string
+from src.Helpers.birthday_helpers import get_user_and_date_from_string
 
 
 class task_list:
