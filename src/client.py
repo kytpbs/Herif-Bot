@@ -244,16 +244,21 @@ class MyClient(discord.Client):
             files = []
             #downlad the attachment and reupload it
             for attachment in message.attachments:
-                file_path = os.path.join("downloads", "attachments", attachment.filename)
-                file_data = requests.get(attachment.url).content
+                file_name = attachment.filename
+                file_path = os.path.join("downloads", "attachments", file_name)
+                try:
+                    file_data = requests.get(attachment.url, timeout=5).content
+                except requests.exceptions.RequestException:
+                    logging.error("Couldn't download attachment %s", attachment.url)
+                    continue
                 with open(file_path, "wb") as file:
                     file.write(file_data)
-                files.append(discord.File(file_path, filename=attachment.filename, spoiler=attachment.is_spoiler()))
+                files.append(discord.File(file_path, filename=file_name, spoiler=attachment.is_spoiler()))
                 
                 if len(message.attachments) == 1:
-                    embed.set_image(url="attachment://" + attachment.filename)
+                    embed.set_image(url="attachment://" + file_name)
                 else:
-                    embed.add_field(name="Eklentiler:", value="attachment://" + attachment.filename, inline=False)
+                    embed.add_field(name="Eklentiler:", value="attachment://" + file_name, inline=False)
         
         await send_channel.send(embeds=[embed] + message.embeds, files=files)
 
