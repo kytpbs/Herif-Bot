@@ -1,5 +1,6 @@
 import logging
 from datetime import UTC, datetime, timedelta
+import shutil
 
 import discord
 
@@ -39,7 +40,7 @@ class MyClient(discord.Client):
         general_channel = get_general_channel(member.guild)
         if general_channel is not None:
             await general_channel.send(
-                f"Zeki bir insan valrlığı olan {member.mention} Bu saçmalık {member.guild} serverına katıldı. Hoşgeldin!")
+                f"Zeki bir insan varlığı olan {member.mention} Bu saçmalık {member.guild} serverına katıldı. Hoş geldin!")
 
     async def on_member_remove(self, member: discord.Member):
         logging.debug("%s, left %s", member.name, member.guild.name)
@@ -137,18 +138,7 @@ class MyClient(discord.Client):
             logging.critical("Text Channel Not Found! Searched id: %d",DELETED_MESSAGES_CHANNEL_ID)
             return
 
-        if message.guild is not None:
-            async for entry in message.guild.audit_logs(action=discord.AuditLogAction.message_delete, after=datetime.now(UTC) - timedelta(minutes=2)):
-                logging.debug(f'{entry.user} deleted {entry.target} at {entry.created_at}')
-                who_deleted = entry.user
-                if who_deleted is None:
-                    continue
-                break
-            else:
-                # if it isn't in the audit log, it was probably deleted by the user
-                who_deleted = message.author
-        else:
-            who_deleted = message.author
+        who_deleted = await helper_functions.get_deleting_person(message)
         embed = discord.Embed(
             title="Mesaj silindi.", description=f"Silinen Mesaj: {message.content} ",
             color=CYAN)
