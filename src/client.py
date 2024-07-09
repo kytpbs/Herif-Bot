@@ -165,6 +165,7 @@ class MyClient(discord.Client):
                     pass # don't set the image, because it's will still be displayed correctly
 
         await send_channel.send(embeds=[embed] + message.embeds, files=files)
+        # do not delete the attachment, because it breaks the upload
 
     async def on_message(self, message: discord.Message):
         message_content = message.content
@@ -197,7 +198,7 @@ class MyClient(discord.Client):
             await channel.send("🛫🛬💥🏢🏢")
 
         son_mesaj = message.content.lower().split(" ")[-1]
-        if son_mesaj == "nerde" or son_mesaj == "nerede" or son_mesaj == "neredesin" or son_mesaj == "nerdesin":
+        if son_mesaj in ["nerde", "nerede", "neredesin", "nerdesin"]:
             await message.reply(
                 f'Ebenin amında. Ben sonu "{son_mesaj}" diye biten bütün mesajlara cevap vermek için kodlanmış bi botum. Seni kırdıysam özür dilerim.'
             )
@@ -236,6 +237,8 @@ class MyClient(discord.Client):
     async def on_dm(message: discord.Message):
         if not isinstance(message.channel, discord.DMChannel):
             raise ValueError("This function is only for DMs")
+        if message.content == "":
+            return
         answer = GPT.chat(message.content, (await GPT.create_message_history(message.channel, limit=8)))
         await message.reply(str(answer)) # not using an embed because it's easier to parse history this way.
 
