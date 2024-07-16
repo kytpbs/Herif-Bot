@@ -1,13 +1,10 @@
 import logging
 from datetime import UTC, datetime, timedelta
-import shutil
 
 import discord
 
 from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID, BOSS_BOT_CHANNEL_ID
 from src import file_handeler
-from src.message_handeler import call_command
-import src.Messages # pylint: disable=unused-import # to register the message commands
 from src.Helpers import helper_functions
 from src import member_update_handlers as member_handlers
 from src import GPT
@@ -42,7 +39,7 @@ class MyClient(discord.Client):
         general_channel = get_general_channel(member.guild)
         if general_channel is not None:
             await general_channel.send(
-                f"Zeki bir insan varlığı olan {member.mention} Bu saçmalık {member.guild} serverına katıldı. Hoş geldin!")
+                f"Zeki bir insan valrlığı olan {member.mention} Bu saçmalık {member.guild} serverına katıldı. Hoşgeldin!")
 
     async def on_member_remove(self, member: discord.Member):
         logging.debug("%s, left %s", member.name, member.guild.name)
@@ -140,7 +137,18 @@ class MyClient(discord.Client):
             logging.critical("Text Channel Not Found! Searched id: %d",DELETED_MESSAGES_CHANNEL_ID)
             return
 
-        who_deleted = await helper_functions.get_deleting_person(message)
+        if message.guild is not None:
+            async for entry in message.guild.audit_logs(action=discord.AuditLogAction.message_delete, after=datetime.now(UTC) - timedelta(minutes=2)):
+                logging.debug(f'{entry.user} deleted {entry.target} at {entry.created_at}')
+                who_deleted = entry.user
+                if who_deleted is None:
+                    continue
+                break
+            else:
+                # if it isn't in the audit log, it was probably deleted by the user
+                who_deleted = message.author
+        else:
+            who_deleted = message.author
         embed = discord.Embed(
             title="Mesaj silindi.", description=f"Silinen Mesaj: {message.content} ",
             color=CYAN)
@@ -167,7 +175,6 @@ class MyClient(discord.Client):
                     pass # don't set the image, because it's will still be displayed correctly
 
         await send_channel.send(embeds=[embed] + message.embeds, files=files)
-        # do not delete the attachment, because it breaks the upload
 
     async def on_message(self, message: discord.Message):
         message_content = message.content
@@ -199,21 +206,46 @@ class MyClient(discord.Client):
         if time == "06:11:":  # 9:11 for +3 timezone
             await channel.send("🛫🛬💥🏢🏢")
 
-        # call all messages that have been created in other files.
-        await call_command(message, self)
-
         son_mesaj = message.content.lower().split(" ")[-1]
-        if son_mesaj in ["nerde", "nerede", "neredesin", "nerdesin"]:
+        if son_mesaj == "nerde" or son_mesaj == "nerede" or son_mesaj == "neredesin" or son_mesaj == "nerdesin":
             await message.reply(
                 f'Ebenin amında. Ben sonu "{son_mesaj}" diye biten bütün mesajlara cevap vermek için kodlanmış bi botum. Seni kırdıysam özür dilerim.'
             )
+
+        if 'tuna' in message_content_lower:
+            await message.channel.send("<@725318387198197861>")  # tuna tag
+
+        if 'kaya' in message_content_lower:
+            await message.reply("Zeka Kübü <@474944711358939170>")  # kaya tag
+
+        if message_content_lower == "ping":
+            await message.reply(f"PONG, ping: {round(self.latency * 1000)}ms")
+
+        if message_content_lower == "katıl":
+            if not isinstance(user, discord.Member) or guild == "DM":
+                await message.reply("bu komut sadece sunucukarda kullanılabilir.")
+                return
+            if user.voice is None:
+                await message.reply("herhangi bir ses kanalında değilsin!")
+                return
+            kanal = user.voice.channel
+            if kanal is not None:
+                logging.debug(f"Joining {kanal.name}")
+                await kanal.connect()
+            else:
+                logging.debug("User is not in a voice channel.")
+                await message.reply("herhangi bir ses kanalında değilsin!")
+
+        if message_content_lower == "söyle":
+            if len(message.content.split(" ")) > 1:
+                await message.channel.send(" ".join(message.content.split(" ")[1:]))
+            else:
+                await message.reply("Ne söyleyeyim?")
 
     @staticmethod
     async def on_dm(message: discord.Message):
         if not isinstance(message.channel, discord.DMChannel):
             raise ValueError("This function is only for DMs")
-        if message.content == "":
-            return
         answer = GPT.chat(message.content, (await GPT.create_message_history(message.channel, limit=8)))
         await message.reply(str(answer)) # not using an embed because it's easier to parse history this way.
 
