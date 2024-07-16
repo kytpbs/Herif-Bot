@@ -188,13 +188,13 @@ class MyClient(discord.Client):
         # download all attachments for on_delete
         await file_handeler.download_all_attachments(message)
 
-        if custom_responses.get(message_content) is not None:
-            await message.reply(custom_responses[message.content])
-
         if isinstance(channel, discord.DMChannel) or message.guild is None:
             async with channel.typing():
                 await self.on_dm(message)
             return
+
+        if custom_responses.get(message_content) is not None:
+            await message.reply(custom_responses[message.content])
 
         if time == "06:11:":  # 9:11 for +3 timezone
             await channel.send("🛫🛬💥🏢🏢")
