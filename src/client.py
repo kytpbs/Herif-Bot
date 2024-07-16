@@ -202,12 +202,6 @@ class MyClient(discord.Client):
         # call all messages that have been created in other files.
         await call_command(message, self)
 
-        son_mesaj = message.content.lower().split(" ")[-1]
-        if son_mesaj in ["nerde", "nerede", "neredesin", "nerdesin"]:
-            await message.reply(
-                f'Ebenin amında. Ben sonu "{son_mesaj}" diye biten bütün mesajlara cevap vermek için kodlanmış bi botum. Seni kırdıysam özür dilerim.'
-            )
-
     @staticmethod
     async def on_dm(message: discord.Message):
         if not isinstance(message.channel, discord.DMChannel):
