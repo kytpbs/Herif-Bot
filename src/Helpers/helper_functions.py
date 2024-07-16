@@ -1,3 +1,5 @@
+from datetime import UTC, datetime, timedelta
+import logging
 from typing import Any
 import discord
 
@@ -10,6 +12,18 @@ def get_general_channel(guild: discord.Guild):
         if "genel" in name or "general" in name or "💬" in name:
             return channel
     return None
+
+async def get_deleting_person(message: discord.Message) -> discord.Member | discord.User:
+    if message.guild is None:
+        return message.author
+
+    async for entry in message.guild.audit_logs(action=discord.AuditLogAction.message_delete, after=datetime.now(UTC) - timedelta(minutes=2)):
+        logging.debug(f'{entry.user} deleted {entry.target} at {entry.created_at}')
+        if entry.user is not None:
+            return entry.user
+
+    # if we can't find who deleted the message, it was probably the author
+    return message.author
 
 class DiskDict(dict):
     def __init__(self, filename, *args, **kwargs):
