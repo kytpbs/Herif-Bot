@@ -1,12 +1,12 @@
 import logging
-import os
 from datetime import UTC, datetime, timedelta
 
 import discord
-import requests
 
-from Constants import (BOSS_BOT_CHANNEL_ID, CYAN, DELETED_MESSAGES_CHANNEL_ID,
-                       GENERAL_CHAT_ID)
+from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID, BOSS_BOT_CHANNEL_ID
+from src import file_handeler
+from src.Helpers import helper_functions
+from src import member_update_handlers as member_handlers
 from src import GPT
 from src.Helpers.helper_functions import DiskDict, get_general_channel
 from src.Tasks import start_tasks
@@ -159,26 +159,21 @@ class MyClient(discord.Client):
         if who_deleted is not None:
             embed.add_field(name="Silen kişi:", value=who_deleted, inline=False)
 
+        files: list[discord.File] = []
         if message.attachments is not None:
-            files = []
-            #downlad the attachment and reupload it
             for attachment in message.attachments:
-                file_name = attachment.filename
-                file_path = os.path.join("downloads", "attachments", file_name)
-                try:
-                    file_data = requests.get(attachment.url, timeout=5).content
-                except requests.exceptions.RequestException:
-                    logging.error("Couldn't download attachment %s", attachment.url)
-                    continue
-                with open(file_path, "wb") as file:
-                    file.write(file_data)
-                files.append(discord.File(file_path, filename=file_name, spoiler=attachment.is_spoiler()))
+                file = file_handeler.get_deleted_attachment(attachment)
                 
+                if file is None:
+                    logging.info("Attachment not found: %s", attachment.filename)
+                    continue
+                files.append(file)
+
                 if len(message.attachments) == 1:
-                    embed.set_image(url="attachment://" + file_name)
+                    embed.set_image(url="attachment://" + str(attachment.id) + "." + attachment.filename.split(".")[-1])
                 else:
-                    embed.add_field(name="Eklentiler:", value="attachment://" + file_name, inline=False)
-        
+                    pass # don't set the image, because it's will still be displayed correctly
+
         await send_channel.send(embeds=[embed] + message.embeds, files=files)
 
     async def on_message(self, message: discord.Message):
@@ -196,6 +191,9 @@ class MyClient(discord.Client):
 
         if message.author == self.user:
             return
+
+        # download all attachments for on_delete
+        await file_handeler.download_all_attachments(message)
 
         if custom_responses.get(message_content) is not None:
             await message.reply(custom_responses[message.content])
