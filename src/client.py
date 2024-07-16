@@ -6,6 +6,8 @@ import discord
 
 from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID, BOSS_BOT_CHANNEL_ID
 from src import file_handeler
+from src.message_handeler import call_command
+import src.Messages # pylint: disable=unused-import # to register the message commands
 from src.Helpers import helper_functions
 from src import member_update_handlers as member_handlers
 from src import GPT
@@ -197,41 +199,14 @@ class MyClient(discord.Client):
         if time == "06:11:":  # 9:11 for +3 timezone
             await channel.send("🛫🛬💥🏢🏢")
 
+        # call all messages that have been created in other files.
+        await call_command(message, self)
+
         son_mesaj = message.content.lower().split(" ")[-1]
         if son_mesaj in ["nerde", "nerede", "neredesin", "nerdesin"]:
             await message.reply(
                 f'Ebenin amında. Ben sonu "{son_mesaj}" diye biten bütün mesajlara cevap vermek için kodlanmış bi botum. Seni kırdıysam özür dilerim.'
             )
-
-        if 'tuna' in message_content_lower:
-            await message.channel.send("<@725318387198197861>")  # tuna tag
-
-        if 'kaya' in message_content_lower:
-            await message.reply("Zeka Kübü <@474944711358939170>")  # kaya tag
-
-        if message_content_lower == "ping":
-            await message.reply(f"PONG, ping: {round(self.latency * 1000)}ms")
-
-        if message_content_lower == "katıl":
-            if not isinstance(user, discord.Member) or guild == "DM":
-                await message.reply("bu komut sadece sunucukarda kullanılabilir.")
-                return
-            if user.voice is None:
-                await message.reply("herhangi bir ses kanalında değilsin!")
-                return
-            kanal = user.voice.channel
-            if kanal is not None:
-                logging.debug(f"Joining {kanal.name}")
-                await kanal.connect()
-            else:
-                logging.debug("User is not in a voice channel.")
-                await message.reply("herhangi bir ses kanalında değilsin!")
-
-        if message_content_lower == "söyle":
-            if len(message.content.split(" ")) > 1:
-                await message.channel.send(" ".join(message.content.split(" ")[1:]))
-            else:
-                await message.reply("Ne söyleyeyim?")
 
     @staticmethod
     async def on_dm(message: discord.Message):
