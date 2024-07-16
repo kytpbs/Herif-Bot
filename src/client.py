@@ -1,6 +1,5 @@
 import logging
-from datetime import UTC, datetime, timedelta
-import shutil
+from datetime import datetime
 
 import discord
 
@@ -170,8 +169,6 @@ class MyClient(discord.Client):
         # do not delete the attachment, because it breaks the upload
 
     async def on_message(self, message: discord.Message):
-        message_content = message.content
-        message_content_lower = message_content.lower()
         user = message.author
         channel = message.channel
         guild = message.guild
@@ -179,7 +176,7 @@ class MyClient(discord.Client):
         time = datetime.now().strftime("%H:%M:")
         if guild is None:
             guild = "DM"
-        data = f'{str(guild)} {str(channel)} / {str(user.name)}: {str(message_content)}'
+        data = f'{str(guild)} {str(channel)} / {str(user.name)}: {str(message.content)}'
         logging.getLogger("chat").debug(data)
 
         if message.author == self.user:
@@ -193,7 +190,7 @@ class MyClient(discord.Client):
                 await self.on_dm(message)
             return
 
-        if custom_responses.get(message_content) is not None:
+        if custom_responses.get(message.content) is not None:
             await message.reply(custom_responses[message.content])
 
         if time == "06:11:":  # 9:11 for +3 timezone
