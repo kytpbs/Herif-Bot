@@ -43,7 +43,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # Switch to the non-privileged user to run the application.
 
-RUN apt-get update && apt-get install ffmpeg -y
+RUN apt-get update && apt-get install ffmpeg -y && apt-get clean
 
 
 # Copy the source code into the container.
