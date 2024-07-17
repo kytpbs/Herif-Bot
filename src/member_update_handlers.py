@@ -30,6 +30,19 @@ async def handle_profile_change(before: discord.Member, after: discord.Member, e
     if before.accent_color != after.accent_color:
         await handle_accent_color_change(before, after, embed)
 
+    if before.desktop_status != after.desktop_status:
+        await handle_desktop_status_change(before, after, embed)
+
+    if before.mobile_status != after.mobile_status:
+        await handle_mobile_status_change(before, after, embed)
+
+    if before.web_status != after.web_status:
+        await handle_web_status_change(before, after, embed)
+
+    if before.is_on_mobile() != after.is_on_mobile():
+        await handle_is_on_mobile_change(before, after, embed)
+
+
 
 async def handle_nick_change(before: discord.Member, after: discord.Member, embed: discord.Embed):
     logging.debug("%s's nickname changed from %s to %s", before.name, before.nick, after.nick)
