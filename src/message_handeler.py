@@ -20,8 +20,10 @@ def _actually_register_function(func: Callable, response_of: MessageChecker):
 
 def register_function(func: Callable, response_of: MessageChecker | str):
     if isinstance(response_of, str):
-        response_of = lambda x: x.content == response_of # pylint: disable=unnecessary-lambda
-
+        def is_equal(message: Message) -> bool:
+            return message.content == response_of
+        _actually_register_function(func, is_equal)
+        return
     _actually_register_function(func, response_of)
 
 
