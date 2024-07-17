@@ -6,6 +6,7 @@ import shutil
 from discord import Attachment, File, HTTPException, Message, NotFound
 
 deleted_messages_lock = Lock()
+logger = logging.getLogger("file_handeler")
 
 
 def get_deleted_messages_lock():
@@ -24,10 +25,10 @@ async def download_all_attachments(message: Message):
         for attachment in message.attachments:
             file_path = _get_file_path_of_attachment(attachment)
             try:
-                logging.debug("Downloading attachment %s", attachment.url)
+                logger.debug("Downloading attachment %s", attachment.url)
                 await attachment.save(file_path, use_cached=True)  # type: ignore # the type is correct, but the library is not updated
             except (HTTPException, NotFound):
-                logging.error("Couldn't download attachment %s", attachment.url)
+                logger.error("Couldn't download attachment %s", attachment.url)
                 continue
 
 
@@ -44,10 +45,10 @@ def get_deleted_attachment(attachment: Attachment) -> File | None:
 
 async def delete_saved_attachments():
     async with deleted_messages_lock:
-        logging.info("Deleting saved attachments!")
+        logger.info("Deleting saved attachments!")
         shutil.rmtree(
             os.path.join("downloads", "attachments"),
             ignore_errors=True,
-            onerror=logging.error,
+            onerror=logger.error,
         )
-        logging.debug("Deleted saved attachments")
+        logger.debug("Deleted saved attachments")
