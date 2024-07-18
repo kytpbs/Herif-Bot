@@ -3,7 +3,8 @@ import logging
 import os
 import shutil
 
-from discord import Attachment, File, HTTPException, Message, NotFound
+from discord import Attachment, File, Message
+import requests
 
 deleted_messages_lock = Lock()
 logger = logging.getLogger("file_handeler")
@@ -24,13 +25,28 @@ async def download_all_attachments(message: Message):
     async with deleted_messages_lock:
         for attachment in message.attachments:
             file_path = _get_file_path_of_attachment(attachment)
-            try:
-                logger.debug("Downloading attachment %s", attachment.url)
-                await attachment.save(file_path, use_cached=True)  # type: ignore # the type is correct, but the library is not updated
-            except (HTTPException, NotFound):
-                logger.error("Couldn't download attachment %s", attachment.url)
-                continue
+            _download_file(attachment.url, file_path)
 
+
+def _download_file(url: str, file_path: str):
+    try:
+        logger.debug("Downloading file %s", url)
+        response = requests.get(url, timeout=30) # download the file
+
+        content = response.content
+
+        if response.status_code != 200:
+            logger.error("Got status code %d while trying to download %s", response.status_code, url)
+            return
+
+        if not isinstance(content, bytes):
+            logger.error("Didn't get bytes while trying to download file %s", url)
+            return
+
+        with open(file_path, "wb") as file:
+            file.write(content)
+    except (requests.RequestException) as e:
+        logger.exception("Couldn't download file %s got error: %s", url, e)
 
 def get_deleted_attachment(attachment: Attachment) -> File | None:
     file_path = _get_file_path_of_attachment(attachment)
