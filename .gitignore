@@ -21,4 +21,6 @@ spotify_tokens.py
 # Any kind of cache
 cache/
 __pycache__/
+downloads/
 birthdays.json
+.vscode/settings.json
