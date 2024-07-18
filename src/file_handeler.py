@@ -68,3 +68,6 @@ async def delete_saved_attachments():
             onerror=logger.error,
         )
         logger.debug("Deleted saved attachments")
+
+def get_file_path_of_video(video_id: str) -> str:
+    return os.path.join("downloads", "youtube", video_id + ".mp3")

@@ -8,6 +8,7 @@ import discord
 import yt_dlp
 
 from Constants import CYAN, KYTPBS_TAG
+from src.file_handeler import get_file_path_of_video
 from src import views
 from src import Youtube
 from src.voice_helpers import play_path_queue_guild
@@ -220,12 +221,13 @@ async def play(interaction: discord.Interaction, search: str):
 
     voice_view = views.voice_play_view(timeout=info["duration"] + 5)
 
-    video_path = f"cache/{video_id}.mp3"
+    video_path = get_file_path_of_video(video_id)
+
     last_played.set_video_data(
         interaction.guild_id, Youtube.video_data(info["title"], info["thumbnail"])
     )
     send_next_message = interaction.followup.send
-    if not os.path.isfile(video_path):  # video is cached and can be played
+    if not os.path.isfile(video_path):  # video is not cached and can't be played
         embed = discord.Embed(
             title="Şarkı indiriliyor", description=info["title"], color=CYAN
         )
@@ -302,7 +304,8 @@ async def add_to_queue(interaction: discord.Interaction, search: str):
     info: dict = ydt["entries"][0]
     video_id = info["id"]
     url = info["webpage_url"]
-    video_path = f"cache/{video_id}.mp3"
+    video_path = get_file_path_of_video(video_id)
+
 
     if not os.path.isfile(video_path):  # the video has not been downloaded before
         extra_queue = LifoQueue()
