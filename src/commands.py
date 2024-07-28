@@ -7,6 +7,8 @@ from discord import app_commands
 
 import src.client as client
 import src.voice_commands as vc_cmds
+from src.twitter import download_tweets_attachments
+from src.Helpers.twitter_helpers import convert_paths_to_discord_files
 from Constants import BOT_ADMIN_SERVER_ID, BOT_OWNER_ID, CYAN, KYTPBS_TAG
 from src import GPT, Youtube
 from src.Helpers.birthday_helpers import get_user_and_date_from_string
@@ -303,6 +305,22 @@ async def find_and_play(interaction: discord.Interaction, message: discord.Messa
 @tree.command(name="ping", description="Botun pingini gösterir")
 async def ping(interaction: discord.Interaction):
     await interaction.response.send_message(f"Pong: {round(discord_client.latency * 1000)}ms")
+
+
+@tree.command(name="twitter-indir", description="Twitter'dan bir Tweet'i indirir, ve içindeki medyayı gösterir")
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+async def twitter_download(interaction: discord.Interaction, url: str):
+    await interaction.response.defer(ephemeral=False)
+    #TODO: add better error handling then just catching all exceptions
+    try:
+        attachments = convert_paths_to_discord_files(download_tweets_attachments(url))
+    except Exception as e:
+        await interaction.followup.send("Bir şey ters gitti... lütfen tekrar deneyin", ephemeral=True)
+        raise e # re-raise the exception so we can see what went wrong
+    if interaction.channel is None or isinstance(interaction.channel, (discord.ForumChannel, discord.CategoryChannel)):
+        return
+    await interaction.followup.send(files=attachments)
 
 
 def get_tree_instance():
