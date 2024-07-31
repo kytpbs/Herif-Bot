@@ -7,7 +7,7 @@ from discord import app_commands
 
 import src.client as client
 import src.voice_commands as vc_cmds
-from src.twitter import download_tweets_attachments
+from src.downloading_system import get_downloader
 from src.Helpers.twitter_helpers import convert_paths_to_discord_files
 from Constants import BOT_ADMIN_SERVER_ID, BOT_OWNER_ID, CYAN, KYTPBS_TAG
 from src import GPT, Youtube
@@ -307,20 +307,28 @@ async def ping(interaction: discord.Interaction):
     await interaction.response.send_message(f"Pong: {round(discord_client.latency * 1000)}ms")
 
 
-@tree.command(name="twitter-indir", description="Twitter'dan bir Tweet'i indirir, ve içindeki medyayı gösterir")
+@tree.command(name="video-indir", description="Paylaşılan linkteki videoyu paylaşır şuan-desteklenen: twitter, instagram, youtube")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-async def twitter_download(interaction: discord.Interaction, url: str):
-    await interaction.response.defer(ephemeral=False)
+async def download_video(interaction: discord.Interaction, url: str):
     #TODO: add better error handling then just catching all exceptions
+    downloader = get_downloader(url)
+    if downloader is None:
+        await interaction.response.send_message("Bu link desteklenmiyor", ephemeral=True)
+        logging.error("Unsupported link: %s", url)
+        return
+    await interaction.response.defer(ephemeral=False)
     try:
-        attachments = convert_paths_to_discord_files(download_tweets_attachments(url))
+        attachments = downloader.download_video_from_link(url)
     except Exception as e:
         await interaction.followup.send("Bir şey ters gitti... lütfen tekrar deneyin", ephemeral=True)
         raise e # re-raise the exception so we can see what went wrong
-    if interaction.channel is None or isinstance(interaction.channel, (discord.ForumChannel, discord.CategoryChannel)):
+    file_paths = [attachment.path for attachment in attachments]
+    if len(attachments) == 0:
+        await interaction.followup.send("Bir şeyler ters gitti, lütfen tekrar deneyin", ephemeral=True)
         return
-    await interaction.followup.send(files=attachments)
+    content = " + ".join(filter(None, [attachment.caption for attachment in attachments])) or "Video Downloaded"
+    await interaction.followup.send(content, files=convert_paths_to_discord_files(file_paths), ephemeral=False)
 
 
 def get_tree_instance():
