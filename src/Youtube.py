@@ -1,8 +1,12 @@
 import functools
 import logging
+import os
 from queue import LifoQueue
 
 import yt_dlp
+
+from Constants import MAX_VIDEO_DOWNLOAD_SIZE
+from src.downloader import VideoDownloader, VideoFile
 
 ydl_opts = {
   'format': 'bestaudio',
@@ -75,11 +79,11 @@ def yt_dlp_hook(progress_queue: LifoQueue, download):
 def youtube_download(video_url, progress_queue: LifoQueue, file_path_with_name):
     logging.debug(f"Downloading {video_url} to {file_path_with_name}")
     yt_dlp_hook_partial = functools.partial(yt_dlp_hook, progress_queue)
+    ydl_opts_new = ydl_opts.copy()
+    ydl_opts_new["outtmpl"] = file_path_with_name
+    ydl_opts_new["progress_hooks"] = [yt_dlp_hook_partial]
 
-    ydl_opts["outtmpl"] = file_path_with_name
-    ydl_opts["progress_hooks"] = [yt_dlp_hook_partial]
-
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    with yt_dlp.YoutubeDL(ydl_opts_new) as ydl:
         return ydl.download(url_list=[video_url])
 
 
@@ -88,3 +92,35 @@ last_played = video_data_guild()
 
 def get_last_played_guilded() -> video_data_guild:
     return last_played
+
+class YoutubeDownloader(VideoDownloader):
+    @staticmethod
+    def download_video_from_link(url: str, path: str | None = None) -> list[VideoFile]:
+        if path is None:
+            path = os.path.join("downloads", "youtube")
+
+        os.makedirs(path, exist_ok=True)
+
+        costum_options = {
+            'format': f'bestvideo[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M]+bestaudio',
+            "outtmpl": os.path.join(path, "%(id)s.mp4"),
+            'noplaylist': True,
+            'default_search': 'auto',
+            'nooverwrites': True,
+            'quiet': True,
+        }
+
+        with yt_dlp.YoutubeDL(costum_options) as ydl:
+            ydt = ydl.extract_info(url, download=True)
+
+        if ydt is None:
+            return []
+
+        info = ydt.get("entries", [None])[0] or ydt
+        video_id = info["id"]
+        if video_id is None:
+            return []
+
+        file_path = os.path.join(path, f"{video_id}.mp4")
+
+        return [VideoFile(file_path, info.get("title", None))]

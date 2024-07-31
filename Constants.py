@@ -21,3 +21,4 @@ GREEN = 0x00FF00
 FUNNY_COLOR = 696969
 
 RESPONSES_FILE = "responses.json"
+MAX_VIDEO_DOWNLOAD_SIZE: int = 80 # in MB, do not use anything other than an integer

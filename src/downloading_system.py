@@ -1,6 +1,7 @@
 import re
 from typing import Type
 
+from src.Youtube import YoutubeDownloader
 from src.downloader import VideoDownloader
 from src.twitter import TwitterDownloader
 
@@ -15,4 +16,6 @@ def get_downloader(url: str) -> Type[VideoDownloader] | None:
     """
     if re.match(_TWITTER_REGEX, url):
         return TwitterDownloader
+    if re.match(_YOUTUBE_REGEX, url):
+        return YoutubeDownloader
     return None
