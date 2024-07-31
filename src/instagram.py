@@ -1,0 +1,110 @@
+import logging
+import os
+import re
+from pathlib import Path
+
+from dotenv import load_dotenv
+from instaloader import ConnectionException, LoginException
+from instaloader.instaloader import Instaloader
+from instaloader.structures import Post
+
+from Constants import JSON_FOLDER
+from src.downloader import VideoFile, VideoDownloader
+from src.Read import json_read, write_json
+
+_SHORTCODE_REGEX = (
+    r"^https?:\/\/(?:www\.)?instagram\.com\/[^\/]+(?:\/[^\/]+)?\/([^\/]{11})\/.*$"
+)
+
+load_dotenv()
+
+logged_in = False
+
+downloader = Instaloader(
+    download_videos=True,
+    download_pictures=False,
+    save_metadata=False,
+    download_comments=False,
+)
+
+
+def _login() -> bool:
+    """
+    Loads the session from the json file. or logs in if it doesn't exist.
+    Safe to call multiple times.
+
+    Returns:
+        bool: True if the session was loaded successfully
+    """
+    if logged_in:
+        return True
+
+    session_path = os.path.join(JSON_FOLDER, "instagram_session.json")
+    username = os.getenv("INSTAGRAM_USERNAME")
+    if username is None:
+        logging.error("INSTAGRAM_USERNAME is not set in the environment variables")
+        return False
+    if os.path.exists(session_path):
+        session_data = json_read(session_path)
+
+        downloader.load_session(username, session_data)
+        return True
+
+    password = os.getenv("INSTAGRAM_PASSWORD")
+    if password is None:
+        logging.error(
+            "INSTAGRAM_PASSWORD was not set in the environment variables"
+            + " and couldn't find instagram_session file in jsons folder"
+        )
+        return False
+    try:
+        downloader.login(username, password)
+        session = downloader.save_session()
+        write_json(session_path, session)
+        return True
+    except LoginException as e:
+        logging.error("Instagram login failed!!! FIX CREDENTIALS. Error: %s", e)
+        return False
+
+
+logged_in = _login()
+
+
+def _get_post_from_url(url: str) -> Post | None:
+    result = re.match(_SHORTCODE_REGEX, url)
+    if result is None:
+        return None
+    shortcode = result.group(1)
+    if not isinstance(shortcode, str):
+        return None
+    try:
+        return Post.from_shortcode(downloader.context, shortcode)
+    except ConnectionException as e:  # probably graphql error
+        logging.exception(e)
+        return None
+
+
+class InstagramDownloader(VideoDownloader):
+    @staticmethod
+    def download_video_from_link(url: str, path: str | None = None) -> list[VideoFile]:
+        attachment_list: list[VideoFile] = []
+
+        if path is None:
+            path = os.path.join("downloads", "instagram")
+
+        os.makedirs(path, exist_ok=True)
+
+        path = Path(path)  # type: ignore
+
+        post = _get_post_from_url(url)
+        if post is None:
+            return attachment_list
+        downloader.filename_pattern = "{shortcode}"
+        file_path = os.path.join(path, f"{post.shortcode}.mp4")  # type: ignore # there is a bug in pylance...
+        file = VideoFile(file_path, post.caption)
+
+        if not os.path.exists(file.path):
+            downloader.download_post(post, path)  # type: ignore # path is literally a Path object it cannot be None...
+
+        attachment_list.append(file)
+        return attachment_list

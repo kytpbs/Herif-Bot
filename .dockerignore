@@ -32,3 +32,9 @@
 **/values.dev.yaml
 LICENSE
 README.md
+
+# Costom ignore
+**/downloads
+**/.github
+birthdays.json
+instagram_session.json
