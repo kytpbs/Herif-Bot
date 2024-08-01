@@ -100,11 +100,28 @@ class InstagramDownloader(VideoDownloader):
         if post is None:
             return attachment_list
         downloader.filename_pattern = "{shortcode}"
-        file_path = os.path.join(path, f"{post.shortcode}.mp4")  # type: ignore # there is a bug in pylance...
-        file = VideoFile(file_path, post.caption)
 
-        if not os.path.exists(file.path):
-            downloader.download_post(post, path)  # type: ignore # path is literally a Path object it cannot be None...
+        is_video_list = post.get_is_videos()
+        is_video_list = list(filter(lambda x: x is True, is_video_list))
 
-        attachment_list.append(file)
+        downloaded: bool = False
+        if post.typename == "GraphSidecar":
+            for index, _ in enumerate(is_video_list, start=1):
+
+                file_path = os.path.join(path, f"{post.shortcode}_{index}.mp4")  # type: ignore # there is a bug in pylance...
+                file = VideoFile(file_path, post.caption)
+                
+                if not os.path.exists(file.path) and not downloaded:
+                    downloader.download_post(post, path)  # type: ignore # path is literally a Path object it cannot be None...
+                    downloaded = True
+
+                attachment_list.append(file)
+        else:
+            file_path = os.path.join(path, f"{post.shortcode}.mp4") # type: ignore # there is a bug in pylance...
+            file = VideoFile(file_path, post.caption)
+            if not os.path.exists(file.path) and not downloaded:
+                downloader.download_post(post, path) # type: ignore # path is literally a Path object it cannot be None...
+                downloaded = True
+            attachment_list.append(file)
+
         return attachment_list
