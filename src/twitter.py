@@ -4,7 +4,7 @@ import bs4
 from dotenv import load_dotenv
 import requests
 
-from src.downloader import VideoDownloader, VideoFile
+from src.downloader import VideoDownloader, VideoFile, VIDEO_RETURN_TYPE
 from src.Helpers.twitter_helpers import get_filename_from_data, get_tweet_id
 
 load_dotenv()
@@ -48,8 +48,8 @@ def _download_video_from_link(url: str, filename: int | str, path: str | None = 
 
 class TwitterDownloader(VideoDownloader):
     @staticmethod
-    def download_video_from_link(url: str, path: str | None = None) -> list[VideoFile]:
-        attachment_list: list[VideoFile] = []
+    def download_video_from_link(url: str, path: str | None = None) -> VIDEO_RETURN_TYPE:
+        attachment_list: VIDEO_RETURN_TYPE = []
         try:
             response = requests.get(API_URL_START + url, timeout=30)
         except requests.exceptions.RequestException as e:

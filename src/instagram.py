@@ -9,7 +9,7 @@ from instaloader.instaloader import Instaloader
 from instaloader.structures import Post
 
 from Constants import JSON_FOLDER
-from src.downloader import VideoFile, VideoDownloader
+from src.downloader import VIDEO_RETURN_TYPE, VideoFile, VideoDownloader
 from src.Read import json_read, write_json
 
 _SHORTCODE_REGEX = (
@@ -86,8 +86,8 @@ def _get_post_from_url(url: str) -> Post | None:
 
 class InstagramDownloader(VideoDownloader):
     @staticmethod
-    def download_video_from_link(url: str, path: str | None = None) -> list[VideoFile]:
-        attachment_list: list[VideoFile] = []
+    def download_video_from_link(url: str, path: str | None = None) -> VIDEO_RETURN_TYPE:
+        attachment_list: VIDEO_RETURN_TYPE = []
 
         if path is None:
             path = os.path.join("downloads", "instagram")

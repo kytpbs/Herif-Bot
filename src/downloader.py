@@ -35,6 +35,9 @@ class VideoFile:
         return self._file_path
 
 
+
+VIDEO_RETURN_TYPE = list[VideoFile]
+
 class VideoDownloader(ABC):
     """
     INTERPHASE FOR DOWNLOADING CONTENT FROM A WEBSITE
@@ -42,7 +45,7 @@ class VideoDownloader(ABC):
 
     @staticmethod
     @abstractmethod
-    def download_video_from_link(url: str, path: str | None = None) -> list[VideoFile]:
+    def download_video_from_link(url: str, path: str | None = None) -> VIDEO_RETURN_TYPE:
         """
         Downloads Videos from a url
         if path is None, the default path is downloads/{website_name}

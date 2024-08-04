@@ -6,7 +6,7 @@ from queue import LifoQueue
 import yt_dlp
 
 from Constants import MAX_VIDEO_DOWNLOAD_SIZE
-from src.downloader import VideoDownloader, VideoFile
+from src.downloader import VIDEO_RETURN_TYPE, VideoDownloader, VideoFile
 
 ydl_opts = {
   'format': 'bestaudio',
@@ -95,7 +95,7 @@ def get_last_played_guilded() -> video_data_guild:
 
 class YoutubeDownloader(VideoDownloader):
     @staticmethod
-    def download_video_from_link(url: str, path: str | None = None) -> list[VideoFile]:
+    def download_video_from_link(url: str, path: str | None = None) -> VIDEO_RETURN_TYPE:
         if path is None:
             path = os.path.join("downloads", "youtube")
 
