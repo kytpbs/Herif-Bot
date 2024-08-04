@@ -12,6 +12,7 @@ from Constants import BOT_ADMIN_SERVER_ID, BOT_OWNER_ID, CYAN, KYTPBS_TAG
 from src import GPT, Youtube
 from src.Helpers.birthday_helpers import get_user_and_date_from_string
 
+
 birthdays = client.get_birthdays()
 custom_responses = client.get_custom_responses()
 last_played = Youtube.get_last_played_guilded()
@@ -275,11 +276,6 @@ class AdminServerCommands(app_commands.Group):
 tree = app_commands.CommandTree(discord_client)
 
 
-@tree.context_menu(name="Test")
-async def test(interaction: discord.Interaction, message: discord.Message):
-    await interaction.response.send_message(
-        f"The message You used this on was: {message.content} by {message.author.mention}", ephemeral=True)
-
 
 @tree.context_menu(name="Mesajı_Sabitle")
 async def pin_message(interaction: discord.Interaction, message: discord.Message):
@@ -288,17 +284,19 @@ async def pin_message(interaction: discord.Interaction, message: discord.Message
         f"{message.author.mention} adlı kişinin; **{message.content}** mesajı sabitlendi", ephemeral=True)
 
 
-@tree.context_menu(name="Mesajdaki_Linki_Çal")
-async def find_and_play(interaction: discord.Interaction, message: discord.Message):
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+@tree.context_menu(name="Linkteki_Videoyu_Indir")
+async def download_video_link(interaction: discord.Interaction, message: discord.Message):
     content = message.content
-    watch_link = "https://www.youtube.com/watch?v="
-    links = content.split(watch_link)
-    if len(links) > 1:  # we found a link
-        logging.debug(f"Found a link in the message {content} the link is {links[1].split(' ')[0]}")
-        await vc_cmds.play(interaction, watch_link + links[1].split(' ')[0])
-        return
-    # we didn't find a link
-    await interaction.response.send_message("Mesajda bir link bulamadım", ephemeral=True)
+    await download_video_command(interaction, content)
+
+@app_commands.allowed_installs(guilds=False, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+@tree.context_menu(name="Linkteki_Videoyu_Gizlice_Indir")
+async def download_video_link_hidden(interaction: discord.Interaction, message: discord.Message):
+    content = message.content
+    await download_video_command(interaction, content, is_ephemeral=True)
 
 
 @tree.command(name="ping", description="Botun pingini gösterir")
