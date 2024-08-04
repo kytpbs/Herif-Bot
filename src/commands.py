@@ -7,8 +7,7 @@ from discord import app_commands
 
 import src.client as client
 import src.voice_commands as vc_cmds
-from src.downloading_system import get_downloader
-from src.Helpers.twitter_helpers import convert_paths_to_discord_files
+from src.download_commands import download_video_command
 from Constants import BOT_ADMIN_SERVER_ID, BOT_OWNER_ID, CYAN, KYTPBS_TAG
 from src import GPT, Youtube
 from src.Helpers.birthday_helpers import get_user_and_date_from_string
@@ -311,24 +310,7 @@ async def ping(interaction: discord.Interaction):
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 async def download_video(interaction: discord.Interaction, url: str):
-    #TODO: add better error handling then just catching all exceptions
-    downloader = get_downloader(url)
-    if downloader is None:
-        await interaction.response.send_message("Bu link desteklenmiyor", ephemeral=True)
-        logging.error("Unsupported link: %s", url)
-        return
-    await interaction.response.defer(ephemeral=False)
-    try:
-        attachments = downloader.download_video_from_link(url)
-    except Exception as e:
-        await interaction.followup.send("Bir şey ters gitti... lütfen tekrar deneyin", ephemeral=True)
-        raise e # re-raise the exception so we can see what went wrong
-    file_paths = [attachment.path for attachment in attachments]
-    if len(attachments) == 0:
-        await interaction.followup.send("Bir şeyler ters gitti, lütfen tekrar deneyin", ephemeral=True)
-        return
-    content = " + ".join(filter(None, [attachment.caption for attachment in attachments])) or "Video Downloaded"
-    await interaction.followup.send(content, files=convert_paths_to_discord_files(file_paths), ephemeral=False)
+    await download_video_command(interaction, url)
 
 
 def get_tree_instance():
