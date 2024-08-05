@@ -21,7 +21,7 @@ def _download_video_from_link(url: str, filename: int | str, path: str | None = 
         path (str | None, optional): Path to download all the attachments to. Defaults to None.
 
     Returns:
-        int : count of attachments downloaded
+        the filepath of the downloaded file or none if there was an error
     """
     if path is None:
         path = os.path.join("downloads", "twitter")
