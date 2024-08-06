@@ -16,6 +16,7 @@ Token.py
 OpenAiKey.py
 spotify_tokens.py
 *.env
+/jsons/instagram_session.json
 # Any log files
 *.log
 # Any kind of cache
