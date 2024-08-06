@@ -25,5 +25,5 @@ async def download_video_command(interaction: discord.Interaction, url: str, is_
     if len(attachments) == 0:
         await interaction.followup.send("Bir şeyler ters gitti, lütfen tekrar deneyin", ephemeral=True)
         return
-    content = " + ".join(filter(None, [attachment.caption for attachment in attachments])) or "Video Downloaded"
+    content = " + ".join(filter(None, [attachment.caption for attachment in attachments])) or f"Video{'s' if len(attachments) > 1 else ''} Downloaded"
     await interaction.followup.send(content, files=discord_files, ephemeral=is_ephemeral)
