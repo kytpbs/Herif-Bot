@@ -27,6 +27,13 @@ def _download_video_from_link(url: str, filename: int | str, path: str | None = 
         path = os.path.join("downloads", "twitter")
 
     os.makedirs(path, exist_ok=True)
+    filepath = os.path.join(
+        path,
+        f"{filename}.mp4",
+    )
+
+    if os.path.exists(filepath):
+        return filepath
 
     try:
         response = requests.get(url, timeout=30)
@@ -34,10 +41,6 @@ def _download_video_from_link(url: str, filename: int | str, path: str | None = 
         logging.error("Error while downloading tweet: %s", str(e))
         return None
 
-    filepath = os.path.join(
-        path,
-        f"{filename}.mp4",
-    )
     with open(
         filepath,
         "wb",
