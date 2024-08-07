@@ -53,4 +53,4 @@ COPY . .
 USER root
 
 # Run the application.
-CMD ["python3", "main.py", "main"]
+CMD ["python3", "-O", "main.py", "main"]
