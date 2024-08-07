@@ -88,6 +88,8 @@ class InstagramDownloader(VideoDownloader):
     @staticmethod
     def download_video_from_link(url: str, path: str | None = None) -> VIDEO_RETURN_TYPE:
         attachment_list: VIDEO_RETURN_TYPE = []
+        global logged_in  # pylint: disable=global-statement # can't think of a better way rn
+        logged_in = _login()  # retry login if it failed the first time
 
         if path is None:
             path = os.path.join("downloads", "instagram")
@@ -110,7 +112,7 @@ class InstagramDownloader(VideoDownloader):
 
                 file_path = os.path.join(path, f"{post.shortcode}_{index}.mp4")  # type: ignore # there is a bug in pylance...
                 file = VideoFile(file_path, post.caption)
-                
+
                 if not os.path.exists(file.path) and not downloaded:
                     downloader.download_post(post, path)  # type: ignore # path is literally a Path object it cannot be None...
                     downloaded = True
