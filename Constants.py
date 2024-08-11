@@ -1,4 +1,4 @@
-#pylint: disable=invalid-name  # it is normal to have the constants in a file named "Constants.py"
+# pylint: disable=invalid-name  # it is normal to have the constants in a file named "Constants.py"
 BOT_NAME = "O K B A"
 SERVER_NAME = "AIKO # उच्च शिक्षा परीक्षा"
 
@@ -21,4 +21,6 @@ GREEN = 0x00FF00
 FUNNY_COLOR = 696969
 
 RESPONSES_FILE = "responses.json"
-MAX_VIDEO_DOWNLOAD_SIZE: int = 80 # in MB, do not use anything other than an integer
+# default is 25 MB because that is the max file size for discord for now.
+# If you want to change this, make sure to check the current max upload limit for discord.
+MAX_VIDEO_DOWNLOAD_SIZE: int = 25  # in MB, do not use anything other than an integer
