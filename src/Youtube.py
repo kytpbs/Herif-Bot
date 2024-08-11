@@ -118,9 +118,13 @@ class YoutubeDownloader(VideoDownloader):
 
         info = ydt.get("entries", [None])[0] or ydt
         video_id = info["id"]
+        video_extension = info["ext"]
         if video_id is None:
             return []
 
-        file_path = os.path.join(path, f"{video_id}.mp4")
+        if video_extension != "mp4":
+            logging.error("Got a non-mp4 file that is %s from this link: %s", video_extension, url)
+
+        file_path = os.path.join(path, f"{video_id}.{video_extension}")
 
         return [VideoFile(file_path, info.get("title", None))]
