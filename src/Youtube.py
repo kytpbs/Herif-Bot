@@ -102,7 +102,7 @@ class YoutubeDownloader(VideoDownloader):
         os.makedirs(path, exist_ok=True)
 
         costum_options = {
-            'format': f'bestvideo[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M]+bestaudio',
+            'format': f'bestvideo[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M,ext=mp4]+bestaudio/best[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M,ext=mp4]]',
             "outtmpl": os.path.join(path, "%(id)s.mp4"),
             'noplaylist': True,
             'default_search': 'auto',
