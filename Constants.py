@@ -18,9 +18,9 @@ KYTPBS_TAG = "<@474944711358939170>"
 
 CYAN = 0x00FFFF  # The Main Color Used in the Bot
 GREEN = 0x00FF00
-FUNNY_COLOR = 696969
 
 RESPONSES_FILE = "responses.json"
+
 # default is 25 MB because that is the max file size for discord for now.
 # If you want to change this, make sure to check the current max upload limit for discord.
 MAX_VIDEO_DOWNLOAD_SIZE: int = 25  # in MB, do not use anything other than an integer
