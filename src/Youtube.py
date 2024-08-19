@@ -1,3 +1,4 @@
+import asyncio
 import functools
 import logging
 import os
@@ -95,7 +96,7 @@ def get_last_played_guilded() -> video_data_guild:
 
 class YoutubeDownloader(VideoDownloader):
     @staticmethod
-    def download_video_from_link(url: str, path: str | None = None) -> VIDEO_RETURN_TYPE:
+    async def download_video_from_link(url: str, path: str | None = None) -> VIDEO_RETURN_TYPE:
         if path is None:
             path = os.path.join("downloads", "youtube")
 
@@ -111,7 +112,7 @@ class YoutubeDownloader(VideoDownloader):
         }
 
         with yt_dlp.YoutubeDL(costum_options) as ydl:
-            ydt = ydl.extract_info(url, download=True)
+            ydt = await asyncio.to_thread(ydl.extract_info, url, download=True)
 
         if ydt is None:
             return []
