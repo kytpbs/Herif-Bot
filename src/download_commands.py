@@ -1,8 +1,10 @@
 import logging
 import discord
 
-from src.Helpers.twitter_helpers import convert_paths_to_discord_files
 from src.downloading_system import get_downloader
+
+def _convert_paths_to_discord_files(paths: list[str]) -> list[discord.File]:
+    return [discord.File(path) for path in paths]
 
 
 async def download_video_command(interaction: discord.Interaction, url: str, is_ephemeral: bool = False):
@@ -18,7 +20,7 @@ async def download_video_command(interaction: discord.Interaction, url: str, is_
     try:
         attachments = downloader.download_video_from_link(url)
         file_paths = [attachment.path for attachment in attachments]
-        discord_files = convert_paths_to_discord_files(file_paths)
+        discord_files = _convert_paths_to_discord_files(file_paths)
     except Exception as e:
         await interaction.followup.send("Bir şey ters gitti... lütfen tekrar deneyin", ephemeral=True)
         raise e # re-raise the exception so we can see what went wrong

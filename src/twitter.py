@@ -1,15 +1,20 @@
 import logging
 import os
+import re
 import bs4
 from dotenv import load_dotenv
 import requests
 
 from src.downloader import VideoDownloader, VideoFile, VIDEO_RETURN_TYPE
-from src.Helpers.twitter_helpers import get_filename_from_data, get_tweet_id
+
 
 load_dotenv()
+_TWITTER_ID_REGEX = r"status/(\d+)"
 API_URL_START = "https://twitsave.com/info?url="
 
+def _get_tweet_id(url: str) -> str | None:
+    match = re.search(_TWITTER_ID_REGEX, url)
+    return match.group(1) if match else None
 
 def _get_highest_quality_url_list(response: requests.Response) -> list[str]:
     highest_quality_url_list: list[str] = []
