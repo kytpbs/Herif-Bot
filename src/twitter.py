@@ -11,94 +11,57 @@ load_dotenv()
 API_URL_START = "https://twitsave.com/info?url="
 
 
-def _download_video_from_link(url: str, filename: int | str, path: str | None = None):
-    """
-    Downloads Videos from a twitter tweet,
-    if path is None, the default path is downloads/twitter
+def _get_highest_quality_url_list(response: requests.Response) -> list[str]:
+    highest_quality_url_list: list[str] = []
+    data = bs4.BeautifulSoup(response.text, "html.parser")
+    url = response.url
 
-    Args:
-        filename (Tweet): the file name to save the video as
-        path (str | None, optional): Path to download all the attachments to. Defaults to None.
-
-    Returns:
-        the filepath of the downloaded file or none if there was an error
-    """
-    if path is None:
-        path = os.path.join("downloads", "twitter")
-
-    os.makedirs(path, exist_ok=True)
-    filepath = os.path.join(
-        path,
-        f"{filename}.mp4",
+    download_buttons: list[bs4.element.Tag] = data.find_all(
+        "div", class_="origin-top-right"
     )
 
-    if os.path.exists(filepath):
-        return filepath
+    for index, button in enumerate(download_buttons):
+        highest_quality_url_button = button.find("a")
 
-    try:
-        response = requests.get(url, timeout=30)
-    except requests.exceptions.RequestException as e:
-        logging.error("Error while downloading tweet: %s", str(e))
-        return None
+        if not isinstance(highest_quality_url_button, bs4.element.Tag):
+            logging.warning("No highest quality url button found at index %d in URL: %s", index, url)
+            continue
 
-    with open(
-        filepath,
-        "wb",
-    ) as file:
-        file.write(response.content)
+        highest_quality_url = highest_quality_url_button.get(
+            "href"
+        )  # Highest quality video url button
 
-    return filepath
+        if not isinstance(highest_quality_url, str):
+            logging.error("No highest quality url found at index %d in URL: %s", index, url)
+            continue
 
+        highest_quality_url_list.append(highest_quality_url)    
+
+    return highest_quality_url_list
 
 class TwitterDownloader(VideoDownloader):
-    @staticmethod
-    def download_video_from_link(
-        url: str, path: str | None = None
+    @classmethod
+    async def download_video_from_link(
+        cls, url: str, path: str | None = None
     ) -> VIDEO_RETURN_TYPE:
         attachment_list: VIDEO_RETURN_TYPE = []
+        tweet_id = _get_tweet_id(url)
+        if path is None:
+            path = os.path.join("downloads", "twitter")
+
         try:
             response = requests.get(API_URL_START + url, timeout=30)
         except requests.exceptions.RequestException as e:
             logging.error("Error while downloading tweet: %s", str(e))
             return attachment_list
-        data = bs4.BeautifulSoup(response.text, "html.parser")
 
-        download_buttons: list[bs4.element.Tag] = data.find_all(
-            "div", class_="origin-top-right"
-        )
+        if tweet_id is None:
+            logging.error("No tweet id found in URL: %s", url)
+            return attachment_list
 
-        for index, button in enumerate(download_buttons):
-            highest_quality_url_button = button.find("a")
+        download_urls = _get_highest_quality_url_list(response)
+        downloaded_file_paths = await cls._download_links(download_urls, path, tweet_id)
 
-            if not isinstance(highest_quality_url_button, bs4.element.Tag):
-                logging.warning("No highest quality url button found at index %d URL: %s", index, url)
-                continue
-
-            highest_quality_url = highest_quality_url_button.get(
-                "href"
-            )  # Highest quality video url button
-
-            if not isinstance(highest_quality_url, str):
-                logging.error("No highest quality url found at index %d URL: %s", index, url)
-                continue
-
-            tweet_id = get_tweet_id(url)
-
-            # add index to filename to avoid overwriting
-            if tweet_id is not None:
-                filename = tweet_id + "_" + str(index)
-            else:
-                filename = (
-                    get_filename_from_data(data) + "_" + str(index)
-                )  # just in case both filenames are the same
-
-            attachment = _download_video_from_link(
-                highest_quality_url, filename=filename, path=path
-            )
-
-            if attachment is None:
-                continue
-
-            attachment_list.append(VideoFile(attachment))
+        attachment_list =  [VideoFile(path) for path in downloaded_file_paths]
 
         return attachment_list
