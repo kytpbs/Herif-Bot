@@ -61,3 +61,60 @@ class VideoDownloader(ABC):
             path,
         )
         return []
+
+    @classmethod
+    async def _download_link(cls, url: str, download_to: str) -> str | None:
+        """
+        Downloads a file from the given URL and saves it to the specified path.
+        
+        
+        Warning:
+            This function will not overwrite existing files. If the file already exists at the specified path, it will not be downloaded again.
+
+        Args:
+            url (str): The URL of the file to download.
+            download_to (str): The local file path where the downloaded file should be saved.
+
+        Returns:
+            downloaded_path (str): The path to the downloaded file if successful, otherwise None.
+        """
+        # if we already downloaded the file before, return it
+        if os.path.exists(download_to):
+            return download_to
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    response.raise_for_status()
+                    data = await response.read()
+                    with open(download_to, "wb") as file:
+                        file.write(data)
+        except aiohttp.ClientError as e:
+            logging.error("Error while downloading instagram post: %s", str(e))
+            return None
+        return download_to
+
+    @classmethod
+    async def _download_links(cls, links: list[str], path: str, video_id: str) -> list[str]:
+        """Downloads files from a list of URLs and saves them to the specified path.
+        Will not overwrite existing files. If a file already exists at the specified path, it will not be downloaded again.
+        Adds _{index} to the filename to avoid overwriting files with the same name.
+
+        Args:
+            links (list[str]): the list of URLs to download, will add _{index} starting at 1 to the filename for every file
+            path (str): the local file path where the downloaded files should be saved
+            video_id (str): the video ID to use in the filename, is the same thing as filename
+
+        Returns:
+            list[str]: the list of paths to the downloaded files
+            will not put the path in the list if the download failed
+        """
+        downloaded_paths = []
+        for index, link in enumerate(links, start=1):
+            download_to = os.path.join(path, f"{video_id}_{index}.mp4")
+            downloaded_link = await cls._download_link(link, download_to)
+            if downloaded_link is None:
+                continue
+            downloaded_paths.append(downloaded_link)
+
+        return downloaded_paths
