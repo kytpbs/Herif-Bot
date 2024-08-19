@@ -18,7 +18,7 @@ async def download_video_command(interaction: discord.Interaction, url: str, is_
     await interaction.response.defer(ephemeral=is_ephemeral)
 
     try:
-        attachments = downloader.download_video_from_link(url)
+        attachments = await downloader.download_video_from_link(url)
         file_paths = [attachment.path for attachment in attachments]
         discord_files = _convert_paths_to_discord_files(file_paths)
     except Exception as e:
