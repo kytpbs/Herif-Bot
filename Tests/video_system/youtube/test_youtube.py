@@ -1,6 +1,8 @@
+import logging
 import os
 import shutil
 import pytest
+import yt_dlp
 
 from Tests.video_system.download_tester import DownloadTester
 from src.Youtube import YoutubeDownloader
@@ -22,6 +24,13 @@ class TestYoutubeDownloader(DownloadTester):
         shutil.rmtree(DOWNLOAD_PATH, ignore_errors=True)
 
     def test_basic_download(self):
-        videos = YoutubeDownloader.download_video_from_link(TEST_YOUTUBE_1, DOWNLOAD_PATH)
-
+        try:
+            videos = YoutubeDownloader.download_video_from_link(TEST_YOUTUBE_1, DOWNLOAD_PATH)
+        except yt_dlp.DownloadError as e:
+            assert e.msg
+            import warnings
+            if "Sign in" not in e.msg:
+                raise e # re-raise the exception if it's not a sign in error
+            warnings.warn(e.msg)
+            return
         self.download_single_video_test(videos, SHOULD_BE_0)
