@@ -1,4 +1,7 @@
 name: check
+env:
+  INSTAGRAM_USERNAME: ${{ secrets.INSTAGRAM_USERNAME }}
+  INSTAGRAM_SESSION: ${{ secrets.INSTAGRAM_SESSION_JSON }}
 on:
   push:
   pull_request:
