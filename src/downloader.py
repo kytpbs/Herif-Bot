@@ -14,7 +14,7 @@ class VideoFile:
 
     def __str__(self) -> str:
         return f"Title: {self._title}, File Path: {self._file_path}"
-    
+
     def __repr__(self) -> str:
         return f'Title: {self._title or _NONE_STRING}, File Path: {self._file_path or _NONE_STRING}'
 
@@ -29,7 +29,7 @@ class VideoFile:
     @property
     def caption(self) -> str | None:
         return self._title
-    
+
     @property
     def path(self) -> str:
         return self._file_path

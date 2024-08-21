@@ -50,6 +50,15 @@ def _login() -> bool:
         downloader.load_session(username, session_data)
         return True
 
+    if (session_data:=os.getenv("INSTAGRAM_SESSION")) is not None:
+        # this function will only be used in github actions
+        # so we can assume that the session data is in the correct format
+        # and if not, it should crash anyways
+        import json # pylint: disable=import-outside-toplevel # this is only used in this branch
+        downloader.load_session(username, json.loads(session_data))
+        return True
+
+
     password = os.getenv("INSTAGRAM_PASSWORD")
     if password is None:
         logging.error(
