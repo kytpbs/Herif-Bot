@@ -9,7 +9,6 @@ from instaloader import ConnectionException, LoginException
 from instaloader.instaloader import Instaloader
 from instaloader.structures import Post
 
-from Constants import JSON_FOLDER
 from src.downloader import VIDEO_RETURN_TYPE, VideoFile, VideoDownloader
 from src.Read import json_read, write_json
 
@@ -40,14 +39,13 @@ def _login() -> bool:
     if logged_in:
         return True
 
-    session_path = os.path.join(JSON_FOLDER, "instagram_session.json")
     username = os.getenv("INSTAGRAM_USERNAME")
     if username is None:
         logging.error("INSTAGRAM_USERNAME is not set in the environment variables")
         return False
-    if os.path.exists(session_path):
-        session_data = json_read(session_path)
+    session_data = json_read("instagram_session", False)
 
+    if session_data:
         downloader.load_session(username, session_data)
         return True
 
@@ -70,7 +68,7 @@ def _login() -> bool:
     try:
         downloader.login(username, password)
         session = downloader.save_session()
-        write_json(session_path, session)
+        write_json("instagram_session", session)
         return True
     except LoginException as e:
         logging.error("Instagram login failed!!! FIX CREDENTIALS. Error: %s", e)
