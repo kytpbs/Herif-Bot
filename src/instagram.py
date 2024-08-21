@@ -179,9 +179,11 @@ class InstagramDownloader(VideoDownloader):
         video_count = len(list(filter(None, post.get_is_videos())))
 
         downloaded: bool = False
+        caption = post.caption
         for index in range(1, video_count + 1): # will run once if not sidecar
             file_path = os.path.join(path, _get_file_name(post, index))
-            file = VideoFile(file_path, post.caption)
+            file = VideoFile(file_path, caption)
+            caption = None
 
             if not os.path.exists(file.path) and not downloaded:
                 await asyncio.to_thread(downloader.download_post, post, Path(path))
