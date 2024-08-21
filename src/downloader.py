@@ -82,6 +82,8 @@ class VideoDownloader(ABC):
         if os.path.exists(download_to):
             return download_to
 
+        os.makedirs(os.path.dirname(download_to), exist_ok=True)
+
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url) as response:
