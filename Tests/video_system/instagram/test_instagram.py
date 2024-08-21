@@ -42,6 +42,7 @@ class TestInstagramDownloader(DownloadTester):
         )
         should_be_path = os.path.join("Tests", "video_system", "instagram", "should_be_0.mp4")
 
+        assert videos, "couldn't download, probably due to graphql error (login wasn't successful)"
         self.download_single_video_test(videos, should_be_path)
 
     def test_instagram_download_multiple_videos(self):
@@ -51,4 +52,5 @@ class TestInstagramDownloader(DownloadTester):
 
         expected_files = [os.path.join("Tests", "video_system", "instagram", should_be) for should_be in [f"should_be_{i}.mp4" for i in range(1, 7)]]
 
+        assert videos, "couldn't download, probably due to graphql error (login wasn't successful)"
         self.download_multiple_video_test(videos, expected_files)
