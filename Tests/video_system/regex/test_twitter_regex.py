@@ -1,11 +1,13 @@
-from src.downloading_system import get_downloader
+import pytest
+
 from src.twitter import TwitterDownloader
+from Tests.video_system.regex.test_regex_base import TestDownloaderRegex
 
 
-class TestTwitterRegex:
-    def check_link(self, link: str):
-        downloader = get_downloader(link)
-        return downloader is not None and isinstance(downloader(), TwitterDownloader)
+class TestTwitterRegex(TestDownloaderRegex):
+    @pytest.fixture(autouse=True)
+    def setup_class(self):
+        super().setup(TwitterDownloader)
 
     def test_direct_link(self):
         assert self.check_link("https://x.com/MIT_CSAIL/status/1363172815315214336")
