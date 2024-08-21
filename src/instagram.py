@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import re
@@ -75,16 +76,27 @@ def _login() -> bool:
         logging.error("Instagram login failed!!! FIX CREDENTIALS. Error: %s", e)
         return False
 
+def _try_login():
+    global logged_in # pylint: disable=global-statement # don't really mind having a global login
+    if not logged_in:
+        logged_in = _login()
 
-logged_in = _login()
+
+_try_login()
 
 
-def _get_post_from_url(url: str) -> Post | None:
+def _get_shortcode_from_url(url: str) -> str | None:
     result = re.match(_SHORTCODE_REGEX, url)
     if result is None:
         return None
     shortcode = result.group(1)
     if not isinstance(shortcode, str):
+        return None
+    return shortcode
+
+def _get_post_from_url(url: str) -> Post | None:
+    shortcode = _get_shortcode_from_url(url)
+    if shortcode is None:
         return None
     try:
         return Post.from_shortcode(downloader.context, shortcode)
@@ -92,47 +104,38 @@ def _get_post_from_url(url: str) -> Post | None:
         logging.exception(e)
         return None
 
+def _get_file_name(post: Post, index: int) -> str:
+    is_multi_vid = post.typename == "GraphSidecar"
+    to_add = f"_{index}" if is_multi_vid else ""
+    return f"{post.shortcode}{to_add}.mp4"
 
 class InstagramDownloader(VideoDownloader):
-    @staticmethod
-    def download_video_from_link(url: str, path: str | None = None) -> VIDEO_RETURN_TYPE:
+    @classmethod
+    async def download_video_from_link(cls, url: str, path: str | None = None) -> VIDEO_RETURN_TYPE:
         attachment_list: VIDEO_RETURN_TYPE = []
-        global logged_in  # pylint: disable=global-statement # can't think of a better way rn
-        logged_in = _login()  # retry login if it failed the first time
+        _try_login() # try to login if not already logged in
 
         if path is None:
             path = os.path.join("downloads", "instagram")
 
         os.makedirs(path, exist_ok=True)
 
-        path = Path(path)  # type: ignore
-
         post = _get_post_from_url(url)
         if post is None:
             return attachment_list
         downloader.filename_pattern = "{shortcode}"
 
-        is_video_list = post.get_is_videos()
-        is_video_list = list(filter(lambda x: x is True, is_video_list))
+        video_count = len(list(filter(None, post.get_is_videos())))
 
         downloaded: bool = False
-        if post.typename == "GraphSidecar":
-            for index, _ in enumerate(is_video_list, start=1):
-
-                file_path = os.path.join(path, f"{post.shortcode}_{index}.mp4")  # type: ignore # there is a bug in pylance...
-                file = VideoFile(file_path, post.caption)
-
-                if not os.path.exists(file.path) and not downloaded:
-                    downloader.download_post(post, path)  # type: ignore # path is literally a Path object it cannot be None...
-                    downloaded = True
-
-                attachment_list.append(file)
-        else:
-            file_path = os.path.join(path, f"{post.shortcode}.mp4") # type: ignore # there is a bug in pylance...
+        for index in range(1, video_count + 1): # will run once if not sidecar
+            file_path = os.path.join(path, _get_file_name(post, index))
             file = VideoFile(file_path, post.caption)
+
             if not os.path.exists(file.path) and not downloaded:
-                downloader.download_post(post, path) # type: ignore # path is literally a Path object it cannot be None...
+                await asyncio.to_thread(downloader.download_post, post, Path(path))
                 downloaded = True
+
             attachment_list.append(file)
 
         return attachment_list

@@ -27,24 +27,24 @@ class TestTwitterDownloader(DownloadTester):
         assert os.path.exists(DOWNLOAD_PATH)
         shutil.rmtree(DOWNLOAD_PATH, ignore_errors=True)
 
-    def test_twitter_single_video_download(self):
-        videos = TwitterDownloader.download_video_from_link(
+    async def test_twitter_single_video_download(self):
+        videos = await TwitterDownloader.download_video_from_link(
             TEST_TWEET_1, path=DOWNLOAD_PATH
         )
         should_be_path = os.path.join(SHOULD_BE_FILES_PATH, "should_be_0.mp4")
 
         self.download_single_video_test(videos, should_be_path)
 
-    def test_twitter_download_extra_params(self):
-        videos = TwitterDownloader.download_video_from_link(
+    async def test_twitter_download_extra_params(self):
+        videos = await TwitterDownloader.download_video_from_link(
             TEST_TWEET_2, path=DOWNLOAD_PATH
         )
         should_be_path = os.path.join(SHOULD_BE_FILES_PATH, "should_be_0.mp4")
 
         self.download_single_video_test(videos, should_be_path)
 
-    def test_twitter_download_multiple_videos(self):
-        videos = TwitterDownloader.download_video_from_link(
+    async def test_twitter_download_multiple_videos(self):
+        videos = await TwitterDownloader.download_video_from_link(
             TEST_TWEET_3, path=DOWNLOAD_PATH
         )
 
