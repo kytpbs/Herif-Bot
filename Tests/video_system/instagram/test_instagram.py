@@ -27,8 +27,8 @@ class TestInstagramDownloader(DownloadTester):
         assert os.path.exists(DOWNLOAD_PATH)
         shutil.rmtree(DOWNLOAD_PATH, ignore_errors=True)
 
-    def test_instagram_single_video_download(self):
-        videos = InstagramDownloader.download_video_from_link(
+    async def test_instagram_single_video_download(self):
+        videos = await InstagramDownloader.download_video_from_link(
             TEST_REEL_1, path=DOWNLOAD_PATH
         )
         should_be_path = os.path.join("Tests", "video_system", "instagram", "should_be_0.mp4")
@@ -36,8 +36,8 @@ class TestInstagramDownloader(DownloadTester):
         assert videos, "couldn't download, probably due to graphql error (login wasn't successful)"
         self.download_single_video_test(videos, should_be_path)
 
-    def test_instagram_download_extra_params(self):
-        videos = InstagramDownloader.download_video_from_link(
+    async def test_instagram_download_extra_params(self):
+        videos = await InstagramDownloader.download_video_from_link(
             TEST_REEL_2, path=DOWNLOAD_PATH
         )
         should_be_path = os.path.join("Tests", "video_system", "instagram", "should_be_0.mp4")
@@ -45,8 +45,8 @@ class TestInstagramDownloader(DownloadTester):
         assert videos, "couldn't download, probably due to graphql error (login wasn't successful)"
         self.download_single_video_test(videos, should_be_path)
 
-    def test_instagram_download_multiple_videos(self):
-        videos = InstagramDownloader.download_video_from_link(
+    async def test_instagram_download_multiple_videos(self):
+        videos = await InstagramDownloader.download_video_from_link(
             TEST_REEL_3, path=DOWNLOAD_PATH
         )
 

@@ -23,9 +23,9 @@ class TestYoutubeDownloader(DownloadTester):
         assert os.path.exists(DOWNLOAD_PATH)
         shutil.rmtree(DOWNLOAD_PATH, ignore_errors=True)
 
-    def test_basic_download(self):
+    async def test_basic_download(self):
         try:
-            videos = YoutubeDownloader.download_video_from_link(TEST_YOUTUBE_1, DOWNLOAD_PATH)
+            videos = await YoutubeDownloader.download_video_from_link(TEST_YOUTUBE_1, DOWNLOAD_PATH)
         except yt_dlp.DownloadError as e:
             assert e.msg
             import warnings
