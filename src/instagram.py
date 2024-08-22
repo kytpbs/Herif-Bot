@@ -45,13 +45,14 @@ def _login() -> bool:
     if username is None:
         logging.error("INSTAGRAM_USERNAME is not set in the environment variables")
         return False
+    logging.debug("Logging in to instagram as %s", username)
     session_data = json_read("instagram_session", False)
 
     if session_data:
         downloader.load_session(username, session_data)
         return True
 
-    if (session_data:=os.getenv("INSTAGRAM_SESSION")) is not None:
+    if (session_data:=os.getenv("INSTAGRAM_SESSION")):
         # this function will only be used in github actions
         # so we can assume that the session data is in the correct format
         # and if not, it should crash anyways
@@ -80,6 +81,8 @@ def _try_login():
     global logged_in # pylint: disable=global-statement # don't really mind having a global login
     if not logged_in:
         logged_in = _login()
+        logging.debug("Logged in to instagram" if logged_in else "Couldn't log into instagram")
+
 
 
 _try_login()
