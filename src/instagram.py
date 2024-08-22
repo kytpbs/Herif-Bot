@@ -8,8 +8,9 @@ from dotenv import load_dotenv
 from instaloader import ConnectionException, LoginException
 from instaloader.instaloader import Instaloader
 from instaloader.structures import Post
+import requests
+import yt_dlp
 
-from Constants import JSON_FOLDER
 from src.downloader import VIDEO_RETURN_TYPE, VideoFile, VideoDownloader
 from src.Read import json_read, write_json
 
@@ -40,14 +41,13 @@ def _login() -> bool:
     if logged_in:
         return True
 
-    session_path = os.path.join(JSON_FOLDER, "instagram_session.json")
     username = os.getenv("INSTAGRAM_USERNAME")
     if username is None:
         logging.error("INSTAGRAM_USERNAME is not set in the environment variables")
         return False
-    if os.path.exists(session_path):
-        session_data = json_read(session_path)
+    session_data = json_read("instagram_session", False)
 
+    if session_data:
         downloader.load_session(username, session_data)
         return True
 
@@ -70,7 +70,7 @@ def _login() -> bool:
     try:
         downloader.login(username, password)
         session = downloader.save_session()
-        write_json(session_path, session)
+        write_json("instagram_session", session)
         return True
     except LoginException as e:
         logging.error("Instagram login failed!!! FIX CREDENTIALS. Error: %s", e)
@@ -109,6 +109,54 @@ def _get_file_name(post: Post, index: int) -> str:
     to_add = f"_{index}" if is_multi_vid else ""
     return f"{post.shortcode}{to_add}.mp4"
 
+class InstagramAlternativeDownloader(VideoDownloader):
+    @classmethod
+    async def download_video_from_link(cls, url: str, path: str | None = None) -> VIDEO_RETURN_TYPE:
+        attachment_list: VIDEO_RETURN_TYPE = []
+        if path is None:
+            path = os.path.join("downloads", "instagram")
+
+        os.makedirs(path, exist_ok=True)
+
+        cookies = json_read("instagram_session")
+
+        specific_options = {
+            'format': 'best',
+            "outtmpl": os.path.join(path, "%(id)s.%(ext)s"),
+            'noplaylist': True,
+            'default_search': 'auto',
+            'nooverwrites': True,
+            'quiet': True,
+        }
+
+        # Download the video
+        with yt_dlp.YoutubeDL(specific_options) as ydl:
+            requests.utils.cookiejar_from_dict(cookies, ydl.cookiejar)
+            ydt = await asyncio.to_thread(ydl.extract_info, url, download=True)
+
+        if ydt is None:
+            return []
+
+        infos: list[dict] = ydt.get("entries", [ydt])
+        # get the description as instagram posts don't have titles
+        title = infos[0].get("description", None)
+        for info in infos:
+            video_id = info["id"]
+            video_extension = info["ext"]
+            if video_id is None:
+                continue
+
+            if video_extension != "mp4":
+                logging.error("Got a non-mp4 file that is %s from this link: %s", video_extension, url)
+
+            file_path = os.path.join(path, f"{video_id}.{video_extension}")
+
+            attachment_list.append(VideoFile(file_path, title))
+            title = None # only add the title to the first video
+
+        return attachment_list
+
+
 class InstagramDownloader(VideoDownloader):
     @classmethod
     async def download_video_from_link(cls, url: str, path: str | None = None) -> VIDEO_RETURN_TYPE:
@@ -121,16 +169,21 @@ class InstagramDownloader(VideoDownloader):
         os.makedirs(path, exist_ok=True)
 
         post = _get_post_from_url(url)
+        # if we can't get the post, use the alternative downloader
         if post is None:
-            return attachment_list
+            logging.warning("Couldn't get post from url: %s in instaloader, trying alternative downloader", url)
+            return await InstagramAlternativeDownloader.download_video_from_link(url, path)
+
         downloader.filename_pattern = "{shortcode}"
 
         video_count = len(list(filter(None, post.get_is_videos())))
 
         downloaded: bool = False
+        caption = post.caption
         for index in range(1, video_count + 1): # will run once if not sidecar
             file_path = os.path.join(path, _get_file_name(post, index))
-            file = VideoFile(file_path, post.caption)
+            file = VideoFile(file_path, caption)
+            caption = None
 
             if not os.path.exists(file.path) and not downloaded:
                 await asyncio.to_thread(downloader.download_post, post, Path(path))
