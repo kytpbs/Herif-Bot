@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import Optional
 
 import discord
 import openai
@@ -307,8 +308,8 @@ async def ping(interaction: discord.Interaction):
 @tree.command(name="video-indir", description="Paylaşılan linkteki videoyu paylaşır şuan-desteklenen: twitter, instagram, youtube")
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-async def download_video(interaction: discord.Interaction, url: str):
-    await download_video_command(interaction, url)
+async def download_video(interaction: discord.Interaction, url: str, include_title: Optional[bool] = None):
+    await download_video_command(interaction, url, include_title=include_title)
 
 
 def get_tree_instance():
