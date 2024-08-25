@@ -8,10 +8,8 @@ from dotenv import load_dotenv
 from instaloader import ConnectionException, LoginException
 from instaloader.instaloader import Instaloader
 from instaloader.structures import Post
-import requests
-import yt_dlp
 
-from src.downloader import VIDEO_RETURN_TYPE, VideoFile, VideoDownloader
+from src.downloader import VIDEO_RETURN_TYPE, AlternateVideoDownloader, VideoFile, VideoDownloader
 from src.Read import json_read, write_json
 
 _SHORTCODE_REGEX = (
@@ -112,10 +110,9 @@ def _get_file_name(post: Post, index: int) -> str:
     to_add = f"_{index}" if is_multi_vid else ""
     return f"{post.shortcode}{to_add}.mp4"
 
-class InstagramAlternativeDownloader(VideoDownloader):
+class InstagramAlternativeDownloader(AlternateVideoDownloader):
     @classmethod
     async def download_video_from_link(cls, url: str, path: str | None = None) -> VIDEO_RETURN_TYPE:
-        attachment_list: VIDEO_RETURN_TYPE = []
         if path is None:
             path = os.path.join("downloads", "instagram")
 
@@ -131,34 +128,7 @@ class InstagramAlternativeDownloader(VideoDownloader):
             'nooverwrites': True,
             'quiet': True,
         }
-
-        # Download the video
-        with yt_dlp.YoutubeDL(specific_options) as ydl:
-            requests.utils.cookiejar_from_dict(cookies, ydl.cookiejar)
-            ydt = await asyncio.to_thread(ydl.extract_info, url, download=True)
-
-        if ydt is None:
-            return []
-
-        infos: list[dict] = ydt.get("entries", [ydt])
-        # get the description as instagram posts don't have titles
-        title = infos[0].get("description", None)
-        for info in infos:
-            video_id = info["id"]
-            video_extension = info["ext"]
-            if video_id is None:
-                continue
-
-            if video_extension != "mp4":
-                logging.error("Got a non-mp4 file that is %s from this link: %s", video_extension, url)
-
-            file_path = os.path.join(path, f"{video_id}.{video_extension}")
-
-            attachment_list.append(VideoFile(file_path, title))
-            title = None # only add the title to the first video
-
-        return attachment_list
-
+        return await cls._get_list_from_ydt(url, specific_options, path, "description", cookies)
 
 class InstagramDownloader(VideoDownloader):
     @classmethod

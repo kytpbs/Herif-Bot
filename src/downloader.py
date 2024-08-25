@@ -1,8 +1,12 @@
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 import os
+from typing import Any
 
 import aiohttp
+import requests
+import yt_dlp
 
 _NONE_STRING = "Doesn't exist"
 
@@ -120,3 +124,44 @@ class VideoDownloader(ABC):
             downloaded_paths.append(downloaded_link)
 
         return downloaded_paths
+
+class AlternateVideoDownloader(VideoDownloader):
+    @classmethod
+    async def _get_list_from_ydt(cls, url: str, ydl_opts: dict[str, Any], path: str, title_key: str = "title", cookies: dict | None = None) -> VIDEO_RETURN_TYPE:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            if cookies:
+                requests.utils.cookiejar_from_dict(cookies, ydl.cookiejar)    
+            try:
+                ydt = await asyncio.to_thread(ydl.extract_info, url, download=True)
+            except yt_dlp.DownloadError as e:
+                logging.error("Couldn't download video from url: %s, Error: %s", url, e, exc_info=True)
+                return []
+
+        if ydt is None:
+            return []
+
+        infos: list[dict[str, Any]] = ydt.get("entries", [ydt])
+
+        attachment_list: VIDEO_RETURN_TYPE = []
+        title = infos[0].get(title_key, None)
+        url = infos[0].get("webpage_url", "URL-NOT-FOUND")
+        for info in infos:
+            video_id = info["id"]
+            video_extension = info["ext"]
+            if video_id is None:
+                continue
+
+            if video_extension != "mp4":
+                logging.error(
+                    "Got a non-mp4 file that is %s from this link: %s",
+                    video_extension,
+                    url,
+                )
+
+            file_path = os.path.join(path, f"{video_id}.{video_extension}")
+
+            attachment_list.append(VideoFile(file_path, title))
+            # only add the title to the first video, or else we duplicate the title for each video
+            title = None
+
+        return attachment_list

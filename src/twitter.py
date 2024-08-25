@@ -1,13 +1,11 @@
-import asyncio
 import logging
 import os
 import re
 import bs4
 from dotenv import load_dotenv
 import requests
-import yt_dlp
 
-from src.downloader import VideoDownloader, VideoFile, VIDEO_RETURN_TYPE
+from src.downloader import AlternateVideoDownloader, VideoDownloader, VideoFile, VIDEO_RETURN_TYPE
 
 
 load_dotenv()
@@ -52,14 +50,22 @@ def _get_highest_quality_url_list(response: requests.Response) -> list[str]:
 
     return highest_quality_url_list
 
+def _get_title(response: requests.Response) -> str:
+    data = bs4.BeautifulSoup(response.text, "html.parser")
+    title = data.find("title")
 
-class TwitterAlternativeDownloader(VideoDownloader):
+    if not isinstance(title, bs4.element.Tag):
+        logging.warning("No title found in URL: %s", response.url)
+        return "No title found"
+
+    return title.text
+
+
+class TwitterAlternativeDownloader(AlternateVideoDownloader):
     @classmethod
     async def download_video_from_link(
         cls, url: str, path: str | None = None
     ) -> VIDEO_RETURN_TYPE:
-        attachment_list: VIDEO_RETURN_TYPE = []
-
         if path is None:
             path = os.path.join("downloads", "twitter")
 
@@ -74,33 +80,7 @@ class TwitterAlternativeDownloader(VideoDownloader):
             "quiet": True,
         }
 
-        with yt_dlp.YoutubeDL(specific_options) as ydl:
-            ydt = await asyncio.to_thread(ydl.extract_info, url, download=True)
-
-        if ydt is None:
-            return []
-
-        infos: list[dict] = ydt.get("entries", [ydt])
-        title = infos[0].get("title", None)
-        for info in infos:
-            video_id = info["id"]
-            video_extension = info["ext"]
-            if video_id is None:
-                continue
-
-            if video_extension != "mp4":
-                logging.error(
-                    "Got a non-mp4 file that is %s from this link: %s",
-                    video_extension,
-                    url,
-                )
-
-            file_path = os.path.join(path, f"{video_id}.{video_extension}")
-
-            attachment_list.append(VideoFile(file_path, title))
-            title = None  # only add the title to the first video
-
-        return attachment_list
+        return await cls._get_list_from_ydt(url, specific_options, path)
 
 
 class TwitterDownloader(VideoDownloader):
