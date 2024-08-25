@@ -52,7 +52,7 @@ def _get_highest_quality_url_list(response: requests.Response) -> list[str]:
 
 def _get_title(response: requests.Response) -> str:
     data = bs4.BeautifulSoup(response.text, "html.parser")
-    title = data.find("title")
+    title = data.find("p", class_="m-2")
 
     if not isinstance(title, bs4.element.Tag):
         logging.warning("No title found in URL: %s", response.url)
@@ -95,6 +95,7 @@ class TwitterDownloader(VideoDownloader):
 
         try:
             response = requests.get(API_URL_START + url, timeout=30)
+            response.raise_for_status()
         except requests.exceptions.RequestException as e:
             logging.warning(
                 "Downloading from 3'rd party failed due to error: %s, trying with alternative downloader",
@@ -110,8 +111,11 @@ class TwitterDownloader(VideoDownloader):
             return attachment_list
 
         download_urls = _get_highest_quality_url_list(response)
+        title = _get_title(response)
         downloaded_file_paths = await cls._download_links(download_urls, path, tweet_id)
 
         attachment_list = [VideoFile(path) for path in downloaded_file_paths]
+        attachment_list[0]._title = title
+
 
         return attachment_list
