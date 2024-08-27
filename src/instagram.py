@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from dotenv import load_dotenv
-from instaloader import ConnectionException, LoginException
+from instaloader import ConnectionException, LoginException, QueryReturnedBadRequestException
 from instaloader.instaloader import Instaloader
 from instaloader.structures import Post
 
@@ -101,7 +101,7 @@ def _get_post_from_url(url: str) -> Post | None:
         return None
     try:
         return Post.from_shortcode(downloader.context, shortcode)
-    except ConnectionException as e:  # probably graphql error
+    except (ConnectionException, QueryReturnedBadRequestException) as e:  # probably graphql error
         logging.exception(e)
         return None
 
