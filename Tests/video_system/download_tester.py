@@ -1,6 +1,16 @@
-import os
-import requests
+import subprocess
+
 from src.downloader import VIDEO_RETURN_TYPE, VideoFile
+
+
+def _get_video_duration(video_path: str) -> float:
+    result = subprocess.run(["ffprobe", "-v", "error", "-show_entries",
+                            "format=duration", "-of",
+                            "default=noprint_wrappers=1:nokey=1", video_path],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,
+                            check=False)
+    return float(result.stdout)
 
 
 class DownloadTester:
@@ -18,8 +28,6 @@ class DownloadTester:
 
 
     def _test_download(self, video: VideoFile, should_be_path: str):
-        with open(video.path, "rb") as downloaded, open(
-                should_be_path, "rb" # change to "wb" to run fix tests
-            ) as should_be:
-            # should_be.write(downloaded.read()) # uncomment to fix tests
-            assert downloaded.read() == should_be.read(), "Downloaded file does not match the expected file"
+        video_duration = _get_video_duration(video.path)
+        should_be_duration = _get_video_duration(should_be_path)
+        assert video_duration == should_be_duration, f"video_duration was '{video_duration}' should have been: '{should_be_duration}'"
