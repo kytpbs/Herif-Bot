@@ -3,6 +3,7 @@ import logging
 from typing import Optional
 import discord
 
+from downloader import AbstractClassUsedError, DownloadFailedError, NoVideoFoundError
 from src.other import UnknownAlternateDownloader
 from src.downloading_system import get_downloader
 
@@ -61,8 +62,20 @@ async def download_video_command(interaction: discord.Interaction, url: str, is_
         attachments = await downloader.download_video_from_link(url)
         file_paths = [attachment.path for attachment in attachments]
         discord_files = _convert_paths_to_discord_files(file_paths)
+    except DownloadFailedError as e:
+        await interaction.followup.send("Video indirilirken başarısız olundu, hata raporu alındı. Lütfen daha sonra tekrar deneyin", ephemeral=True)
+        logging.exception(e, exc_info=True)
+        return
+    except NoVideoFoundError as e:
+        await interaction.followup.send("Linkte bir video bulamadım, linkte **video** olduğuna emin misin?", ephemeral=True)
+        logging.exception(e, exc_info=True)
+        return
+    except AbstractClassUsedError:
+        await interaction.followup.send("Bir şeyler ÇOK ters gitti, hata raporu alındı.", ephemeral=True)
+        logging.exception("An abstract class was used, this should not happen", exc_info=True)
+        return
     except Exception as e:
-        await interaction.followup.send("Bir şey ters gitti... lütfen tekrar deneyin", ephemeral=True)
+        await interaction.followup.send("Bilinmeyen bir hata oluştu, lütfen tekrar deneyin", ephemeral=True)
         raise e # re-raise the exception so we can see what went wrong
     if len(attachments) == 0:
         await interaction.followup.send("Videoyu Bulamadım, lütfen daha sonra tekrar deneyin ya da hatayı bildirin", ephemeral=True)

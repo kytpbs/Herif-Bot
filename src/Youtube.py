@@ -1,4 +1,3 @@
-import asyncio
 import functools
 import logging
 import os
@@ -7,7 +6,7 @@ from queue import LifoQueue
 import yt_dlp
 
 from Constants import MAX_VIDEO_DOWNLOAD_SIZE
-from src.downloader import VIDEO_RETURN_TYPE, AlternateVideoDownloader, VideoDownloader, VideoFile
+from src.downloader import VIDEO_RETURN_TYPE, AlternateVideoDownloader
 
 ydl_opts = {
   'format': 'bestaudio',

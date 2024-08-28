@@ -87,7 +87,13 @@ class VideoDownloader(ABC):
         Downloads Videos from a url
         if path is None, the default path is downloads/{website_name}
 
-        if the download fails, it returns an empty list
+        if the download fails, it will raise an Error
+
+        Raises:
+            DownloadFailedError: if the download fails
+            NoVideoFoundError: if no video is found
+            AbstractClassUsedError: if the interface is directly called, should never happen
+        All the errors are subclasses of ``DownloaderError``
         """
         logging.error(
             "VideoDownloader download_url interface was directly called, this should not happen! url was: %s for path: %s",
