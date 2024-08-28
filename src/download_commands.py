@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import timeit
 from typing import Optional
 import discord
 
