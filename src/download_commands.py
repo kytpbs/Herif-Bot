@@ -1,9 +1,9 @@
 import asyncio
 import logging
-from typing import Optional
+from typing import Optional, Type
 import discord
 
-from downloader import AbstractClassUsedError, DownloadFailedError, NoVideoFoundError
+from downloader import VIDEO_RETURN_TYPE, AbstractClassUsedError, DownloadFailedError, NoVideoFoundError, VideoDownloader
 from src.other import UnknownAlternateDownloader
 from src.downloading_system import get_downloader
 
@@ -21,6 +21,7 @@ def _get_shortest_punctuation_index(caption: str) -> int | None:
     if len(filtered_list) == 0:
         return None
     return min(filtered_list)
+
 
 def _get_shortened_caption(caption: str) -> str:
     # check if we have a punctuation mark in the caption
@@ -48,27 +49,36 @@ def _get_view(shortened_caption: str, caption: str):
     return view
 
 
+def _get_caption_and_view(real_caption: str, include_title: Optional[bool]) -> tuple[Optional[str], discord.ui.View]:
+    shortened_caption = _get_shortened_caption(real_caption) + " ***...***"
+    view = discord.utils.MISSING
 
-async def download_video_command(interaction: discord.Interaction, url: str, is_ephemeral: bool = False, include_title: bool | None = None):
-    downloader = get_downloader(url)
-    if downloader is None:
-        logging.info("Found an unsupported link: %s", url)
-        await interaction.response.defer(ephemeral=True)
-        return await try_unknown_link(interaction, url, include_title)
+    if include_title is False:
+        caption = None
 
-    await interaction.response.defer(ephemeral=is_ephemeral)
+    elif include_title is True:
+        caption = real_caption
 
+    elif len(shortened_caption) < len(real_caption):
+        view = _get_view(shortened_caption, real_caption)
+        caption = shortened_caption
+    else:
+        caption = real_caption
+
+    return caption, view
+
+
+
+async def get_details(downloader: Type[VideoDownloader], url: str, interaction: discord.Interaction) -> Optional[VIDEO_RETURN_TYPE]:
     try:
-        attachments = await downloader.download_video_from_link(url)
-        file_paths = [attachment.path for attachment in attachments]
-        discord_files = _convert_paths_to_discord_files(file_paths)
-    except DownloadFailedError as e:
+        return await downloader.download_video_from_link(url)
+    except DownloadFailedError:
         await interaction.followup.send("Video indirilirken başarısız olundu, hata raporu alındı. Lütfen daha sonra tekrar deneyin", ephemeral=True)
-        logging.exception(e, exc_info=True)
+        logging.exception("Failed Downloading Link: %s", url, exc_info=True)
         return
-    except NoVideoFoundError as e:
+    except NoVideoFoundError:
         await interaction.followup.send("Linkte bir video bulamadım, linkte **video** olduğuna emin misin?", ephemeral=True)
-        logging.exception(e, exc_info=True)
+        logging.exception("Couldn't find link on url %s", url, exc_info=True)
         return
     except AbstractClassUsedError:
         await interaction.followup.send("Bir şeyler ÇOK ters gitti, hata raporu alındı.", ephemeral=True)
@@ -76,27 +86,37 @@ async def download_video_command(interaction: discord.Interaction, url: str, is_
         return
     except Exception as e:
         await interaction.followup.send("Bilinmeyen bir hata oluştu, lütfen tekrar deneyin", ephemeral=True)
+        raise e
+
+
+async def _get_discord_files(interaction: discord.Interaction, attachments: VIDEO_RETURN_TYPE) -> list[discord.File]:
+    try:
+        file_paths = [attachment.path for attachment in attachments]
+        return _convert_paths_to_discord_files(file_paths)
+    except Exception as e:
+        await interaction.followup.send("Bilinmeyen bir hata oluştu, lütfen tekrar deneyin", ephemeral=True)
         raise e # re-raise the exception so we can see what went wrong
-    if len(attachments) == 0:
-        await interaction.followup.send("Videoyu Bulamadım, lütfen daha sonra tekrar deneyin ya da hatayı bildirin", ephemeral=True)
+
+
+async def download_video_command(interaction: discord.Interaction, url: str, is_ephemeral: bool = False, include_title: bool | None = None):
+    downloader = get_downloader(url)
+
+    if downloader is None:
+        logging.info("Found an unsupported link: %s", url)
+        await interaction.response.defer(ephemeral=True)
+        return await try_unknown_link(interaction, url, include_title)
+
+    await interaction.response.defer(ephemeral=is_ephemeral)
+
+    attachments = await get_details(downloader, url, interaction)
+    if attachments is None:
         return
-    returned_content = " + ".join(filter(None, [attachment.caption for attachment in attachments]))
-    default_caption = f"Video{'s' if len(attachments) > 1 else ''} Downloaded"
-    caption = ""
-    view = discord.utils.MISSING
-    shortened_content = _get_shortened_caption(returned_content) + " ***...***"
 
-    if include_title is False or not returned_content:
-        caption = default_caption
+    discord_files = await _get_discord_files(interaction, attachments)
 
-    elif include_title is True:
-        caption = returned_content
-
-    elif len(shortened_content) < len(returned_content):
-        view = _get_view(shortened_content, returned_content)
-        caption = shortened_content
-    else:
-        caption = returned_content
+    real_caption = attachments.caption or f"Video{'s' if len(attachments) > 1 else ''} Downloaded"
+    caption, view = _get_caption_and_view(real_caption, include_title)
+    caption = caption or discord.utils.MISSING
 
     await interaction.followup.send(caption, files=discord_files, ephemeral=is_ephemeral, view=view)
 
