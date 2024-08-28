@@ -7,7 +7,7 @@ from queue import LifoQueue
 import yt_dlp
 
 from Constants import MAX_VIDEO_DOWNLOAD_SIZE
-from src.downloader import VIDEO_RETURN_TYPE, VideoDownloader, VideoFile
+from src.downloader import VIDEO_RETURN_TYPE, AlternateVideoDownloader, VideoDownloader, VideoFile
 
 ydl_opts = {
   'format': 'bestaudio',
@@ -94,9 +94,9 @@ last_played = video_data_guild()
 def get_last_played_guilded() -> video_data_guild:
     return last_played
 
-class YoutubeDownloader(VideoDownloader):
-    @staticmethod
-    async def download_video_from_link(url: str, path: str | None = None) -> VIDEO_RETURN_TYPE:
+class YoutubeDownloader(AlternateVideoDownloader):
+    @classmethod
+    async def download_video_from_link(cls, url: str, path: str | None = None) -> VIDEO_RETURN_TYPE:
         if path is None:
             path = os.path.join("downloads", "youtube")
 
@@ -111,21 +111,4 @@ class YoutubeDownloader(VideoDownloader):
             'quiet': True,
         }
 
-        with yt_dlp.YoutubeDL(costum_options) as ydl:
-            ydt = await asyncio.to_thread(ydl.extract_info, url, download=True)
-
-        if ydt is None:
-            return []
-
-        info = ydt.get("entries", [None])[0] or ydt
-        video_id = info["id"]
-        video_extension = info["ext"]
-        if video_id is None:
-            return []
-
-        if video_extension != "mp4":
-            logging.error("Got a non-mp4 file that is %s from this link: %s", video_extension, url)
-
-        file_path = os.path.join(path, f"{video_id}.{video_extension}")
-
-        return [VideoFile(file_path, info.get("title", None))]
+        return await cls._get_list_from_ydt(url, costum_options, path)
