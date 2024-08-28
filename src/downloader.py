@@ -73,7 +73,7 @@ class VideoFiles(list[VideoFile]):
 
 
 
-VIDEO_RETURN_TYPE = list[VideoFile]
+VIDEO_RETURN_TYPE = VideoFiles
 
 class VideoDownloader(ABC):
     """
@@ -94,7 +94,7 @@ class VideoDownloader(ABC):
             url,
             path,
         )
-        return []
+        raise AbstractClassUsedError("VideoDownloader download_url interface was directly called")
 
     @classmethod
     async def _download_link(cls, url: str, download_to: str) -> str | None:
@@ -160,19 +160,19 @@ class AlternateVideoDownloader(VideoDownloader):
     async def _get_list_from_ydt(cls, url: str, ydl_opts: dict[str, Any], path: str, title_key: str = "title", cookies: dict | None = None) -> VIDEO_RETURN_TYPE:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             if cookies:
-                requests.utils.cookiejar_from_dict(cookies, ydl.cookiejar)    
+                requests.utils.cookiejar_from_dict(cookies, ydl.cookiejar)
             try:
                 ydt = await asyncio.to_thread(ydl.extract_info, url, download=True)
             except yt_dlp.DownloadError as e:
                 logging.error("Couldn't download video from url: %s, Error: %s", url, e, exc_info=True)
-                return []
+                raise DownloadFailedError(f"Couldn't download video from url: {url}") from e
 
         if ydt is None:
-            return []
+            raise DownloadFailedError(f"Couldn't download video from url: {url}")
 
         infos: list[dict[str, Any]] = ydt.get("entries", [ydt])
 
-        attachment_list: VIDEO_RETURN_TYPE = []
+        attachment_list: list[VideoFile] = []
         title = infos[0].get(title_key, None)
         url = infos[0].get("webpage_url", "URL-NOT-FOUND")
         for info in infos:
@@ -190,8 +190,6 @@ class AlternateVideoDownloader(VideoDownloader):
 
             file_path = os.path.join(path, f"{video_id}.{video_extension}")
 
-            attachment_list.append(VideoFile(file_path, title))
-            # only add the title to the first video, or else we duplicate the title for each video
-            title = None
+            attachment_list.append(VideoFile(file_path))
 
-        return attachment_list
+        return VideoFiles(attachment_list, title)
