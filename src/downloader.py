@@ -2,7 +2,7 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 import os
-from typing import Any
+from typing import Any, Optional
 
 import aiohttp
 import requests
@@ -10,6 +10,17 @@ import yt_dlp
 
 _NONE_STRING = "Doesn't exist"
 
+class DownloaderError(Exception):
+    pass
+
+class DownloadFailedError(DownloaderError):
+    pass
+
+class NoVideoFoundError(DownloaderError):
+    pass
+
+class AbstractClassUsedError(DownloaderError):
+    pass
 
 class VideoFile:
     """
@@ -40,6 +51,25 @@ class VideoFile:
     @property
     def path(self) -> str:
         return self._file_path
+
+
+class VideoFiles(list[VideoFile]):
+    def __init__(self, videos: list[VideoFile], caption: Optional[str] = None) -> None:
+        if not videos:
+            raise NoVideoFoundError("VideoFiles must have at least one video")
+        super().__init__(videos)
+        assert videos, "VideoFiles must have at least one video"
+        self._videos = videos
+        self._title = caption or ""
+
+    def get_video_titles(self) -> str:
+        """only returns the titles of the videos that have a title"""
+        return " + ".join(video.caption for video in self._videos if video.caption)
+
+    @property
+    def caption(self) -> str | None:
+        full_title = self._title + self.get_video_titles()
+        return full_title if full_title else None
 
 
 
