@@ -89,7 +89,7 @@ async def get_details(downloader: Type[VideoDownloader], url: str, interaction: 
         raise e
 
 
-async def _get_discord_files(interaction: discord.Interaction, attachments: VIDEO_RETURN_TYPE) -> list[discord.File]:
+async def _convert_to_discord_files(interaction: discord.Interaction, attachments: VIDEO_RETURN_TYPE) -> list[discord.File]:
     try:
         file_paths = [attachment.path for attachment in attachments]
         return _convert_paths_to_discord_files(file_paths)
@@ -112,7 +112,7 @@ async def download_video_command(interaction: discord.Interaction, url: str, is_
     if attachments is None:
         return
 
-    discord_files = await _get_discord_files(interaction, attachments)
+    discord_files = await _convert_to_discord_files(interaction, attachments)
 
     real_caption = attachments.caption or f"Video{'s' if len(attachments) > 1 else ''} Downloaded"
     caption, view = _get_caption_and_view(real_caption, include_title)
@@ -152,29 +152,9 @@ async def try_unknown_link(interaction: discord.Interaction, url: str, include_t
         await sent_message.edit(content="Linki ne yazıkki indiremedim")
         raise e # re-raise the exception so we can see what went wrong
 
-    if len(attachments) == 0:
-        loading_task.cancel()
-        await sent_message.edit(content="Videoyu Bulamadım, lütfen daha sonra tekrar deneyin ya da hatayı bildirin")
-        return
-
-    returned_content = " + ".join(filter(None, [attachment.caption for attachment in attachments]))
-    default_caption = f"Video{'s' if len(attachments) > 1 else ''} Downloaded"
-    caption = ""
-    view = discord.utils.MISSING
-    shortened_content = _get_shortened_caption(returned_content) + " ***...***"
-
-
-    if include_title is False or not returned_content:
-        caption = default_caption
-
-    elif include_title is True:
-        caption = returned_content
-
-    elif len(shortened_content) < len(returned_content):
-        view = _get_view(shortened_content, returned_content)
-        caption = shortened_content
-    else:
-        caption = returned_content
+    real_caption = attachments.caption or f"Video{'s' if len(attachments) > 1 else ''} Downloaded"
+    caption, view = _get_caption_and_view(real_caption, include_title)
+    caption = caption or ""
 
     loading_task.cancel()
     await sent_message.edit(content=f"{url} downloaded")
