@@ -29,6 +29,8 @@ def get_downloader(url: str) -> Type[VideoDownloader] | None:
     if it still can't find a downloader, it returns None
     """
 
+    url = get_url_from_text(url)
+
     if re.match(_TWITTER_REGEX, url):
         return TwitterDownloader
     if re.match(_INSTAGRAM_REGEX, url):
