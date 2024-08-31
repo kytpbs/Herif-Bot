@@ -9,7 +9,7 @@ from instaloader import ConnectionException, LoginException, QueryReturnedBadReq
 from instaloader.instaloader import Instaloader
 from instaloader.structures import Post
 
-from src.downloader import VIDEO_RETURN_TYPE, AlternateVideoDownloader, VideoFile, VideoDownloader
+from src.downloader import VIDEO_RETURN_TYPE, AlternateVideoDownloader, VideoFile, VideoDownloader, VideoFiles
 from src.Read import json_read, write_json
 
 _SHORTCODE_REGEX = (
@@ -133,7 +133,7 @@ class InstagramAlternativeDownloader(AlternateVideoDownloader):
 class InstagramDownloader(VideoDownloader):
     @classmethod
     async def download_video_from_link(cls, url: str, path: str | None = None) -> VIDEO_RETURN_TYPE:
-        attachment_list: VIDEO_RETURN_TYPE = []
+        attachment_list: list[VideoFile] = []
         _try_login() # try to login if not already logged in
 
         if path is None:
@@ -155,8 +155,7 @@ class InstagramDownloader(VideoDownloader):
         caption = post.caption
         for index in range(1, video_count + 1): # will run once if not sidecar
             file_path = os.path.join(path, _get_file_name(post, index))
-            file = VideoFile(file_path, caption)
-            caption = None
+            file = VideoFile(file_path)
 
             if not os.path.exists(file.path) and not downloaded:
                 await asyncio.to_thread(downloader.download_post, post, Path(path))
@@ -164,4 +163,4 @@ class InstagramDownloader(VideoDownloader):
 
             attachment_list.append(file)
 
-        return attachment_list
+        return VideoFiles(attachment_list, caption)

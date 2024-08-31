@@ -5,7 +5,7 @@ import bs4
 from dotenv import load_dotenv
 import requests
 
-from src.downloader import AlternateVideoDownloader, VideoDownloader, VideoFile, VIDEO_RETURN_TYPE
+from src.downloader import AlternateVideoDownloader, DownloadFailedError, VideoDownloader, VideoFile, VIDEO_RETURN_TYPE, VideoFiles
 
 
 load_dotenv()
@@ -88,7 +88,7 @@ class TwitterDownloader(VideoDownloader):
     async def download_video_from_link(
         cls, url: str, path: str | None = None
     ) -> VIDEO_RETURN_TYPE:
-        attachment_list: VIDEO_RETURN_TYPE = []
+        attachment_list: list[VideoFile] = []
         tweet_id = _get_tweet_id(url)
         if path is None:
             path = os.path.join("downloads", "twitter")
@@ -108,14 +108,12 @@ class TwitterDownloader(VideoDownloader):
 
         if tweet_id is None:
             logging.error("No tweet id found in URL: %s", url)
-            return attachment_list
+            raise DownloadFailedError(f"No tweet id found in URL: {url}")
 
         download_urls = _get_highest_quality_url_list(response)
         title = _get_title(response)
         downloaded_file_paths = await cls._download_links(download_urls, path, tweet_id)
 
         attachment_list = [VideoFile(path) for path in downloaded_file_paths]
-        attachment_list[0]._title = title
 
-
-        return attachment_list
+        return VideoFiles(attachment_list, title)

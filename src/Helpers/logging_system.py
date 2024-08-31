@@ -23,8 +23,12 @@ def is_server(only_true_if_cloud: bool = True) -> bool:
 
 
 if is_server(only_true_if_cloud=False):
-    google_client = google.cloud.logging.Client()
-    google_client.setup_logging(log_level=logging.DEBUG)
+    try:
+        google_client = google.cloud.logging.Client()
+        google_client.get_default_handler()
+        google_client.setup_logging(log_level=logging.DEBUG)
+    except Exception as e:
+        logging.error("Failed to setup google cloud logging", exc_info=e)
 else:
     format_string = '%(asctime)s: %(name)s - %(levelname)s - %(message)s in %(filename)s:%(lineno)d'
     logging.basicConfig(level=logging.DEBUG, filename=f'{BOT_NAME}.log', filemode='w', format=format_string)

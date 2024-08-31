@@ -13,6 +13,15 @@ _INSTAGRAM_REGEX = re.compile(r"\b(?:https?:\/\/)?(?:www\.)?(?:instagram\.com\/|
 _YOUTUBE_REGEX = re.compile(r"\b(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/|youtu\.be\/)\S*")
 
 
+def get_url_from_text(text: str) -> str:
+    """
+    Returns the first url found in the text, if no url is found it returns the text itself
+    """
+
+    if (result := re.search(_URL_PARSE_REGEX, text)):
+        return result.group(0)
+    return text
+
 def get_downloader(url: str) -> Type[VideoDownloader] | None:
     """
     Returns the correct downloader for the given url if it can't find it
@@ -20,13 +29,13 @@ def get_downloader(url: str) -> Type[VideoDownloader] | None:
     if it still can't find a downloader, it returns None
     """
 
+    url = get_url_from_text(url)
+
     if re.match(_TWITTER_REGEX, url):
         return TwitterDownloader
     if re.match(_INSTAGRAM_REGEX, url):
         return InstagramDownloader
     if re.match(_YOUTUBE_REGEX, url):
         return YoutubeDownloader
-    # try to extract the url from the text incase there is extra text
-    if (result := re.search(_URL_PARSE_REGEX, url)) and result.group(0) != url:
-        return get_downloader(result.group(0))
+
     return None

@@ -14,7 +14,15 @@ class DownloaderError(Exception):
     pass
 
 class DownloadFailedError(DownloaderError):
-    pass
+    """Base exception for any errors created in downloading."""
+    msg = None
+
+    def __init__(self, msg=None):
+        if msg is not None:
+            self.msg = msg
+        elif self.msg is None:
+            self.msg = type(self).__name__
+        super().__init__(self.msg)
 
 class NoVideoFoundError(DownloaderError):
     pass
@@ -73,7 +81,7 @@ class VideoFiles(list[VideoFile]):
 
 
 
-VIDEO_RETURN_TYPE = list[VideoFile]
+VIDEO_RETURN_TYPE = VideoFiles
 
 class VideoDownloader(ABC):
     """
@@ -87,14 +95,20 @@ class VideoDownloader(ABC):
         Downloads Videos from a url
         if path is None, the default path is downloads/{website_name}
 
-        if the download fails, it returns an empty list
+        if the download fails, it will raise an Error
+
+        Raises:
+            DownloadFailedError: if the download fails
+            NoVideoFoundError: if no video is found
+            AbstractClassUsedError: if the interface is directly called, should never happen
+        All the errors are subclasses of ``DownloaderError``
         """
         logging.error(
             "VideoDownloader download_url interface was directly called, this should not happen! url was: %s for path: %s",
             url,
             path,
         )
-        return []
+        raise AbstractClassUsedError("VideoDownloader download_url interface was directly called")
 
     @classmethod
     async def _download_link(cls, url: str, download_to: str) -> str | None:
@@ -160,19 +174,19 @@ class AlternateVideoDownloader(VideoDownloader):
     async def _get_list_from_ydt(cls, url: str, ydl_opts: dict[str, Any], path: str, title_key: str = "title", cookies: dict | None = None) -> VIDEO_RETURN_TYPE:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             if cookies:
-                requests.utils.cookiejar_from_dict(cookies, ydl.cookiejar)    
+                requests.utils.cookiejar_from_dict(cookies, ydl.cookiejar)
             try:
                 ydt = await asyncio.to_thread(ydl.extract_info, url, download=True)
             except yt_dlp.DownloadError as e:
                 logging.error("Couldn't download video from url: %s, Error: %s", url, e, exc_info=True)
-                return []
+                raise DownloadFailedError(f"Couldn't download video from url: {url}") from e
 
         if ydt is None:
-            return []
+            raise DownloadFailedError(f"Couldn't download video from url: {url}")
 
         infos: list[dict[str, Any]] = ydt.get("entries", [ydt])
 
-        attachment_list: VIDEO_RETURN_TYPE = []
+        attachment_list: list[VideoFile] = []
         title = infos[0].get(title_key, None)
         url = infos[0].get("webpage_url", "URL-NOT-FOUND")
         for info in infos:
@@ -190,8 +204,6 @@ class AlternateVideoDownloader(VideoDownloader):
 
             file_path = os.path.join(path, f"{video_id}.{video_extension}")
 
-            attachment_list.append(VideoFile(file_path, title))
-            # only add the title to the first video, or else we duplicate the title for each video
-            title = None
+            attachment_list.append(VideoFile(file_path))
 
-        return attachment_list
+        return VideoFiles(attachment_list, title)
