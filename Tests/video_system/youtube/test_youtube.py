@@ -1,10 +1,9 @@
-import logging
 import os
 import shutil
 import pytest
-import yt_dlp
 
 from Tests.video_system.download_tester import DownloadTester
+from src.downloader import DownloadFailedError
 from src.Youtube import YoutubeDownloader
 
 TEST_YOUTUBE_1 = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
@@ -26,10 +25,10 @@ class TestYoutubeDownloader(DownloadTester):
     async def test_basic_download(self):
         try:
             videos = await YoutubeDownloader.download_video_from_link(TEST_YOUTUBE_1, DOWNLOAD_PATH)
-        except yt_dlp.DownloadError as e:
+        except DownloadFailedError as e:
             assert e.msg
             import warnings
-            if "Sign in" not in e.msg:
+            if "Sign in" not in str(e.with_traceback(None)):
                 raise e # re-raise the exception if it's not a sign in error
             warnings.warn(e.msg)
             return
