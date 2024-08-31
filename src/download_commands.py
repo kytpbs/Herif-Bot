@@ -3,7 +3,7 @@ import logging
 from typing import Optional, Type
 import discord
 
-from downloader import (
+from src.downloader import (
     VIDEO_RETURN_TYPE,
     AbstractClassUsedError,
     DownloadFailedError,
