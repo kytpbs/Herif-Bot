@@ -13,7 +13,6 @@ class UnknownAlternateDownloader(AlternateVideoDownloader):
         os.makedirs(path, exist_ok=True)
 
         ydt_opts = {
-            "format": "best",
             "outtmpl": os.path.join(path, "%(id)s.%(ext)s"),
             "noplaylist": True,
             "default_search": "auto",
