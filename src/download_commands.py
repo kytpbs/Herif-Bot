@@ -11,7 +11,7 @@ from src.downloader import (
     VideoDownloader,
 )
 from src.other import UnknownAlternateDownloader
-from src.downloading_system import get_downloader
+from src.downloading_system import get_downloader, get_url_from_text
 
 
 def _convert_paths_to_discord_files(paths: list[str]) -> list[discord.File]:
@@ -140,6 +140,8 @@ async def download_video_command(
     is_ephemeral: bool = False,
     include_title: bool | None = None,
 ):
+    url = get_url_from_text(url)
+
     downloader = get_downloader(url)
 
     if downloader is None:
