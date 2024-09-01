@@ -94,21 +94,22 @@ async def get_details(
         return await downloader.download_video_from_link(url)
     except DownloadFailedError:
         await interaction.followup.send(
-            "Video indirilirken başarısız olundu, hata raporu alındı. Lütfen daha sonra tekrar deneyin",
+            "Failed to download the video, error saved, please try again later",
             ephemeral=True,
         )
         logging.exception("Failed Downloading Link: %s", url, exc_info=True)
         return
     except NoVideoFoundError:
         await interaction.followup.send(
-            "Linkte bir video bulamadım, linkte **video** olduğuna emin misin?",
+            "Couldn't find a video on the page, are you sure this is a **video** link?",
             ephemeral=True,
         )
         logging.exception("Couldn't find link on url %s", url, exc_info=True)
         return
     except AbstractClassUsedError:
         await interaction.followup.send(
-            "Bir şeyler ÇOK ters gitti, hata raporu alındı.", ephemeral=True
+            "Something went horribly wrong, error saved, please try again later", 
+            ephemeral=True
         )
         logging.exception(
             "An abstract class was used, this should not happen", exc_info=True
@@ -116,7 +117,8 @@ async def get_details(
         return
     except Exception as e:
         await interaction.followup.send(
-            "Bilinmeyen bir hata oluştu, lütfen tekrar deneyin", ephemeral=True
+            "An unknown error occurred, report saved, please try again later", 
+            ephemeral=True
         )
         raise e
 
@@ -129,7 +131,7 @@ async def _convert_to_discord_files(
         return _convert_paths_to_discord_files(file_paths)
     except Exception as e:
         await interaction.followup.send(
-            "Bilinmeyen bir hata oluştu, lütfen tekrar deneyin", ephemeral=True
+            "An unknown error occurred, error saved, please report if not fixed after a while", ephemeral=True
         )
         raise e  # re-raise the exception so we can see what went wrong
 
@@ -194,7 +196,7 @@ async def try_unknown_link(
 
     downloader = UnknownAlternateDownloader
     sent_message = await interaction.followup.send(
-        "Bu link resmi olarak desteklenmiyor, yine de indirmeyi deniyorum",
+        "This link is not supported, attempting to download anyway",
         ephemeral=True,
         wait=True,
     )
@@ -206,7 +208,7 @@ async def try_unknown_link(
         discord_files = _convert_paths_to_discord_files(file_paths)
     except Exception as e:
         loading_task.cancel()
-        await sent_message.edit(content="Linki ne yazıkki indiremedim")
+        await sent_message.edit(content="Sorry, failed to download the video(s)")
         raise e  # re-raise the exception so we can see what went wrong
 
     real_caption = (
@@ -216,5 +218,5 @@ async def try_unknown_link(
     caption = caption or ""
 
     loading_task.cancel()
-    await sent_message.edit(content=f"{url} downloaded")
+    await sent_message.edit(content=f"{url} downloaded" if not include_title else "")
     await interaction.followup.send(content=caption, files=discord_files, view=view)
