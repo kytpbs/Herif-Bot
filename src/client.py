@@ -7,7 +7,7 @@ import discord
 class MyClient(discord.Client):
 
     def __init__(self):
-        super().__init__(intents=discord.Intents.all())
+        super().__init__(intents=discord.Intents.default())
         self.deleted = False
         self.synced = False
         self.old_channel = None
