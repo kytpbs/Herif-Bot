@@ -4,12 +4,12 @@ from datetime import datetime
 import discord
 
 from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID, BOSS_BOT_CHANNEL_ID
+from src.gpt_system import gpt
 from src import file_handeler
 from src.message_handeler import call_command
 import src.Messages # pylint: disable=unused-import # to register the message commands
 from src.Helpers import helper_functions
 from src import member_update_handlers as member_handlers
-from src import GPT
 from src.Helpers.helper_functions import DiskDict, get_general_channel
 from src.Tasks import start_tasks
 
@@ -205,7 +205,7 @@ class MyClient(discord.Client):
             raise ValueError("This function is only for DMs")
         if message.content == "":
             return
-        answer = GPT.chat(message.content, (await GPT.create_message_history(message.channel, limit=8)))
+        answer = await gpt.chat(message)
         await message.reply(str(answer)) # not using an embed because it's easier to parse history this way.
 
 
