@@ -30,7 +30,7 @@ async def create_message_history(channel: discord.abc.Messageable, limit:int = 1
     return message_history[:-1] # remove the message that was just sent
 
 def modified_create(queue: LifoQueue, *args, **kwargs):
-    queue.put(openai.ChatCompletion.create(*args, **kwargs))
+    queue.put(openai.chat.completions.create(*args, **kwargs))
 
 # noinspection PyBroadException
 def question(message: str, user_name: str = "MISSING", server_name: str = SERVER_NAME):
@@ -48,7 +48,7 @@ def question(message: str, user_name: str = "MISSING", server_name: str = SERVER
     if user_name != "MISSING":
         messages[1]['name'] = user_name
     try:
-        response = openai.ChatCompletion.create(
+        response = openai.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=messages,
         max_tokens=500,
@@ -81,7 +81,7 @@ def chat(main_message: str, message_history: list[tuple[discord.User, str]]) -> 
             "name": user.name,
             "content": message,
             })
-   
+
     messages.append({
         "role": "user",
         "content": main_message,
