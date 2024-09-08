@@ -186,6 +186,10 @@ class AlternateVideoDownloader(VideoDownloader):
 
         infos: list[dict[str, Any]] = ydt.get("entries", [ydt])
 
+        if not infos:
+            logging.error("No video found on url: %s, ydt data: %s", url, ydt)
+            raise NoVideoFoundError(f"No video found on url: {url}")
+
         attachment_list: list[VideoFile] = []
         title = infos[0].get(title_key, None)
         url = infos[0].get("webpage_url", "URL-NOT-FOUND")
