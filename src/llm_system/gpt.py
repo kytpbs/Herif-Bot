@@ -8,7 +8,7 @@ from openai import OpenAI
 
 from src.llm_system.llm_data import MessageHistory
 from src.llm_system.openai_fixer import GPTMessages
-from src.llm_system.gpt_discord_integration import (
+from src.llm_system.llm_discord_integration import (
     get_message_from_interaction,
     get_message_history_from_discord_channel,
     get_message_history_from_discord_message,
@@ -65,7 +65,7 @@ async def message_chat(message: discord.Message) -> str:
     """
     server_name = ("server named: " + message.guild.name) if message.guild else "DM"
     # You will not like this, but it's the only way to get the bot name from the message, at least that I can think of
-    # we will always be logged in when this function is called so we can safely get the name
+    # we will always be logged in when this function is called, so we can safely get the name
     bot_name = message.channel._state._get_client().user.name  # pylint: disable=protected-access # type: ignore
 
     system_prompt = SYSTEM_PROMPT_BASE.format(
