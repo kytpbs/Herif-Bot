@@ -29,6 +29,17 @@ class TestYoutubeRegex(TestDownloaderRegex):
             "Check this out: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
         )
 
+    def test_extra_text_link2(self):
+        assert self.check_link(
+            "Check this out: https://www.youtube.com/watch?v=tvO-LTGIrXo"
+        )
+
+    def test_extra_text_url(self):
+        assert self.check_link("Check this out: www.youtube.com/watch?v=dQw4w9WgXcQ")
+
+    def test_extra_text_url_2(self):
+        assert self.check_link("Check this out: www.youtube.com/watch?v=tvO-LTGIrXo")
+
     def test_invalid_link(self):
         assert not self.check_link("https://www.youtube.com")
 
