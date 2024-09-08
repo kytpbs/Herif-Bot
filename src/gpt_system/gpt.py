@@ -6,15 +6,17 @@ import discord
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from Constants import BOT_NAME, SERVER_NAME
-from src.gpt_system.gpt_data import GPTMessages
+from src.gpt_system.gpt_data import MessageHistory
+from src.gpt_system.openai_fixer import GPTMessages
 from src.gpt_system.gpt_discord_integration import (
+    get_message_from_interaction,
+    get_message_history_from_discord_channel,
     get_message_history_from_discord_message,
 )
 from src.gpt_system.gpt_errors import APICallFailedError, NoTokenError
 
-SYSTEM_PROMPT = (
-    f"You are a discord bot named '{BOT_NAME}' in a discord server named {SERVER_NAME}"
+SYSTEM_PROMPT_BASE = (
+    "You are a discord bot named '{bot_name}' in a discord {server_name}"
 )
 
 load_dotenv()
@@ -27,32 +29,14 @@ if API_KEY is None:
     logging.critical("OPEN_AI_KEY is not set in .env file, GPT will not work")
 
 
-async def chat(message: discord.Message) -> str:
-    """_summary_
-
-    Args:
-        message (discord.Message): _description_
-
-    Returns:
-        str: _description_
-
-    Raises:
-        NoTokenError: _description_
-        APICallFailedError: _description_
-        RanOutOfMoneyError: _description_
-    """
-
+async def chat(message_history: GPTMessages) -> str:
     if client is None:
         raise NoTokenError()
-
-    message_history = await get_message_history_from_discord_message(message)
-
-    message_history = GPTMessages.convert_and_merge(message_history, SYSTEM_PROMPT)
 
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=message_history.to_gpt_list(),  # type: ignore # its all correct, don't worry
+            messages=message_history.to_gpt_list(),
         )
     except Exception as e:
         LOGGER.error(f"Failed to complete message history {e}")
@@ -69,5 +53,55 @@ async def chat(message: discord.Message) -> str:
 
     return response
 
-async def message_chat(message: discord.Message):
-    return await chat(message)
+
+async def message_chat(message: discord.Message) -> str:
+    """_summary_
+
+    Args:
+        message (discord.Message): _description_
+
+    Returns:
+        str: _description_
+    """
+    server_name = ("server named: " + message.guild.name) if message.guild else "DM"
+    # You will not like this, but it's the only way to get the bot name from the message, at least that I can think of
+    # we will always be logged in when this function is called so we can safely get the name
+    bot_name = message.channel._state._get_client().user.name  # pylint: disable=protected-access # type: ignore
+
+    system_prompt = SYSTEM_PROMPT_BASE.format(
+        bot_name=bot_name, server_name=server_name
+    )
+
+    message_history = await get_message_history_from_discord_message(message)
+
+    message_history = GPTMessages.convert_and_merge(message_history, system_prompt)
+
+    return await chat(message_history)
+
+
+async def interaction_chat(
+    interaction: discord.Interaction, message: str, include_history: bool = True
+) -> str:
+    bot_name = interaction.client.user.name  # type: ignore # we will always be logged in when this function is called
+    server_name = (
+        ("server named: " + interaction.guild.name) if interaction.guild else "DM"
+    )
+
+    system_prompt = SYSTEM_PROMPT_BASE.format(
+        bot_name=bot_name, server_name=server_name
+    )
+
+    if include_history and isinstance(interaction.channel, discord.abc.Messageable):
+        message_history = await get_message_history_from_discord_channel(
+            interaction.channel, limit=10 if include_history else 0
+        )
+    else:
+        message_history = MessageHistory()
+
+    message_history = GPTMessages.convert_and_merge(
+        message_history,
+        system_prompt,
+        main_message=get_message_from_interaction(interaction, message),
+    )
+
+    return await chat(message_history)
