@@ -5,7 +5,7 @@ import discord
 from discord import app_commands
 
 from src.llm_system import gpt
-from src.llm_system.gpt_errors import GPTError
+from src.llm_system.llm_errors import GPTError
 import src.client as client
 import src.voice_commands as vc_cmds
 from src.download_commands import download_video_command
