@@ -4,7 +4,7 @@ from datetime import datetime
 import discord
 
 from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID, BOSS_BOT_CHANNEL_ID
-from src.gpt_system import gpt
+from src.llm_system import gpt
 from src import file_handeler
 from src.message_handeler import call_command
 import src.Messages # pylint: disable=unused-import # to register the message commands

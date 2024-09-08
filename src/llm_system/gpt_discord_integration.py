@@ -1,7 +1,7 @@
 from typing import AsyncIterator
 import discord
 
-from src.gpt_system.gpt_data import Message, MessageHistory, User
+from src.llm_system.gpt_data import Message, MessageHistory, User
 
 
 async def get_message_history_from_async_iterator(

@@ -1,7 +1,7 @@
 from typing import Literal, NamedTuple, Optional
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 
-from src.gpt_system.gpt_data import Message, MessageHistory
+from src.llm_system.gpt_data import Message, MessageHistory
 
 
 class GPTMessage(NamedTuple):
