@@ -1,7 +1,7 @@
 from typing import Optional
 
 
-class GPTError(Exception):
+class LLMError(Exception):
     """Base exception for any errors created in downloading."""
 
     msg = None
@@ -14,12 +14,12 @@ class GPTError(Exception):
         super().__init__(self.msg)
 
 
-class NoTokenError(GPTError):
+class NoTokenError(LLMError):
     def __init__(self, message: Optional[str] = None) -> None:
         super().__init__(message or "No API Key Found")
 
 
-class APICallFailedError(GPTError):
+class APICallFailedError(LLMError):
     pass
 
 

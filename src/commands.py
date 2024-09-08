@@ -5,7 +5,7 @@ import discord
 from discord import app_commands
 
 from src.llm_system import gpt
-from src.llm_system.llm_errors import GPTError
+from src.llm_system.llm_errors import LLMError
 import src.client as client
 import src.voice_commands as vc_cmds
 from src.download_commands import download_video_command
@@ -93,7 +93,7 @@ class AiCommands(app_commands.Group):
         await interaction.response.defer(ephemeral=False)
         try:
             answer = await gpt.interaction_chat(interaction, message, include_history=False)
-        except GPTError:
+        except LLMError:
             await interaction.followup.send("Bir şey ters gitti, lütfen tekrar deneyin", ephemeral=True)
             raise
         await interaction.followup.send(answer)
@@ -103,7 +103,7 @@ class AiCommands(app_commands.Group):
         await interaction.response.defer(ephemeral=False)
         try:
             answer = await gpt.interaction_chat(interaction, message)
-        except GPTError:
+        except LLMError:
             await interaction.followup.send("Bir hata oluştu, lütfen tekrar deneyin", ephemeral=True)
             raise # re-raise the error so that the error is logged
         await interaction.followup.send(answer)
