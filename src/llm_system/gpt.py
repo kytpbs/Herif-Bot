@@ -6,14 +6,14 @@ import discord
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from src.gpt_system.gpt_data import MessageHistory
-from src.gpt_system.openai_fixer import GPTMessages
-from src.gpt_system.gpt_discord_integration import (
+from src.llm_system.gpt_data import MessageHistory
+from src.llm_system.openai_fixer import GPTMessages
+from src.llm_system.gpt_discord_integration import (
     get_message_from_interaction,
     get_message_history_from_discord_channel,
     get_message_history_from_discord_message,
 )
-from src.gpt_system.gpt_errors import APICallFailedError, NoTokenError
+from src.llm_system.gpt_errors import APICallFailedError, NoTokenError
 
 SYSTEM_PROMPT_BASE = (
     "You are a discord bot named '{bot_name}' in a discord {server_name}"
