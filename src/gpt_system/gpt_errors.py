@@ -1,4 +1,3 @@
-
 from typing import Optional
 
 
@@ -26,5 +25,3 @@ class APICallFailedError(GPTError):
 
 class RanOutOfMoneyError(APICallFailedError):
     pass
-
-
