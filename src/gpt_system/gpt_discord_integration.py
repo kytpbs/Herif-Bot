@@ -33,3 +33,11 @@ async def get_message_history_from_discord_message(
     message: discord.Message,
 ) -> MessageHistory:
     return await get_message_history_from_discord_channel(message.channel)
+
+
+def get_message_from_interaction(
+    interaction: discord.Interaction, message: str
+) -> Message:
+    user = User(name=interaction.user.name, is_bot=interaction.user.bot)
+    guild_name = interaction.guild.name if interaction.guild else None
+    return Message(user, message, guild_name)

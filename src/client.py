@@ -205,7 +205,7 @@ class MyClient(discord.Client):
             raise ValueError("This function is only for DMs")
         if message.content == "":
             return
-        answer = await gpt.chat(message)
+        answer = await gpt.message_chat(message)
         await message.reply(str(answer)) # not using an embed because it's easier to parse history this way.
 
 
