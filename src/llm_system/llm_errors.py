@@ -23,5 +23,10 @@ class APICallFailedError(LLMError):
     pass
 
 
-class RanOutOfMoneyError(APICallFailedError):
+class TooFastError(APICallFailedError):
     pass
+
+
+class RanOutOfMoneyError(APICallFailedError):
+    def __init__(self, message: Optional[str] = None) -> None:
+        super().__init__(message or "Ran out of money")

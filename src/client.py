@@ -4,6 +4,7 @@ from datetime import datetime
 import discord
 
 from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID, BOSS_BOT_CHANNEL_ID
+from src.llm_system.llm_errors import LLMError, NoTokenError, RanOutOfMoneyError
 from src.llm_system import gpt
 from src import file_handeler
 from src.message_handeler import call_command
@@ -205,7 +206,17 @@ class MyClient(discord.Client):
             raise ValueError("This function is only for DMs")
         if message.content == "":
             return
-        answer = await gpt.message_chat(message)
+        try:
+            answer = await gpt.message_chat(message)
+        except NoTokenError as e:
+            await message.reply("Zeki sistemi devre dışı bırakıldı, çalışması için yöneticiyle iletişime geçin")
+            raise e # re-raise the error to log it
+        except RanOutOfMoneyError as e:
+            await message.reply("Fakirlik vurdu, düzeltilmesini bekleyin, bu biraz zaman alabilir")
+            raise e # re-raise the error to log it
+        except LLMError as e:
+            await message.reply("Bir şeyler ters gitti... lütfen sonra tekrar dene")
+            raise e # re-raise the error to log it
         await message.reply(str(answer)) # not using an embed because it's easier to parse history this way.
 
 

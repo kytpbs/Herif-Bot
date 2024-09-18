@@ -4,16 +4,21 @@ from typing import Optional
 
 import discord
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 
 from src.llm_system.llm_data import MessageHistory
-from src.llm_system.openai_fixer import GPTMessages
 from src.llm_system.llm_discord_integration import (
     get_message_from_interaction,
     get_message_history_from_discord_channel,
     get_message_history_from_discord_message,
 )
-from src.llm_system.llm_errors import APICallFailedError, NoTokenError
+from src.llm_system.llm_errors import (
+    APICallFailedError,
+    NoTokenError,
+    RanOutOfMoneyError,
+    TooFastError,
+)
+from src.llm_system.openai_fixer import GPTMessages
 
 SYSTEM_PROMPT_BASE = (
     "You are a discord bot named '{bot_name}' in a discord {server_name}"
@@ -38,6 +43,12 @@ async def chat(message_history: GPTMessages) -> str:
             model="gpt-3.5-turbo",
             messages=message_history.to_gpt_list(),
         )
+    except RateLimitError as e:
+        LOGGER.error(f"Rate limit error {e}")
+        if e.code == 'insufficient_quota':
+            raise RanOutOfMoneyError() from e
+        raise TooFastError("Rate limit hit") from e
+
     except Exception as e:
         LOGGER.error(f"Failed to complete message history {e}")
         raise APICallFailedError("Something went wrong with the API call") from e
@@ -49,7 +60,7 @@ async def chat(message_history: GPTMessages) -> str:
     response = choices[0].message.content
 
     if not response:
-        raise APICallFailedError("No response from the API")
+        raise APICallFailedError("No response from the API results content")
 
     return response
 
