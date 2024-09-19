@@ -69,4 +69,17 @@ class GPTMessages(list[GPTMessage]):
         return messages
 
     def to_gpt_list(self):
+        """
+        Convert the GPTMessages to a dictionary list that can be used in the API call
+        This is due to openai's typing system using TypedDicts, instead of NamedTuples which are more pythonic
+        So this workaround is needed to convert the NamedTuple to a TypedDict
+
+        IF this object is used in the API call, it will work as expected just that typing will throw an error
+
+        Returns:
+            list[dict]: A list of dictionaries that openai library likes
+        Warning:
+            THIS FUNCTION WILL HAVE AN IMPACT ON PERFORMANCE, USE IT IF YOU DON'T CARE ABOUT PERFORMANCE,
+            OR ELSE DIRECTLY PASS THIS OBJECT TO THE API CALL, AND IGNORE THE TYPING ERROR
+        """
         return [message.to_openai_dict() for message in self]
