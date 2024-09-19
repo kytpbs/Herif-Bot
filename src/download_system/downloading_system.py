@@ -1,8 +1,8 @@
 import re
 from typing import Type
 
-from src.Youtube import YoutubeDownloader
 from src.download_system.downloader import VideoDownloader
+from src.download_system.downloaders.youtube import YoutubeDownloader
 from src.download_system.downloaders.instagram import InstagramDownloader
 from src.download_system.downloaders.twitter import TwitterDownloader
 
