@@ -15,8 +15,23 @@ def add_response(response: tuple[str, str]):
     except psycopg2.errors.UniqueViolation as e: # pylint: disable=no-member # pylint is wrong, pylance knows this error exists
         raise AlreadyExistsError(f"Response for {response[0]} already exists") from e
 
+def get_answers(question: str) -> list[str]:
+    """Get all answers for a question, however many there are. returns an empty list if there are none.
+
+    Args:
+        question (str): the question to get the answers for
+
+    Returns:
+        list[str]: the answers to the question, or an empty list if there are none.
+    """
+    return get("SELECT answer FROM responses WHERE question = %s;", (question,)) or []
+
 def get_answer(question: str) -> str | None:
-    return (get("SELECT answer FROM responses WHERE question = %s;", (question,)) or [None])[0]
+    answers = get_answers(question)
+    if not answers:
+        return None
+    return answers[0]
+
 
 
 if __name__ == "__main__":
