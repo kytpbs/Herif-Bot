@@ -3,15 +3,15 @@ import logging
 from typing import Optional, Type
 import discord
 
-from src.downloader import (
+from src.download_system.downloader import (
     VIDEO_RETURN_TYPE,
     AbstractClassUsedError,
     DownloadFailedError,
     NoVideoFoundError,
     VideoDownloader,
 )
-from src.other import UnknownAlternateDownloader
-from src.downloading_system import get_downloader, get_url_from_text
+from src.download_system.downloaders.other import UnknownAlternateDownloader
+from src.download_system.downloading_system import get_downloader, get_url_from_text
 
 
 def _convert_paths_to_discord_files(paths: list[str]) -> list[discord.File]:
