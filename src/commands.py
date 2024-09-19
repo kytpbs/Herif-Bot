@@ -1,16 +1,16 @@
-import logging
 from datetime import datetime
 from typing import Optional
 
 import discord
-import openai
 from discord import app_commands
 
+from src.llm_system import gpt
+from src.llm_system.llm_errors import LLMError
 import src.client as client
 import src.voice_commands as vc_cmds
 from src.download_commands import download_video_command
 from Constants import BOT_ADMIN_SERVER_ID, BOT_OWNER_ID, CYAN, KYTPBS_TAG
-from src import GPT, Youtube
+from src import Youtube
 from src.Helpers.birthday_helpers import get_user_and_date_from_string
 
 
@@ -85,53 +85,28 @@ class VoiceAdminCommands(app_commands.Group):
         await interaction.response.send_message(f"{user} adlı kişi ses kanalında değil")
 
 
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 class AiCommands(app_commands.Group):
     @app_commands.command(name="soru", description="bota bir soru sor")
     async def chatgpt(self, interaction: discord.Interaction, message: str):
         await interaction.response.defer(ephemeral=False)
-        logging.debug("ChatGPT istek: %s", message)
-        answer = GPT.question(message)
-        logging.debug(f"Cevap: {answer}")
-        if answer == -1:
-            await interaction.followup.send("Bir hata oluştu, lütfen tekrar deneyin", ephemeral=True)
-            return
-        embed = discord.Embed(title="ChatGPT", description=answer)
-        await interaction.followup.send(f"ChatGPT'den gelen cevap: \n {answer}", embed=embed)
-
-    @app_commands.command(name="foto", description="Bir Fotoğraf Oluşturmanı Sağlar")
-    async def foto(self, interaction: discord.Interaction, message: str):
-        await interaction.response.defer(ephemeral=False)
-        embed = discord.Embed(title="Foto", description=f'"{message}" için oluşturulan fotoğraf: ')
         try:
-            image = openai.Image.create(prompt=message, n=1)
-            if image is not None and isinstance(image, dict):
-                images = image["data"]
-                image_url = images[0]["url"]
-                embed.set_image(url=image_url)
-            else:
-                embed = discord.Embed(title="HATA", description="Bir hata oluştu: 'image bulunamadı'")
-                await interaction.response.send_message(embed=embed)
-                return
+            answer = await gpt.interaction_chat(interaction, message, include_history=False)
+        except LLMError:
+            await interaction.followup.send("Bir şey ters gitti, lütfen tekrar deneyin", ephemeral=True)
+            raise
+        await interaction.followup.send(answer)
 
-        except openai.InvalidRequestError:
-            embed = discord.Embed(title="HATA", description="+18 olduğu için izin verilmedi")
-            await interaction.response.send_message(embed=embed)
-            return
-
-        except openai.OpenAIError as error:
-            embed = discord.Embed(title="HATA", description=f"Bir şey ters gitti, hata ayıklaması: 'OpenAIError: ' {error.user_message}")
-            await interaction.response.send_message(embed=embed)
-            logging.error(error)
-            return
-
-        if image is None:
-            embed = discord.Embed(title="HATA", description="Bir hata oluştu: 'image bulunamadı'")
-
-        if embed.title == "HATA":
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-        await interaction.followup.send(embed=embed, ephemeral=False)
-
+    @app_commands.command(name="sohbet", description="Botun sohbete katılmasını sağlar! (eski mesaj okur!)")
+    async def question(self, interaction: discord.Interaction, message: str):
+        await interaction.response.defer(ephemeral=False)
+        try:
+            answer = await gpt.interaction_chat(interaction, message)
+        except LLMError:
+            await interaction.followup.send("Bir hata oluştu, lütfen tekrar deneyin", ephemeral=True)
+            raise # re-raise the error so that the error is logged
+        await interaction.followup.send(answer)
 
 class BirthdayCommands(app_commands.Group):
     @app_commands.command(name="dogumgunu_ekle", description="Doğumgününü eklemeni sağlar")

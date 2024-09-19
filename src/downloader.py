@@ -11,9 +11,6 @@ import yt_dlp
 _NONE_STRING = "Doesn't exist"
 
 class DownloaderError(Exception):
-    pass
-
-class DownloadFailedError(DownloaderError):
     """Base exception for any errors created in downloading."""
     msg = None
 
@@ -23,6 +20,9 @@ class DownloadFailedError(DownloaderError):
         elif self.msg is None:
             self.msg = type(self).__name__
         super().__init__(self.msg)
+
+class DownloadFailedError(DownloaderError):
+    pass
 
 class NoVideoFoundError(DownloaderError):
     pass
