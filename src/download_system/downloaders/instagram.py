@@ -9,7 +9,7 @@ from instaloader import ConnectionException, LoginException, QueryReturnedBadReq
 from instaloader.instaloader import Instaloader
 from instaloader.structures import Post
 
-from src.downloader import VIDEO_RETURN_TYPE, AlternateVideoDownloader, VideoFile, VideoDownloader, VideoFiles
+from src.download_system.downloader import VIDEO_RETURN_TYPE, AlternateVideoDownloader, VideoFile, VideoDownloader, VideoFiles
 from src.Read import json_read, write_json
 
 _SHORTCODE_REGEX = (

@@ -1,6 +1,6 @@
 import subprocess
 
-from src.downloader import VIDEO_RETURN_TYPE, VideoFile
+from src.download_system.downloader import VIDEO_RETURN_TYPE, VideoFile
 
 
 def _get_video_duration(video_path: str) -> float:

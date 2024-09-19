@@ -1,6 +1,6 @@
 import pytest
 
-from src.instagram import InstagramDownloader
+from src.download_system.downloaders.instagram import InstagramDownloader
 from Tests.video_system.regex.test_regex_base import TestDownloaderRegex
 
 

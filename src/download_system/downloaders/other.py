@@ -1,5 +1,5 @@
 import os
-from src.downloader import VIDEO_RETURN_TYPE, AlternateVideoDownloader
+from src.download_system.downloader import VIDEO_RETURN_TYPE, AlternateVideoDownloader
 
 
 class UnknownAlternateDownloader(AlternateVideoDownloader):

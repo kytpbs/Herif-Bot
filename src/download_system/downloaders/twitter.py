@@ -5,7 +5,7 @@ import bs4
 from dotenv import load_dotenv
 import requests
 
-from src.downloader import AlternateVideoDownloader, DownloadFailedError, VideoDownloader, VideoFile, VIDEO_RETURN_TYPE, VideoFiles
+from src.download_system.downloader import AlternateVideoDownloader, DownloadFailedError, VideoDownloader, VideoFile, VIDEO_RETURN_TYPE, VideoFiles
 
 
 load_dotenv()

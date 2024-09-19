@@ -3,8 +3,8 @@ import shutil
 import pytest
 
 from Tests.video_system.download_tester import DownloadTester
-from src.downloader import DownloadFailedError
-from src.Youtube import YoutubeDownloader
+from src.download_system.downloader import DownloadFailedError
+from src.download_system.downloaders.youtube import YoutubeDownloader
 
 TEST_YOUTUBE_1 = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 
