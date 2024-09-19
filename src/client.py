@@ -4,6 +4,7 @@ from datetime import datetime
 import discord
 
 from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID, BOSS_BOT_CHANNEL_ID
+from src.sql.responses import NotConnectedToDBError, get_answer
 from src.llm_system.llm_errors import LLMError, NoTokenError, RanOutOfMoneyError
 from src.llm_system import gpt
 from src import file_handeler
@@ -191,8 +192,13 @@ class MyClient(discord.Client):
                 await self.on_dm(message)
             return
 
-        if custom_responses.get(message.content) is not None:
-            await message.reply(custom_responses[message.content])
+        try:
+            for answer in (get_answer(message.content) or []):
+                await message.reply(answer)
+        except NotConnectedToDBError as e:
+            logging.getLogger("SQL").error("Not connected to the database: %s", e)
+            if custom_responses.get(message.content) is not None:
+                await message.reply(custom_responses[message.content])
 
         if time == "06:11:":  # 9:11 for +3 timezone
             await channel.send("🛫🛬💥🏢🏢")
