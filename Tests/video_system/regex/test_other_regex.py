@@ -1,4 +1,4 @@
-from src.downloading_system import get_downloader
+from src.download_system.downloading_system import get_downloader
 
 
 class TestOtherDownloaderRegex:

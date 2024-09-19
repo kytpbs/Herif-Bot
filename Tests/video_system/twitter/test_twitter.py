@@ -4,7 +4,7 @@ import shutil
 import pytest
 
 from Tests.video_system.download_tester import DownloadTester
-from src.twitter import TwitterDownloader
+from src.download_system.downloaders.twitter import TwitterDownloader
 
 DOWNLOAD_PATH = os.path.join("Tests", "video_system", "twitter", "downloads")
 SHOULD_BE_FILES_PATH = os.path.join("Tests", "video_system", "twitter")

@@ -1,6 +1,6 @@
 import pytest
 
-from src.Youtube import YoutubeDownloader
+from src.download_system.downloaders.youtube import YoutubeDownloader
 from Tests.video_system.regex.test_regex_base import TestDownloaderRegex
 
 

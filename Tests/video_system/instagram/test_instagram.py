@@ -5,7 +5,7 @@ import shutil
 import pytest
 
 from Tests.video_system.download_tester import DownloadTester
-from src.instagram import InstagramDownloader
+from src.download_system.downloaders.instagram import InstagramDownloader
 
 DOWNLOAD_PATH = os.path.join("Tests", "video_system", "instagram", "downloads")
 

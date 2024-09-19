@@ -1,6 +1,6 @@
 import pytest
 
-from src.twitter import TwitterDownloader
+from src.download_system.downloaders.twitter import TwitterDownloader
 from Tests.video_system.regex.test_regex_base import TestDownloaderRegex
 
 
