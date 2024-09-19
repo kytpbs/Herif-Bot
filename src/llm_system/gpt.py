@@ -85,7 +85,7 @@ async def message_chat(message: discord.Message) -> str:
 
     message_history = await get_message_history_from_discord_message(message)
 
-    message_history = GPTMessages.convert_and_merge(message_history, system_prompt)
+    message_history = GPTMessages.from_message_history(message_history, system_prompt)
 
     return await chat(message_history)
 
@@ -109,7 +109,7 @@ async def interaction_chat(
     else:
         message_history = MessageHistory()
 
-    message_history = GPTMessages.convert_and_merge(
+    message_history = GPTMessages.from_message_history(
         message_history,
         system_prompt,
         main_message=get_message_from_interaction(interaction, message),

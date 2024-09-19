@@ -43,7 +43,7 @@ class GPTMessage(NamedTuple):
 
 class GPTMessages(list[GPTMessage]):
     @classmethod
-    def convert_to_gpt_messages(cls, message_history: MessageHistory) -> "GPTMessages":
+    def _convert_to_gpt_messages(cls, message_history: MessageHistory) -> "GPTMessages":
         messages = GPTMessages()
         for message in message_history:
             if message.user.is_bot or message.user.name is None:
@@ -53,14 +53,15 @@ class GPTMessages(list[GPTMessage]):
         return messages
 
     @classmethod
-    def convert_and_merge(
+    def from_message_history(
         cls,
         message_history: MessageHistory,
-        system_message: str,
+        system_message: Optional[str] = None,
         main_message: Optional[Message] = None,
     ) -> "GPTMessages":
-        messages = cls.convert_to_gpt_messages(message_history)
-        messages.insert(0, GPTMessage.system(system_message))
+        messages = cls._convert_to_gpt_messages(message_history)
+        if system_message:
+            messages.insert(0, GPTMessage.system(system_message))
         if main_message:
             messages.append(
                 GPTMessage.user(main_message.content, main_message.user.name)
