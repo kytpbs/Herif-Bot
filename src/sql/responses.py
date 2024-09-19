@@ -34,5 +34,16 @@ def get_answer(question: str) -> str | None:
 
 
 
+def sync_responses_dict_to_db(responses: dict[str, str]):
+    rows = 0
+
+    for response in responses.items():
+        if get_answer(response[0]):
+            LOGGER.debug("Response for %s already exists, skipping...", response[0])
+            continue
+        rows += add_response(response)
+
+    return rows
+
 if __name__ == "__main__":
     print(get_answer("sa"))
