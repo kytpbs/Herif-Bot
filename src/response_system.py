@@ -14,7 +14,7 @@ custom_responses = DiskDict("responses.json")
 def get_answers(question: str, guild_id: str | None = None) -> list[str]:
     try:
         answers = responses.get_answers(question, guild_id)
-        if answers:
+        if answers is not None:
             return answers
     except responses.NotConnectedToDBError:
         LOGGER.warning(_NOT_CONNECTED_ERROR_MESSAGE)
@@ -24,17 +24,40 @@ def get_answers(question: str, guild_id: str | None = None) -> list[str]:
 def get_answer(question: str, guild_id: str | None = None) -> str | None:
     return get_answers(question, guild_id)[0]
 
-def set_answer(question: str, answer: str, guild_id: str | None = None) -> None:
+def add_answer(question: str, answer: str, guild_id: str | None = None) -> bool:
     try:
-        responses.add_response((question, answer), guild_id)
-    except responses.AlreadyExistsError as e:
-        LOGGER.error("Failed to add response: %s", e)
-        raise CannotAddResponseError from e
+        rows_affected = responses.add_response((question, answer), guild_id)
+        return rows_affected > 0
     except responses.NotConnectedToDBError:
         LOGGER.warning(_NOT_CONNECTED_ERROR_MESSAGE)
 
-    custom_responses[question] = answer
+    if question in custom_responses:
+        raise responses.TooManyAnswersError(f"Too many responses for {question}", custom_responses[question])
 
+    custom_responses[question] = answer
+    return True
+
+def remove_answer(question: str, answer: str, guild_id: str) -> bool:
+    """Remove a response from the database and the custom responses.
+    guild_id is required to remove the response from the database, due to security reasons.
+    if you wish to delete non-guild specific responses, use the underlying database directly.
+
+    Args:
+        question (str): the question to remove the answer from
+        answer (str): the answer to the question to remove
+        guild_id (str): the guild id to remove the answer from
+        Must be provided for security reasons.
+    """
+    try:
+        counts_affected = responses.delete_answer(question, answer, guild_id)
+        return counts_affected > 0
+    except responses.NotConnectedToDBError:
+        LOGGER.warning(_NOT_CONNECTED_ERROR_MESSAGE)
+
+    if question not in custom_responses:
+        return False
+    del custom_responses[question]
+    return True
 
 def get_data(guild_id: Optional[str] = None) -> list[tuple[str, str]]:
     try:
