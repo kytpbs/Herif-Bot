@@ -4,6 +4,7 @@ from typing import Optional
 
 import psycopg2 # might want to use asyncpg instead, look into it later
 from dotenv import load_dotenv
+from src.sql.sql_errors import NotConnectedError, SQLFailedMiserably
 
 load_dotenv()
 
@@ -15,29 +16,25 @@ port = os.getenv("SQL_PORT", "5432")
 user = os.getenv("SQL_USER", "postgres")
 password = os.getenv("SQL_PASSWORD")
 
-if all([database, host, port, user, password]):
-    try:
-        LOGGER.info("Connecting to the database...")
-        conn = psycopg2.connect(
-            database=database,
-            host=host,
-            port=port,
-            user=user,
-            password=password,
-        )
-    except psycopg2.OperationalError as e:
-        LOGGER.error("Failed to connect to the database: %s", e)
-        conn = None
-else:
-    LOGGER.error("Missing environment variables for SQL connection")
-    conn = None
+def connect_to_db():
+    if all([database, host, port, user, password]):
+        try:
+            LOGGER.info("Connecting to the database...")
+            return psycopg2.connect(
+                database=database,
+                host=host,
+                port=port,
+                user=user,
+                password=password,
+            )
+        except psycopg2.OperationalError as e2:
+            LOGGER.error("Failed to connect to the database: %s", e2)
+            return None
+    else:
+        LOGGER.error("Missing environment variables for SQL connection")
+        return None
 
-
-class NotConnectedError(Exception):
-    pass
-
-class SQLError(Exception):
-    pass
+conn = connect_to_db()
 
 class _Cursor:
     def __init__(self):
@@ -78,7 +75,7 @@ def post(query: str, values: Optional[tuple | list] = None) -> int:
         return cursor.rowcount
 
 
-def get(query: str, values: Optional[tuple | list] = None) -> Optional[list]:
+def get(query: str, values: Optional[tuple | list] = None) -> Optional[list[tuple]]:
     """Runs a query that fetches data from the database. and returns the result
 
     Args:
@@ -95,5 +92,8 @@ def get(query: str, values: Optional[tuple | list] = None) -> Optional[list]:
         except psycopg2.ProgrammingError:
             LOGGER.error("No results found for query: %s with values %s.", query, values)
             results = None
+        except psycopg2.Error as e:
+            LOGGER.error("Failed to run query: %s with values %s. Error: %s", query, values, e)
+            raise SQLFailedMiserably("Failed to run query") from e
 
     return results
