@@ -1,21 +1,23 @@
 import logging
 from datetime import datetime
+import functools
 from typing import Optional
 
 import discord
 from discord import app_commands
 
-from Constants import BOT_ADMIN_SERVER_ID, BOT_NAME, BOT_OWNER_ID, CYAN, KYTPBS_TAG
-from src import client
-from src.download_system.download_commands import download_video_command
-from src.Helpers.birthday_helpers import get_user_and_date_from_string
+from src.sql.responses import AlreadyExistsError, TooManyAnswersError
 from src.llm_system import gpt
 from src.llm_system.llm_errors import LLMError
+import src.client as client
+from Constants import BOT_ADMIN_SERVER_ID, BOT_NAME, BOT_OWNER_ID, CYAN, KYTPBS_TAG
+from src.download_system.download_commands import download_video_command
+from src.Helpers.birthday_helpers import get_user_and_date_from_string
 from src.voice import voice_commands
 from src.voice.old_message_holder import add_message_to_be_deleted
+from src.response_system import add_answer, get_answers, get_data, remove_answer
 
 birthdays = client.get_birthdays()
-custom_responses = client.get_custom_responses()
 
 admin = discord.Permissions()
 admin.update(administrator=True)
@@ -129,53 +131,76 @@ class AdminBirthdayCommands(app_commands.Group):
 
 class SpecialCommands(app_commands.Group):
     @app_commands.command(name="olustur", description="botun senin ayarladığın mesajlara cevap verebilmesini sağlar")
-    async def create_command(self, interaction: discord.Interaction, text: str, answer: str, degistir: bool = False):
-        if custom_responses.get(text) is None:
-            custom_responses[text] = answer
-            await interaction.response.send_message(f"Yeni bir cevap oluşturuldu. {text} : {answer}")
+    async def create_command(self, interaction: discord.Interaction, text: str, answer: str):
+        if interaction.guild_id is None:
+            await interaction.response.send_message("Bu komut sadece sunucularda çalışır", ephemeral=True)
             return
-
-        if not isinstance(interaction.user, discord.Member) or not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message(f"Bu mesaja zaten bir cevap var: {custom_responses[text]}, " +
-                                                    "lütfen başka bir mesaj deneyin",
-                                                    ephemeral=True)
+        try:
+            result = add_answer(text, answer, guild_id=str(interaction.guild_id))
+            if not result:
+                await interaction.response.send_message("Bilinmeyen bir hata oluştu, lütfen daha sonra tekrar deneyin", ephemeral=True)
+            else:
+                embed = discord.Embed(title="Yeni Cevap Oluşturuldu", description=f"artık '{text}' yazıca '{answer}' diyecek", color=CYAN)
+                await interaction.response.send_message(embed=embed)
             return
-
-        if not degistir:
-            await interaction.response.send_message(f"Bu mesaja zaten bir cevap var: {custom_responses[text]}, " +
-                                                    "değiştirmek için komutta 'degistir' argümanını kullanın",
-                                                    ephemeral=True)
+        except AlreadyExistsError:
+            logging.error("Failed to add response: %s in guild: %s", text, interaction.guild_id)
+            await interaction.response.send_message(f"'{text}' deyince zaten '{answer}' diyor", ephemeral=True)
             return
+        except TooManyAnswersError as e:
+            answers = e.current_answers
 
+        is_admin = isinstance(interaction.user, discord.Member) and interaction.user.guild_permissions.administrator
 
-        eski_cevap = custom_responses[text]
-        custom_responses[text] = answer
-        embed = discord.Embed(title="Cevap Değiştirildi", description=f"'{text} : {answer}' a değiştirildi", color=CYAN)
-        embed.add_field(name="Eski Cevap", value=eski_cevap, inline=False)
-        await interaction.response.send_message(embed=embed)
+        description = "Bu mesaj için çok fazla cevap var"
+        description += ", değiştirmek için `admin_sil` komutunu kullanın" if is_admin else "."
+        embed = discord.Embed(title="Çok Fazla Cevap", description=description, color=CYAN)
+
+        for i, actual_answer in enumerate(answers):
+            embed.add_field(name=f"Cevap {i + 1}", value=actual_answer, inline=False)
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="cevaplar", description="Bütün özel eklenmiş cevapları gösterir")
     async def answers(self, interaction: discord.Interaction):
         embed = discord.Embed(title="Özel Cevaplar", color=CYAN)
         embed.description = "Özel eklenmiş cevaplar"
-        for i, (key, value) in enumerate(custom_responses.items()):
+        guild_id = str(interaction.guild_id) if interaction.guild_id else None
+        for i, (question, answer) in enumerate(get_data(guild_id)):
             if i >= 24:
                 embed.description += "\n\nDaha fazla cevap var, 25 ten fazlası gösterilmiyor"
                 break
-            embed.add_field(name=key, value=value, inline=False)
+            embed.add_field(name=question, value=answer, inline=False)
         await interaction.response.send_message(embed=embed)
 
 
 class AdminSpecialCommands(app_commands.Group):
-    @app_commands.command(name="sil", description="Özel eklenmiş bir cevabı siler")
-    async def delete_command(self, interaction: discord.Interaction, text: str):
-        if custom_responses.get(text) is not None:
-            response = custom_responses[text]
-            del custom_responses[text]
-            embed = discord.Embed(title="Cevap Silindi", description=f"'{text}: {response}' adlı cevap silindi", color=CYAN)
+    @app_commands.command(name="sil", description="Sunucuda özel eklenmiş bir cevabı siler")
+    async def delete_command(self, interaction: discord.Interaction, question: str, answer: str):
+        if interaction.guild_id is None:
+            await interaction.response.send_message("Bu komut sadece sunucularda çalışır", ephemeral=True)
+            return
+        is_deleted = remove_answer(question, answer, str(interaction.guild_id))
+        if is_deleted:
+            embed = discord.Embed(title="Cevap Silindi", description=f"'{question}: {answer}' adlı cevap silindi", color=CYAN)
             await interaction.response.send_message(embed=embed)
         else:
-            await interaction.response.send_message(f"Cevap bulunamadı: {text}", ephemeral=True)
+            await interaction.response.send_message(f"{question} a {answer} cevap verme zaten yok...", ephemeral=True)
+
+    @app_commands.command(name="interaktif-sil", description="Sunucuda özel eklenmiş bir cevabı siler, seçim yapmanı sağlar")
+    async def interactive_delete(self, interaction: discord.Interaction, question: str):
+        if interaction.guild_id is None:
+            await interaction.response.send_message("Bu komut sadece sunucularda çalışır", ephemeral=True)
+            return
+
+        guild_id = str(interaction.guild_id)
+        answers = get_answers(question, guild_id)
+        view = discord.ui.View()
+        for answer in answers:
+            button = discord.ui.Button(style=discord.ButtonStyle.danger, label=answer, custom_id=answer)
+            button.callback = functools.partial(self.delete_command.callback, question=question, answer=answer) #pylint: disable=no-member
+            view.add_item(button)
+        await interaction.response.send_message("Hangi cevabı silmek istersin?", view=view)
 
 class AdminServerCommands(app_commands.Group):
     @app_commands.command(name="run-code", description="Runs any code you want")
