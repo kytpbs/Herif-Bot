@@ -21,6 +21,9 @@ spotify_tokens.py
 # sql sessions
 *.session.sql
 
+# Random Test Files
+test[0-9].py
+
 # Any log files
 *.log
 # Any kind of cache
