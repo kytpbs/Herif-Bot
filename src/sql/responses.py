@@ -1,7 +1,11 @@
 from typing import Optional
-import psycopg2
 from src.sql.sql_errors import NotConnectedError
 from src.sql.sql_wrapper import LOGGER, get, post
+
+class TooManyAnswersError(Exception):
+    def __init__(self, message, current_answer: list[str]) -> None:
+        super().__init__(message)
+        self.current_answers = current_answer
 
 class AlreadyExistsError(Exception):
     pass
@@ -23,10 +27,17 @@ def get_all_responses():
     return get("SELECT * FROM responses;")
 
 def add_response(response: tuple[str, str], guild_id: Optional[str] = None) -> int:
-    try:
+    answers = get_answers(response[0], guild_id)
+
+    if len(answers) > 2:
+        raise TooManyAnswersError(f"Too many responses for {response[0]}", answers)
+
+    if response[1] in answers:
+        raise AlreadyExistsError(f"Answer {response[1]} already exists for {response[0]}")
+
+    if guild_id:
         return post("INSERT INTO responses (question, answer, guild_id) VALUES (%s, %s, %s);", response + (guild_id,))
-    except psycopg2.errors.UniqueViolation as e: # pylint: disable=no-member # pylint is wrong, pylance knows this error exists
-        raise AlreadyExistsError(f"Response for {response[0]} already exists") from e
+    return post("INSERT INTO responses (question, answer) VALUES (%s, %s);", response)
 
 def get_answers(question: str, guild_id: Optional[str] = None) -> list[str]:
     """Get all answers for a question, however many there are. returns an empty list if there are none.
@@ -38,17 +49,25 @@ def get_answers(question: str, guild_id: Optional[str] = None) -> list[str]:
         list[str]: the answers to the question, or an empty list if there are none.
     """
     values = [question]
-    sql_query = "SELECT answer FROM responses WHERE question = %s"
+
+    # global answers are answers that are not tied to a specific guild
+    sql_query = "SELECT answer FROM global_answers WHERE question = %s"
+
     if guild_id:
-        sql_query += " AND guild_id = %s OR guild_id IS NULL"
-        values.append(guild_id)
-    else:
-        sql_query += " AND guild_id IS NULL"
+        guild_query = "SELECT answer FROM responses WHERE question = %s AND guild_id = %s"
+        sql_query += f" UNION {guild_query}"
+        values += [question, guild_id]
+
     result_with_tuples = get(sql_query, values)
     if not result_with_tuples:
         return []
     # this returns a list of tuples each with a single element, so we need to extract the element
     return [result[0] for result in result_with_tuples]
+
+def delete_answer(question: str, answer, guild_id: str) -> int:
+    query = "DELETE FROM responses WHERE question = %s AND answer = %s AND guild_id = %s"
+    return post(query, (question, answer, guild_id))
+
 
 def get_answer(question: str, guild_id: Optional[str] = None) -> str | None:
     answers = get_answers(question, guild_id)
@@ -85,8 +104,10 @@ def sync_responses_dict_to_db(responses: dict[str, str]):
 
     return rows
 
-
-create_table_if_not_exists() # at the start we might not have the table, so we create it
+try:
+    create_table_if_not_exists() # at the start we might not have the table, so we create it
+except NotConnectedToDBError:
+    LOGGER.warning("No connection to the database")
 
 if __name__ == "__main__":
     print(get_answer("sa"))
