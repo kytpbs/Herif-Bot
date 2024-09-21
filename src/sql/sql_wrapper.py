@@ -19,7 +19,7 @@ password = os.getenv("SQL_PASSWORD")
 def connect_to_db():
     if all([database, host, port, user, password]):
         try:
-            LOGGER.info("Connecting to the database...")
+            LOGGER.info("Connecting to the database... %s at %s:%s with user: %s", database, host, port, user)
             return psycopg2.connect(
                 database=database,
                 host=host,
