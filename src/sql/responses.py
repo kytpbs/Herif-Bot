@@ -80,10 +80,10 @@ def create_table_if_not_exists():
     return post(
         """
         CREATE TABLE IF NOT EXISTS responses (
-            question TEXT,
-            answer TEXT,
+            question TEXT NOT NULL,
+            answer TEXT NOT NULL,
             guild_id BIGINT,
-            timestamp timestamp default current_timestamp
+            timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
 
         CREATE OR REPLACE VIEW global_answers AS (
