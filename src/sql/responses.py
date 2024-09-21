@@ -1,14 +1,7 @@
 from typing import Optional
-from src.sql.sql_errors import NotConnectedError
+from src.sql.sql_errors import NotConnectedError, AlreadyExistsError, TooManyAnswersError
 from src.sql.sql_wrapper import LOGGER, get, post
 
-class TooManyAnswersError(Exception):
-    def __init__(self, message, current_answer: list[str]) -> None:
-        super().__init__(message)
-        self.current_answers = current_answer
-
-class AlreadyExistsError(Exception):
-    pass
 
 NotConnectedToDBError = NotConnectedError
 
