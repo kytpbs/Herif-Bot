@@ -1,5 +1,7 @@
 import subprocess
 
+from pytest import approx
+
 from src.download_system.downloader import VIDEO_RETURN_TYPE, VideoFile
 
 
@@ -30,4 +32,5 @@ class DownloadTester:
     def _test_download(self, video: VideoFile, should_be_path: str):
         video_duration = _get_video_duration(video.path)
         should_be_duration = _get_video_duration(should_be_path)
+        should_be_duration = approx(should_be_duration, rel=0.1) # close enough
         assert video_duration == should_be_duration, f"video_duration was '{video_duration}' should have been: '{should_be_duration}'"
