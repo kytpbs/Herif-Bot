@@ -1,4 +1,6 @@
 
+from datetime import date
+
 class SQLError(Exception):
     pass
 
@@ -11,9 +13,33 @@ class SQLFailedMiserably(SQLError):
 
 # Implementation specific errors
 class AlreadyExistsError(Exception):
-    pass
-
-class TooManyAnswersError(Exception):
-    def __init__(self, message, current_answer: list[str]) -> None:
+    def __init__(self, message: str, existent_data) -> None:
         super().__init__(message)
-        self.current_answers = current_answer
+        self.existent_data = existent_data
+
+    def get_existent_data(self):
+        return self.existent_data
+
+class BirthdayAlreadyExistsError(AlreadyExistsError):
+    def __init__(self, message: str, existent_data: date) -> None:
+        super().__init__(message, existent_data)
+
+    @property
+    def birthday(self) -> date:
+        return self.get_existent_data()
+
+class AlreadyRespondsTheSameError(AlreadyExistsError):
+    def __init__(self, message: str, current_answer: str) -> None:
+        super().__init__(message, current_answer)
+
+    @property
+    def current_answer(self) -> str:
+        return self.get_existent_data()
+
+class TooManyAnswersError(AlreadyExistsError):
+    def __init__(self, message, current_answer: list[str]) -> None:
+        super().__init__(message, current_answer)
+
+    @property
+    def current_answers(self) -> list[str]:
+        return self.get_existent_data()

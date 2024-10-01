@@ -6,13 +6,6 @@ import discord
 from src import Read
 
 
-def get_general_channel(guild: discord.Guild):
-    for channel in guild.text_channels:
-        name = channel.name.lower()
-        if "genel" in name or "general" in name or "💬" in name:
-            return channel
-    return None
-
 async def get_deleting_person(message: discord.Message) -> discord.Member | discord.User:
     if message.guild is None:
         return message.author

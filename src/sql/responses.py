@@ -1,15 +1,15 @@
 from typing import Optional
-from src.sql.sql_errors import NotConnectedError, AlreadyExistsError, TooManyAnswersError
+from src.sql.sql_errors import NotConnectedError, TooManyAnswersError, AlreadyRespondsTheSameError
 from src.sql.sql_wrapper import LOGGER, get, post
 
 
 NotConnectedToDBError = NotConnectedError
 
 def get_all_question_responses(guild_id: Optional[str] = None) -> list[tuple[str, str]]:
-    sql_query = "SELECT question, answer FROM responses"
+    sql_query = "SELECT question, answer FROM global_answers"
     values = None
     if guild_id:
-        sql_query += " WHERE guild_id = %s OR guild_id IS NULL"
+        sql_query += " UNION SELECT question, answer FROM responses WHERE guild_id = %s"
         values = (guild_id,)
     result = get(sql_query, values)
     if not result:
@@ -26,7 +26,7 @@ def add_response(response: tuple[str, str], guild_id: Optional[str] = None) -> i
         raise TooManyAnswersError(f"Too many responses for {response[0]}", answers)
 
     if response[1] in answers:
-        raise AlreadyExistsError(f"Answer {response[1]} already exists for {response[0]}")
+        raise AlreadyRespondsTheSameError(f"Answer {response[1]} already exists for {response[0]}", response[1])
 
     if guild_id:
         return post("INSERT INTO responses (question, answer, guild_id) VALUES (%s, %s, %s);", response + (guild_id,))
