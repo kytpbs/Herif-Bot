@@ -1,9 +1,9 @@
 from datetime import date
-from src.sql.sql_errors import NotConnectedError, AlreadyExistsError
+from src.sql.sql_errors import BirthdayAlreadyExistsError, NotConnectedError
 from src.sql.sql_wrapper import LOGGER, get, post
 
 
-def get_all_birthdays(guild_id: str | None = None) -> list[tuple[int, date]]:
+def get_all_birthdays(guild_id: str | int | None = None) -> list[tuple[int, date]]:
     sql_query = "SELECT user_id, birthday FROM birthdays"
     values = None
     if guild_id:
@@ -36,13 +36,30 @@ def get_users_birthday(birthday: date, guild_id: str | None = None) -> list[int]
         return []
     return [user_id for user_id, _ in result]
 
+def find_users(birthday: date) -> list[tuple[int, int]]:
+    """Find all users who have a birthday on the given date
+
+    Args:
+        birthday (date): the birthday to find users for
+
+    Returns:
+        list[tuple[int, int]]: a list of tuples with the user_id and the guild_id
+    """
+    sql_query = "SELECT user_id, guild_id FROM birthdays WHERE birthday = %s"
+    result = get(sql_query, (birthday,))
+    if not result:
+        return []
+    return result
+
 def add_birthday(user_id: str, birthday: date, guild_id: str) -> int:
-    if get_birthday(user_id, guild_id):
-        raise AlreadyExistsError(f"User {user_id} already has a birthday in the database")
+    if (real_birthday:= get_birthday(user_id, guild_id)):
+        raise BirthdayAlreadyExistsError(f"User {user_id} already has a birthday in the database", real_birthday)
     if guild_id:
         return post("INSERT INTO birthdays (user_id, birthday, guild_id) VALUES (%s, %s, %s);", (user_id, birthday, guild_id))
     return post("INSERT INTO birthdays (user_id, birthday) VALUES (%s, %s);", (user_id, birthday))
 
+def delete_birthday(user_id: str, guild_id: str) -> int:
+    return post("DELETE FROM birthdays WHERE user_id = %s AND guild_id = %s;", (user_id, guild_id))
 
 def create_table_if_not_exists():
     query = """

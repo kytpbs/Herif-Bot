@@ -12,7 +12,7 @@ from src.message_handeler import call_command
 import src.Messages # pylint: disable=unused-import # to register the message commands
 from src.Helpers import helper_functions
 from src import member_update_handlers as member_handlers
-from src.Helpers.helper_functions import DiskDict, get_general_channel
+from src.Helpers.helper_functions import DiskDict
 from src.Tasks import start_tasks
 
 birthdays = DiskDict("birthdays.json")
@@ -27,6 +27,17 @@ class MyClient(discord.Client):
         self.synced = False
         self.old_channel = None
 
+    def get_general_channel(self, guild: discord.Guild):
+        # use the id from constants.py
+        channel = guild.get_channel(GENERAL_CHAT_ID)
+        if channel and isinstance(channel, discord.abc.Messageable):
+            return channel
+        for channel in guild.text_channels:
+            name = channel.name.lower()
+            if "genel" in name or "general" in name or "💬" in name:
+                return channel
+        return None
+
     async def on_ready(self):
         await self.wait_until_ready()
         if not self.synced:
@@ -39,14 +50,14 @@ class MyClient(discord.Client):
 
     async def on_member_join(self, member: discord.Member):
         logging.debug("%s, joined %s",member.name, member.guild.name)
-        general_channel = get_general_channel(member.guild)
+        general_channel = self.get_general_channel(member.guild)
         if general_channel is not None:
             await general_channel.send(
                 f"Zeki bir insan varlığı olan {member.mention} Bu saçmalık {member.guild} serverına katıldı. Hoş geldin!")
 
     async def on_member_remove(self, member: discord.Member):
         logging.debug("%s, left %s", member.name, member.guild.name)
-        channel = get_general_channel(member.guild)
+        channel = self.get_general_channel(member.guild)
         if isinstance(channel, discord.TextChannel):
             await channel.send("Zeki bir insan valrlığı olan " + "**" + str(member) +
                                "**" + " Bu saçmalık serverdan ayrıldı")
@@ -85,7 +96,7 @@ class MyClient(discord.Client):
         await channel.send(embed=embed)
 
     async def on_member_ban(self, guild: discord.Guild, user: discord.Member):
-        channel = get_general_channel(guild)
+        channel = self.get_general_channel(guild)
         logging.debug(f"{user.name} was banned from {guild.name}")
         if isinstance(channel, discord.TextChannel):
             await channel.send("Ah Lan " + str(user) + " Adlı kişi " + str(guild) +

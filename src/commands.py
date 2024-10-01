@@ -1,12 +1,14 @@
 import logging
-from datetime import datetime
+from datetime import datetime, date
 import functools
 from typing import Optional
 
 import discord
 from discord import app_commands
 
-from src.sql.responses import AlreadyExistsError, TooManyAnswersError
+from src import birthday_system
+from sql.sql_errors import AlreadyRespondsTheSameError, BirthdayAlreadyExistsError
+from src.sql.responses import TooManyAnswersError
 from src.llm_system import gpt
 from src.llm_system.llm_errors import LLMError
 import src.client as client
@@ -17,7 +19,6 @@ from src.voice import voice_commands
 from src.voice.old_message_holder import add_message_to_be_deleted
 from src.response_system import add_answer, get_answers, get_data, remove_answer
 
-birthdays = client.get_birthdays()
 
 admin = discord.Permissions()
 admin.update(administrator=True)
@@ -69,63 +70,86 @@ class AiCommands(app_commands.Group):
 class BirthdayCommands(app_commands.Group):
     @app_commands.command(name="dogumgunu_ekle", description="Doğumgününü eklemeni sağlar")
     async def add_birthday(self, interaction: discord.Interaction, day: str, month: str, year: str,
-                           user: discord.Member = None):  # type: ignore
+                            user: discord.Member = None):  # type: ignore
         if user is None:
             user = interaction.user  # type: ignore
         user_id = user.id
-        date = datetime(int(year), int(month), int(day))
-        date_string = str(date.year) + "-" + str(date.month) + "-" + str(date.day)
-        if user_id in birthdays and birthdays[str(user_id)] is not None:
-            await interaction.response.send_message(
-                f"{user.mention} adlı kişinin doğum günü zaten '{birthdays[str(user_id)]}' olarak ayarlanmış " +
-                f"Değiştirmek için lütfen {KYTPBS_TAG} kişisine ulaşın", ephemeral=True)
+        if interaction.guild_id is None:
+            await interaction.response.send_message("Bu komut sadece sunucularda çalışır", ephemeral=True)
             return
-        birthdays[str(user_id)] = date_string
-        await interaction.response.send_message(
-            f"{user.mention} adlı kişinin doğum günü '{date_string}' olarak ayarlandı")
+        try:
+            birthday_date = date(int(year), int(month), int(day))
+        except ValueError:
+            await interaction.response.send_message("Geçersiz tarih", ephemeral=True)
+            return
+
+        if birthday_date > datetime.now().date():
+            await interaction.response.send_message("Gelecekte doğmuş olamazsın", ephemeral=True)
+            return
+
+        if birthday_date.year < 1900:
+            await interaction.response.send_message("1900'den önce doğmuş olamazsın", ephemeral=True)
+            return
+
+        try:
+            birthday_system.add_birthday(str(user_id), birthday_date, str(interaction.guild_id))
+        except BirthdayAlreadyExistsError as e:
+            current_birthday = e.birthday.strftime('%d/%m/%Y')
+            await interaction.response.send_message(f"Doğum günü zaten {current_birthday} değiştirmek için sunucu admini ile iletişime geçin", ephemeral=True)
+            return
+
+        await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü {birthday_date.strftime('%d/%m/%Y')} olarak ayarlandı")
 
     @app_commands.command(name="dogumgunu_goster", description="Kişinin doğumgününü gösterir")
-    async def show_birthday(self, interaction: discord.Interaction, user: discord.Member):
-        user_id = str(user.id)
-        if birthdays.get(user_id) is not None:
-            await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü '{birthdays[user_id]}'")
+    async def show_birthday(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
+        if interaction.guild_id is None or not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message("Bu komut sadece sunucularda çalışır", ephemeral=True)
             return
-        await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü kayıtlı değil",
-                                                ephemeral=True)
+        if user is None:
+            user = interaction.user
+
+        birthday = birthday_system.get_birthday(str(user.id), str(interaction.guild_id))
+
+        if birthday is None:
+            await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü kayıtlı değil", ephemeral=True)
+            return
+
+        await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü {birthday.strftime('%d/%m/%Y')}")
+
 
 
 class AdminBirthdayCommands(app_commands.Group):
     @app_commands.command(name="dogumgunu_listele", description="Doğumgünlerini listeler, sadece modlar kullanabilir")
     async def list_birthday(self, interaction: discord.Interaction):
-        if not isinstance(interaction.user, discord.Member):
-            await interaction.response.send_message("Bir hata oluştu, lütfen tekrar deneyin", ephemeral=True)
+        if interaction.guild_id is None or not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message("Bu komut sadece sunucularda çalışır", ephemeral=True)
             return
 
         if interaction.user.guild_permissions.administrator is False:
             await interaction.response.send_message("Bu komutu kullanmak için gerekli iznin yok", ephemeral=True)
             return
 
+        birthdays = birthday_system.get_all_birthdays(interaction.guild_id)
+
         embed = discord.Embed(title="Doğumgünleri", description="Doğumgünleri", color=CYAN)
-        new_list = get_user_and_date_from_string(birthdays)
-        for user, date in new_list.items():
-            embed.add_field(name=f"{user}:", value=f"{date}", inline=False)
+        for user, birthday in birthdays:
+            embed.add_field(name=f"{user}:", value=f"{birthday.strftime('%d-%m-%y')}", inline=False)
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="doğumgünü_sil",
                           description="Doğumgününü silmeni sağlar")
-    async def delete_birthday(self, interaction: discord.Interaction, user: discord.Member):
-        if not isinstance(interaction.user, discord.Member):
-            await interaction.response.send_message("Sadece Sunucularda çalışır")
+    async def delete_birthday(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
+        if interaction.guild_id is None or not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message("Bu komut sadece sunucularda çalışır")
             return
-        if (interaction.user != user and not interaction.user.guild_permissions.administrator) or user.guild.id != BOT_ADMIN_SERVER_ID:
-            await interaction.response.send_message("Sadece Kendi Doğumgününü Silebilirsin", ephemeral=True)
+        user = user or interaction.user
+        if interaction.guild_id != BOT_ADMIN_SERVER_ID or (interaction.user != user and not interaction.user.guild_permissions.administrator):
+            await interaction.response.send_message("Sadece kendi doğum gününü silebilirsin", ephemeral=True)
             return
-        user_id = str(user.id)
-        if birthdays.get(user_id) is None:
-            await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü zaten kayıtlı değil",
-                                                    ephemeral=True)
+        is_deleted = birthday_system.remove_birthday(str(user.id), str(interaction.guild_id))
+        if not is_deleted:
+            await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü zaten yok...", ephemeral=True)
             return
-        del birthdays[user_id]
         await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü silindi")
 
 
@@ -143,8 +167,7 @@ class SpecialCommands(app_commands.Group):
                 embed = discord.Embed(title="Yeni Cevap Oluşturuldu", description=f"artık '{text}' yazıca '{answer}' diyecek", color=CYAN)
                 await interaction.response.send_message(embed=embed)
             return
-        except AlreadyExistsError:
-            logging.error("Failed to add response: %s in guild: %s", text, interaction.guild_id)
+        except AlreadyRespondsTheSameError:
             await interaction.response.send_message(f"'{text}' deyince zaten '{answer}' diyor", ephemeral=True)
             return
         except TooManyAnswersError as e:
@@ -153,6 +176,7 @@ class SpecialCommands(app_commands.Group):
         is_admin = isinstance(interaction.user, discord.Member) and interaction.user.guild_permissions.administrator
 
         description = "Bu mesaj için çok fazla cevap var"
+        # add a note to the description if the user is an admin
         description += ", değiştirmek için `admin_sil` komutunu kullanın" if is_admin else "."
         embed = discord.Embed(title="Çok Fazla Cevap", description=description, color=CYAN)
 
