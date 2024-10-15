@@ -116,4 +116,10 @@ class TwitterDownloader(VideoDownloader):
 
         attachment_list = [VideoFile(path) for path in downloaded_file_paths]
 
+        if not attachment_list:
+            logging.error("No video was downloaded for this link, trying alternate downloader", exc_info=True)
+            return await TwitterAlternativeDownloader.download_video_from_link(
+                url, path
+            )
+
         return VideoFiles(attachment_list, title)
