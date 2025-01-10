@@ -1,3 +1,4 @@
+import string
 from typing import Literal, NamedTuple, Optional
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 
@@ -19,7 +20,7 @@ class GPTMessage(NamedTuple):
 
     @classmethod
     def user(cls, content: str, name: str | None) -> "GPTMessage":
-        return cls(role="user", content=content, name=name or "unknown")
+        return cls(role="user", content=content, name=_sanitize_name(name or ""))
 
     def to_openai_dict(self) -> ChatCompletionMessageParam:
         """
@@ -39,6 +40,13 @@ class GPTMessage(NamedTuple):
         if self.name:
             return {"content": self.content, "role": "user", "name": self.name}
         return {"content": self.content, "role": "user"}
+
+
+def _sanitize_name(name: str):
+    # OpenAI Allowed String Regex: " ^[a-zA-Z0-9_-]+$'. "
+    allowed_chars = list(string.ascii_letters + string.digits) + ["_", "-"]
+    filtered = filter(lambda char: char in allowed_chars, name)
+    return "".join(filtered)
 
 
 class GPTMessages(list[GPTMessage]):
