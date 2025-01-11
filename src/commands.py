@@ -9,7 +9,7 @@ from src.llm_system.llm_errors import LLMError
 import src.client as client
 import src.voice_commands as vc_cmds
 from src.download_system.download_commands import download_video_command
-from Constants import BOT_ADMIN_SERVER_ID, BOT_OWNER_ID, CYAN, KYTPBS_TAG
+from Constants import BOT_ADMIN_SERVER_ID, BOT_NAME, BOT_OWNER_ID, CYAN, KYTPBS_TAG
 from src import Youtube
 from src.Helpers.birthday_helpers import get_user_and_date_from_string
 
@@ -252,6 +252,29 @@ class AdminServerCommands(app_commands.Group):
 tree = app_commands.CommandTree(discord_client)
 
 
+@app_commands.allowed_installs(guilds=True, users=True)
+@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+@tree.command(name="sahte_mesaj")
+async def fake_message(interaction: discord.Interaction, user: discord.Member, message: str):
+    channel = interaction.channel
+    if not isinstance(channel, discord.TextChannel):
+        await interaction.response.send_message("Cannot use in non-text channels", ephemeral=True)
+        return
+
+    webhooks = await channel.webhooks()
+    for webhook in webhooks:
+        if webhook.name == BOT_NAME + "_fake_message_webhook":
+            message_webhook = webhook
+            break
+    else:
+        message_webhook: discord.Webhook = await channel.create_webhook(name=BOT_NAME + "_fake_message_webhook")
+
+    avatar_url = user.avatar.url if user.avatar else discord.utils.MISSING
+    await message_webhook.send(content=message, username=user.display_name, avatar_url=avatar_url)
+    await interaction.response.send_message("Gizli Mesaj Gönderildi", ephemeral=True)
+
+
+
 
 @tree.context_menu(name="Mesajı_Sabitle")
 async def pin_message(interaction: discord.Interaction, message: discord.Message):
@@ -260,8 +283,8 @@ async def pin_message(interaction: discord.Interaction, message: discord.Message
         f"{message.author.mention} adlı kişinin; **{message.content}** mesajı sabitlendi", ephemeral=True)
 
 
-@app_commands.allowed_installs(guilds=True, users=True)
-@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+@app_commands.allowed_installs(guilds=True, users=False)
+@app_commands.allowed_contexts(guilds=True, dms=False, private_channels=True)
 @tree.context_menu(name="Linkteki_Videoyu_Indir")
 async def download_video_link(interaction: discord.Interaction, message: discord.Message):
     content = message.content
