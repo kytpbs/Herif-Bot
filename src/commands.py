@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 from typing import Optional
 
 import discord
@@ -12,6 +13,8 @@ from src.download_system.download_commands import download_video_command
 from Constants import BOT_ADMIN_SERVER_ID, BOT_NAME, BOT_OWNER_ID, CYAN, KYTPBS_TAG
 from src import Youtube
 from src.Helpers.birthday_helpers import get_user_and_date_from_string
+from src.voice import voice_commands
+from src.voice.old_message_holder import add_message_to_be_deleted
 
 
 birthdays = client.get_birthdays()
@@ -274,7 +277,23 @@ async def fake_message(interaction: discord.Interaction, user: discord.Member, m
     await interaction.response.send_message("Gizli Mesaj Gönderildi", ephemeral=True)
 
 
+@app_commands.allowed_installs(guilds=True, users=False)
+@app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+@tree.command(name="yeni_çal")
+async def new_play(interaction: discord.Interaction, url: str):
+    await interaction.response.defer()
+    response = await voice_commands.play(interaction, url)
+    message = await interaction.followup.send(response.message, embed=response.embed, ephemeral=response.ephemeral, view=response.view, wait=True)
+    add_message_to_be_deleted(interaction.guild_id, message)
 
+
+@tree.error
+async def on_error(interaction: discord.Interaction, error: Exception):
+    logging.error("An error occurred while processing an interaction", exc_info=error)
+    if interaction.response.is_done():
+        await interaction.followup.send("Bilinmeyen bir hata, lütfen tekrar deneyin", ephemeral=True)
+    else:
+        await interaction.response.send_message("Bilinmeyen bir hata, lütfen tekrar deneyin", ephemeral=True)
 
 @tree.context_menu(name="Mesajı_Sabitle")
 async def pin_message(interaction: discord.Interaction, message: discord.Message):
