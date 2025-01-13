@@ -178,6 +178,10 @@ class AlternateVideoDownloader(VideoDownloader):
             try:
                 ydt = await asyncio.to_thread(ydl.extract_info, url, download=True)
             except yt_dlp.DownloadError as e:
+                if "No video" in str(e): # This is a workaround for yt_dlp not raising a NoVideoFoundError
+                    # If there becomes a specific error for this, we can change this to a `isInstance` check
+                    logging.error("No video found on url: %s", url)
+                    raise NoVideoFoundError(f"No video found on url: {url}") from e
                 logging.error("Couldn't download video from url: %s, Error: %s", url, e, exc_info=True)
                 raise DownloadFailedError(f"Couldn't download video from url: {url}") from e
 
