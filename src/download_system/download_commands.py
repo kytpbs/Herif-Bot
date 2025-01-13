@@ -13,6 +13,8 @@ from src.download_system.downloader import (
 from src.download_system.downloaders.other import UnknownAlternateDownloader
 from src.download_system.downloading_system import get_downloader, get_url_from_text
 
+_view_list: list[discord.ui.View] = []  # This is to add all created views to a list so that they do not get garbage collected
+
 
 def _convert_paths_to_discord_files(paths: list[str]) -> list[discord.File]:
     return [discord.File(path) for path in paths]
@@ -63,6 +65,7 @@ def _get_view(shortened_caption: str, caption: str):
 
     button.callback = callback
     view.add_item(button)
+    _view_list.append(view)
     return view
 
 
