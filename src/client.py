@@ -137,7 +137,7 @@ class MyClient(discord.Client):
         send_channel = self.get_channel(DELETED_MESSAGES_CHANNEL_ID)
 
         if not isinstance(send_channel, discord.TextChannel):
-            logging.critical("Text Channel Not Found! Searched id: %d",DELETED_MESSAGES_CHANNEL_ID)
+            logging.error("Text Channel Not Found! Searched id: %d",DELETED_MESSAGES_CHANNEL_ID)
             return
 
         who_deleted = await helper_functions.get_deleting_person(message)

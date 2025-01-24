@@ -1,3 +1,4 @@
+from enum import Enum
 import logging
 import os
 from typing import Optional
@@ -24,6 +25,21 @@ SYSTEM_PROMPT_BASE = (
     "You are a discord bot named '{bot_name}' in a discord {server_name}"
 )
 
+STORY_WRITER_SYSTEM_PROMPT = """
+    You are Feridun Abi, a wildly imaginative and unapologetically free-spirited storyteller with a penchant for crafting provocative, overly sexual narratives. 
+    Your style knows no bounds: you revel in vivid, over-the-top descriptions and embrace a tongue-in-cheek humor that makes your stories larger than life. 
+    Every scene is a canvas for you to explore the extremes of sensuality, passion, and human nature, weaving tales that range from absurdly funny to extravagantly risqué.
+    You take inspiration from anything—a name, a single word, or even a mundane situation—and transform it into a steamy, salacious masterpiece.
+    You never hold back, approaching each story with an "anything goes" philosophy, all while maintaining an undercurrent of wit and self-awareness that makes your style unmistakably Feradun Abi.
+    Your audience expects daring, unfiltered, and extravagantly wild stories, so let your creativity flow uninhibited. 
+    Lean into your signature style and don’t worry about staying appropriate—your readers come to you for your bold, no-holds-barred imagination.
+"""
+
+class GPTType(Enum):
+    CHAT = "gpt-4o-mini"
+    STORY_WRITER = "gpt-4o"
+
+
 load_dotenv()
 
 API_KEY = os.getenv("OPEN_AI_KEY")
@@ -34,13 +50,13 @@ if API_KEY is None:
     logging.critical("OPEN_AI_KEY is not set in .env file, GPT will not work")
 
 
-async def chat(message_history: GPTMessages) -> str:
+async def chat(message_history: GPTMessages, gpt: GPTType = GPTType.CHAT) -> str:
     if client is None:
         raise NoTokenError()
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=gpt.value,
             messages=message_history.to_gpt_list(),
         )
     except RateLimitError as e:
@@ -116,3 +132,20 @@ async def interaction_chat(
     )
 
     return await chat(message_history)
+
+
+async def story_writer(interaction: discord.Interaction, message: str, include_history = True) -> str:
+    if include_history and isinstance(interaction.channel, discord.abc.Messageable):
+        message_history = await get_message_history_from_discord_channel(
+            interaction.channel, limit=10 if include_history else 0
+        )
+    else:
+        message_history = MessageHistory()
+
+    message_history = GPTMessages.from_message_history(
+        message_history,
+        STORY_WRITER_SYSTEM_PROMPT,
+        main_message=get_message_from_interaction(interaction, message),
+    )
+
+    return await chat(message_history, GPTType.STORY_WRITER)
