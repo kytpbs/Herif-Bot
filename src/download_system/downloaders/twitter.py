@@ -5,6 +5,7 @@ import bs4
 from dotenv import load_dotenv
 import requests
 
+from Constants import MAX_VIDEO_DOWNLOAD_SIZE
 from src.download_system.downloader import AlternateVideoDownloader, DownloadFailedError, VideoDownloader, VideoFile, VIDEO_RETURN_TYPE, VideoFiles
 
 
@@ -72,7 +73,7 @@ class TwitterAlternativeDownloader(AlternateVideoDownloader):
         os.makedirs(path, exist_ok=True)
 
         specific_options = {
-            "format": "best",
+            "format": f"best[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M]",
             "outtmpl": os.path.join(path, "%(id)s.%(ext)s"),
             "noplaylist": True,
             "default_search": "auto",
