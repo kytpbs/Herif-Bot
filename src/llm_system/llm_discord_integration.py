@@ -24,9 +24,12 @@ async def get_message_history_from_async_iterator(
 async def get_message_history_from_discord_channel(
     discord_channel: discord.abc.Messageable, limit: int = 10
 ) -> MessageHistory:
-    return await get_message_history_from_async_iterator(
-        discord_channel.history(limit=limit + 1)
-    )
+    try:
+        return await get_message_history_from_async_iterator(
+            discord_channel.history(limit=limit + 1)
+        )
+    except discord.Forbidden:
+        return MessageHistory()
 
 
 async def get_message_history_from_discord_message(
