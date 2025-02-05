@@ -1,5 +1,21 @@
 import asyncio
+import functools
+import logging
 import yt_dlp
+
+class MusicNotFoundError(Exception):
+    pass
+
+def _return_none_on_error_wrapper(func):
+    @functools.wraps(func)
+    async def wrapped(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except MusicNotFoundError as e:
+            logging.debug("Music not found", exc_info=e)
+            return None
+
+    return wrapped
 
 
 class Music:
@@ -10,6 +26,13 @@ class Music:
         self.thumbnail_url = thumbnail_url
 
         start_downloading(self)
+
+    def is_downloaded(self):
+        from src.voice.download_manager import is_downloaded # pylint: disable=import-outside-toplevel # circular import
+        return is_downloaded(self)
+
+    def __hash__(self) -> int:
+        return hash(self.id)
 
     @property
     def url(self):
@@ -25,6 +48,8 @@ class Music:
         return cls(video_info["id"], video_info["title"], video_info["thumbnail"])
 
     @classmethod
+    @_return_none_on_error_wrapper
+    @functools.cache
     async def search_for_music(cls, search: str) -> "Music | None":
         """
         Searches youtube for the song
@@ -39,5 +64,5 @@ class Music:
                     ydl.extract_info, f"ytsearch:{search}", download=False
                 )
             return cls.from_yt_dlp(ydt)
-        except (yt_dlp.DownloadError, KeyError):
-            return None
+        except (yt_dlp.DownloadError, KeyError) as e:
+            raise MusicNotFoundError(f"Couldn't find music for search: {search}") from e
