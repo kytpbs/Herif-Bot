@@ -38,9 +38,31 @@ class MusicQueue:
         self.queue.insert(self.currently_at + 1, music)
 
     def get_current_music(self) -> Music:
-        if self.currently_at < 0:
+        if len(self.queue) == 0:
             raise ValueError("You called get_current_music before adding any music")
-        return self.queue[self.currently_at]
+        return self.queue[max(0, self.currently_at)]
+
+    def back_to_previous_music(self) -> Music:
+        """
+        Moves back to the previous music
+        Will silently ignore if it can't go back
+
+        Returns:
+            Current_Music: returns the previous music for convenience,
+            which now is `get_current_music`
+        """
+        # -1 is still 0, but we have to hold it at -1, if we are at the start, before the first music
+        if (self.currently_at - 1) >= -1:
+            self.currently_at -= 1
+            return self.get_current_music()
+
+        if self.is_looped or self.currently_at < 0:
+            self.currently_at = len(self.queue) - 1
+            return self.get_current_music()
+
+        # At the start of list, and we are not looping
+        # So we return the first music
+        return self.get_current_music()
 
     def switch_to_next_music(self) -> Music:
         """
