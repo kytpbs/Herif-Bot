@@ -35,7 +35,18 @@ ydl_opts = {
     "outtmpl": "downloads/youtube_mp3/%(id)s.mp3",
 }
 
+def _retry(func, retries=3):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception:
+            if retries > 0:
+                return _retry(func, *args, **kwargs, retries=retries - 1)
+            raise
+    return wrapper
 
+
+@_retry
 def _actually_download_video(link: str):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.extract_info(link, download=True)
