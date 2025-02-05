@@ -298,8 +298,18 @@ async def fake_message(interaction: discord.Interaction, user: discord.Member, m
 async def new_play(interaction: discord.Interaction, url: str):
     await interaction.response.defer()
     response = await voice_commands.play(interaction, url)
-    message = await interaction.followup.send(response.message, embed=response.embed, ephemeral=response.ephemeral, view=response.view, wait=True)
+    message = await interaction.followup.send(response.message + "\n\n _Eğer düğmeler bozulur ise: `/çalan` komutunu kullan_", embed=response.embed, ephemeral=response.ephemeral, view=response.view, wait=True)
     add_message_to_be_deleted(interaction.guild_id, message)
+
+
+@app_commands.allowed_installs(guilds=True, users=False)
+@app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+@tree.command(name="çalan", description="Eğer çal düğmeleri çalışmıyorsa, bu komutu kullanarak yenileyebilirsin")
+async def playlist(interaction: discord.Interaction):
+    response = voice_commands.get_currently_playing_music_message(interaction)
+    await interaction.response.send_message(response.message, embed=response.embed, ephemeral=response.ephemeral, view=response.view)
+    add_message_to_be_deleted(interaction.guild_id, await interaction.original_response())
+
 
 
 @tree.error
