@@ -101,8 +101,10 @@ class MusicQueue:
         for index, music in enumerate(self.queue):
             if index == highlighted_index:
                 queue_str += f"**-->  [{music.title}]({music.url})**\n"
-            else:
+            elif (music.is_downloaded()):
                 queue_str += f"[{music.title}]({music.url})\n"
+            else:
+                queue_str += f"~~{music.title}({music.url})~~(indirilemedi, tekrar denenciek)\n"
 
         return queue_str
 
