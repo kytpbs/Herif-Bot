@@ -33,6 +33,8 @@ def _voice_button(
     button.callback = _callback
     return button
 
+def back_button(callback: Callable[[], Coroutine[None, None, InteractionResponse]]):
+    return _voice_button(callback, "⏮️", discord.ButtonStyle.secondary)
 
 def skip_button(
     callback: Callable[[], Coroutine[None, None, InteractionResponse]],

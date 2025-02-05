@@ -225,7 +225,43 @@ async def skip(interaction: discord.Interaction) -> InteractionResponse:
             return state.get_default_interaction_response()
 
 
-async def toggle_loop(interaction: discord.Interaction):
+async def back(interaction: discord.Interaction) -> InteractionResponse:
+    if not interaction.guild or not isinstance(interaction.user, discord.Member):
+        return InteractionResponse(
+            _NOT_SERVER_ERROR_MESSAGE,
+            ephemeral=True,
+        )
+
+    state, voice = get_voice(interaction.user)
+
+    match state:
+        case VoiceStateType.BUSY_PLAYING | VoiceStateType.PAUSED:
+            queue = MUSIC_QUEUES.get(interaction.guild.id)
+            if not queue:
+                raise ValueError(
+                    "Bot is playing music, but there is no queue for the server"
+                )
+
+            # we go back twice, because when voice.stop() is called, it goes forward once,
+            # which makes sence since if there is more music in the queue, it should play that, but we want to go back
+            # so we go back twice to actually go back once
+            # why did i do it this way? tbh i feel its better than redoing _get_to_next_state just for this
+            queue.back_to_previous_music()
+            queue.back_to_previous_music()
+
+            voice.stop()
+            return InteractionResponse(
+                "Önceki şarkıya dönüldü", ephemeral=True, delete_after=0.6
+            )
+
+        case VoiceStateType.ALREADY_IN_VOICE | VoiceStateType.IN_DIFFERENT_VOICE:
+            return InteractionResponse("Şu anda bir şey çalmıyorum", ephemeral=True)
+
+        case _:
+            return state.get_default_interaction_response()
+
+
+async def toggle_loop(interaction: discord.Interaction) -> InteractionResponse:
     queue = MUSIC_QUEUES.get(interaction.guild_id or 0, MusicQueue())
 
     queue.is_looped = not queue.is_looped
@@ -237,6 +273,55 @@ async def toggle_loop(interaction: discord.Interaction):
         view=discord.ui.View()
         .add_item(
             voice_view_factories.pause_button(functools.partial(pause, interaction))
+        )
+        .add_item(
+            voice_view_factories.back_button(functools.partial(back, interaction))
+        )
+        .add_item(
+            voice_view_factories.skip_button(functools.partial(skip, interaction))
+        )
+        .add_item(
+            voice_view_factories.loop_button(
+                functools.partial(toggle_loop, interaction), queue
+            )
+        )
+        .add_item(
+            voice_view_factories.leave_button(functools.partial(leave, interaction))
+        ),
+    )
+
+
+def get_currently_playing_music_message(
+    interaction: discord.Interaction,
+) -> InteractionResponse:
+    if not interaction.guild or not isinstance(interaction.user, discord.Member):
+        return InteractionResponse(
+            _NOT_SERVER_ERROR_MESSAGE,
+            ephemeral=True,
+        )
+
+    queue = MUSIC_QUEUES.get(interaction.guild.id, MusicQueue())
+    if not queue.queue:
+        return InteractionResponse("Şu anda bir şey çalmıyorum", ephemeral=True)
+
+    return _get_currently_playing_message(interaction, queue)
+
+
+def _get_currently_playing_message(
+    interaction: discord.Interaction, queue: MusicQueue
+) -> InteractionResponse:
+    if not queue.queue:
+        return InteractionResponse("Şu anda bir şey çalmıyorum", ephemeral=True)
+
+    return InteractionResponse(
+        "",
+        embed=queue.get_current_song_embed(),
+        view=discord.ui.View()
+        .add_item(
+            voice_view_factories.pause_button(functools.partial(pause, interaction))
+        )
+        .add_item(
+            voice_view_factories.back_button(functools.partial(back, interaction))
         )
         .add_item(
             voice_view_factories.skip_button(functools.partial(skip, interaction))
@@ -284,39 +369,7 @@ def _get_to_next_state(
 
         case VoiceStateType.BUSY_PLAYING:
             # User resumed the music, this function gets called again when the music ends, so no worries about queue
-            music = queue.get_current_music()
-            embed = discord.Embed(
-                title=f"Şu an Çalıyor: {music.title}",
-                description=queue.get_queue_str(),
-                url=music.url,
-                color=discord.Color.green(),
-            ).set_thumbnail(url=music.thumbnail_url)
-            return InteractionResponse(
-                "",
-                embed=embed,
-                view=discord.ui.View()
-                .add_item(
-                    voice_view_factories.pause_button(
-                        functools.partial(pause, interaction)
-                    )
-                )
-                .add_item(
-                    voice_view_factories.skip_button(
-                        functools.partial(skip, interaction)
-                    )
-                )
-                .add_item(
-                    voice_view_factories.loop_button(
-                        functools.partial(toggle_loop, interaction), queue
-                    )
-                )
-                .add_item(
-                    voice_view_factories.leave_button(
-                        functools.partial(leave, interaction)
-                    )
-                )
-                ,
-            )
+            return _get_currently_playing_message(interaction, queue)
 
         case VoiceStateType.PAUSED:
             # User paused the music, this function gets called again when resumed, so no worries about queue
@@ -324,7 +377,7 @@ def _get_to_next_state(
             embed = discord.Embed(
                 title=f"{current_music.title} duraklatıldı",
                 description=queue.get_queue_str(),
-                color=discord.Color.green(),
+                color=discord.Color.red(),
                 url=current_music.url,
             ).set_thumbnail(url=current_music.thumbnail_url)
             return InteractionResponse(
@@ -334,6 +387,11 @@ def _get_to_next_state(
                 .add_item(
                     voice_view_factories.resume_button(
                         functools.partial(resume, interaction)
+                    )
+                )
+                .add_item(
+                    voice_view_factories.back_button(
+                        functools.partial(back, interaction)
                     )
                 )
                 .add_item(
@@ -365,37 +423,18 @@ def _get_to_next_state(
         queue.clear()  # clear the queue, as we are done with it
         return InteractionResponse("", embed=embed)
 
-    if download_manager.is_downloaded(next_music):
-        voice.play(
+    if not next_music.is_downloaded():
+        # we don't have the music downloaded yet, most probably due to an error, so we will try to download/retry downloading it
+        # if its a loop, it will get replayed, if not loop, bye bye song, cause we can't play it
+        download_manager.start_downloading(next_music)
+        return _get_to_next_state(interaction, queue)
+
+    voice.play(
             discord.FFmpegPCMAudio(download_manager.get_download_path(next_music)),
             after=_get_to_next_state_interface(interaction, queue),
         )
-        return InteractionResponse(
-            "",
-            embed=queue.get_current_song_embed(),
-            view=discord.ui.View()
-            .add_item(
-                voice_view_factories.pause_button(functools.partial(pause, interaction))
-            )
-            .add_item(
-                voice_view_factories.skip_button(functools.partial(skip, interaction))
-            )
-            .add_item(
-                voice_view_factories.loop_button(
-                    functools.partial(toggle_loop, interaction), queue
-                )
-            )
-            .add_item(
-                voice_view_factories.leave_button(functools.partial(leave, interaction))
-            ),
-        )
+    return _get_currently_playing_message(interaction, queue)
 
-    if download_manager.is_errored_out(next_music):
-        # we skip the errored out music, and go to the next one, I can't find a way to tell the user that the music errored out
-        # and the error seems to happen in a yt_dlp level, so we will try to redownload it
-        download_manager.start_downloading(next_music)
-    # we don't have the music downloaded yet, so we will try to download/retry downloading it
-    return _get_to_next_state(interaction, queue)
 
 
 async def _run_next_state(interaction: discord.Interaction, queue: MusicQueue) -> None:
