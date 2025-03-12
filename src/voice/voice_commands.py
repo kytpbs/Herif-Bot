@@ -270,7 +270,7 @@ async def toggle_loop(interaction: discord.Interaction) -> InteractionResponse:
     return InteractionResponse(
         f"Şarkılar {'tekrarlanacak' if queue.is_looped else 'tekrarlanmayacak'}",
         embed=embed,
-        view=discord.ui.View()
+        view=discord.ui.View(timeout=None)
         .add_item(
             voice_view_factories.pause_button(functools.partial(pause, interaction))
         )
@@ -316,7 +316,7 @@ def _get_currently_playing_message(
     return InteractionResponse(
         "",
         embed=queue.get_current_song_embed(),
-        view=discord.ui.View()
+        view=discord.ui.View(timeout=None)
         .add_item(
             voice_view_factories.pause_button(functools.partial(pause, interaction))
         )
@@ -383,7 +383,7 @@ def _get_to_next_state(
             return InteractionResponse(
                 "",
                 embed=embed,
-                view=discord.ui.View()
+                view=discord.ui.View(timeout=None)
                 .add_item(
                     voice_view_factories.resume_button(
                         functools.partial(resume, interaction)
