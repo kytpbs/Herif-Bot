@@ -94,7 +94,7 @@ def _get_caption_and_view(
 
 
 def _process_url(url: str) -> str:
-    if "youtube.com" in url:
+    if "youtube.com" in url and "shorts/" in url:
         url = url.split("?")[0]
         url = url.replace("shorts/", "watch?v=")
 
