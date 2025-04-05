@@ -294,7 +294,7 @@ async def fake_message(interaction: discord.Interaction, user: discord.Member, m
 
 @app_commands.allowed_installs(guilds=True, users=False)
 @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
-@tree.command(name="yeni_çal")
+@tree.command(name="çal")
 async def new_play(interaction: discord.Interaction, url: str):
     await interaction.response.defer()
     response = await voice_commands.play(interaction, url)
