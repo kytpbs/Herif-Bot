@@ -90,7 +90,7 @@ def get_voice(
     voice = user.guild.voice_client
     is_user_in_voice = user.voice and user.voice.channel
 
-    if not isinstance(voice, discord.VoiceClient):
+    if not isinstance(voice, discord.VoiceClient) or not voice.is_connected():
         if not is_user_in_voice:
             # easier to have an exception that it will return null only twice
             # than to have an exception that it may "return None"
@@ -99,10 +99,10 @@ def get_voice(
             return VoiceStateType.USER_NOT_IN_VOICE, None  # type: ignore
         return VoiceStateType.NOT_IN_VOICE, None  # type: ignore
 
-    if voice.is_playing() and len(voice.channel.members) > 1:
+    if voice.is_playing() and len(voice.channel.members) > 0:
         return VoiceStateType.BUSY_PLAYING, voice
 
-    if voice.is_paused() and len(voice.channel.members) > 1:
+    if voice.is_paused() and len(voice.channel.members) > 0:
         return VoiceStateType.PAUSED, voice
 
     if not user.voice or not user.voice.channel:

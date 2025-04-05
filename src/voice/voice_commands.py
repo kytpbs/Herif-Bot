@@ -19,7 +19,6 @@ from src.voice.old_message_holder import (
 MUSIC_QUEUES: dict[int, MusicQueue] = {}
 _NOT_SERVER_ERROR_MESSAGE = "Bu komutu kullanmak için sunucuda olman gerek"
 _NOT_PLAYING_MESSAGE = "Şu anda bir şey çalmıyorum"
-_DISCONNECT_CALLED = False
 
 
 async def join(
@@ -88,18 +87,12 @@ async def leave(interaction: discord.Interaction) -> InteractionResponse:
 
     queue = MUSIC_QUEUES.get(interaction.guild.id)
 
-    # calling disconnect calls _get_to_next_state, with VERY BROKEN STATE:
-    # (ALREADY_IN_VOICE, VoiceClient) but voice client is not actually connected,
-    # It makes no sense, but thats what happens, so we will set a global temp variable to check if we just called disconnect
-    # and if we did, we will stop executing the first run of _get_to_next_state
-    global _DISCONNECT_CALLED  # pylint: disable=global-statement
-    _DISCONNECT_CALLED = True
     await voice.disconnect()
     if not queue:
         # should probably never happen but you never know
         return InteractionResponse("Ses kanalından ayrıldım")
 
-    return _clean_up(interaction, voice, queue)
+    return InteractionResponse("Ayrıldım, liste yükleniyor...", ephemeral=True, delete_after=0.5)
 
 
 async def pause(interaction: discord.Interaction) -> InteractionResponse:
@@ -359,6 +352,7 @@ def _get_to_next_state(
     """
     Gets the next music and returns the interaction response
     """
+    logging.debug("Getting to next state")
 
     # this should never happen, but type hinting doesn't know that
     if interaction.guild is None or not isinstance(interaction.user, discord.Member):
@@ -367,6 +361,7 @@ def _get_to_next_state(
         )
 
     state, voice = get_voice(interaction.user)
+    logging.debug("State: %s, Voice: %s", state, voice.channel if voice else None)
 
     match state:
         case VoiceStateType.USER_NOT_IN_VOICE:
@@ -446,7 +441,8 @@ def _get_to_next_state(
             discord.FFmpegPCMAudio(download_manager.get_download_path(next_music)),
             after=_get_to_next_state_interface(interaction, queue),
         )
-    except discord.ClientException:
+    except discord.ClientException as e:
+        logging.error("Error playing music: %s", e)
         return InteractionResponse(
             "Oh no, this should't have happened, What the hell did you do?",
             ephemeral=True,
@@ -495,20 +491,10 @@ async def _run_next_state(interaction: discord.Interaction, queue: MusicQueue) -
     """
     Interface function that gives a function that calls the actual function
     """
-
-    # See `leave` function for more info
-    # We set a global temp variable to check if we just called disconnect
-    # and if we did, we will stop executing the first run of _get_to_next_state
-    # This is a hack, and i'm not proud of it, but it works
-    # This is due to discord.py's broken state when calling disconnect, still doesn't make sense to me tbh
-    global _DISCONNECT_CALLED  # pylint: disable=global-statement
-    if _DISCONNECT_CALLED:
-        _DISCONNECT_CALLED = False
-        return
-
     interaction_response = _get_to_next_state(interaction, queue)
 
-    await clear_messages_to_be_deleted(interaction.guild_id or 0)
+    if not interaction_response.ephemeral:
+        await clear_messages_to_be_deleted(interaction.guild_id or 0)
 
     message = await interaction.followup.send(
         content=interaction_response.message,
