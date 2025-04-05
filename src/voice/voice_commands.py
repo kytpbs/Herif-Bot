@@ -18,6 +18,7 @@ from src.voice.old_message_holder import (
 # The music queues for each server, as the bot can be in multiple servers at once
 MUSIC_QUEUES: dict[int, MusicQueue] = {}
 _NOT_SERVER_ERROR_MESSAGE = "Bu komutu kullanmak için sunucuda olman gerek"
+_NOT_PLAYING_MESSAGE = "Şu anda bir şey çalmıyorum"
 
 
 async def join(
@@ -103,7 +104,7 @@ async def pause(interaction: discord.Interaction) -> InteractionResponse:
             return _get_to_next_state(interaction, MUSIC_QUEUES[interaction.guild.id])
 
         case VoiceStateType.ALREADY_IN_VOICE | VoiceStateType.IN_DIFFERENT_VOICE:
-            return InteractionResponse("Şu anda bir şey çalmıyorum", ephemeral=True)
+            return InteractionResponse(_NOT_PLAYING_MESSAGE, ephemeral=True)
 
         case _:
             return state.get_default_interaction_response()
@@ -124,7 +125,7 @@ async def resume(interaction: discord.Interaction) -> InteractionResponse:
             return _get_to_next_state(interaction, MUSIC_QUEUES[interaction.guild.id])
 
         case VoiceStateType.ALREADY_IN_VOICE | VoiceStateType.IN_DIFFERENT_VOICE:
-            return InteractionResponse("Şu anda bir şey çalmıyorum", ephemeral=True)
+            return InteractionResponse(_NOT_PLAYING_MESSAGE, ephemeral=True)
 
         case _:
             return state.get_default_interaction_response()
@@ -169,7 +170,7 @@ async def play(interaction: discord.Interaction, search: str) -> InteractionResp
                 )
             await queue.add_music(music)
             return InteractionResponse(
-                f"[{music.title}]({music.url}) aldı şarkı kuyruğa eklendi",
+                f"[{music.title}]({music.url}) adlı şarkı kuyruğa eklendi",
                 embed=queue.get_current_song_embed(),
             )
 
@@ -192,9 +193,11 @@ async def play(interaction: discord.Interaction, search: str) -> InteractionResp
         )
 
     await queue.add_music(music)
-    while not download_manager.is_downloaded(music):
+    # The music object itself starts downloading itself, we just check if its downloaded yet or not
+    while not music.is_downloaded():
         # wait for it to download
         if download_manager.is_errored_out(music):
+            logging.error("Music download failed, music url: %s", music.url)
             return InteractionResponse(
                 "Şarkı indirilirken bir hata oluştu, lütfen daha sonra tekrar deneyin"
             )
@@ -219,7 +222,7 @@ async def skip(interaction: discord.Interaction) -> InteractionResponse:
             )
 
         case VoiceStateType.ALREADY_IN_VOICE | VoiceStateType.IN_DIFFERENT_VOICE:
-            return InteractionResponse("Şu anda bir şey çalmıyorum", ephemeral=True)
+            return InteractionResponse(_NOT_PLAYING_MESSAGE, ephemeral=True)
 
         case _:
             return state.get_default_interaction_response()
@@ -255,7 +258,7 @@ async def back(interaction: discord.Interaction) -> InteractionResponse:
             )
 
         case VoiceStateType.ALREADY_IN_VOICE | VoiceStateType.IN_DIFFERENT_VOICE:
-            return InteractionResponse("Şu anda bir şey çalmıyorum", ephemeral=True)
+            return InteractionResponse(_NOT_PLAYING_MESSAGE, ephemeral=True)
 
         case _:
             return state.get_default_interaction_response()
@@ -302,7 +305,7 @@ def get_currently_playing_music_message(
 
     queue = MUSIC_QUEUES.get(interaction.guild.id, MusicQueue())
     if not queue.queue:
-        return InteractionResponse("Şu anda bir şey çalmıyorum", ephemeral=True)
+        return InteractionResponse(_NOT_PLAYING_MESSAGE, ephemeral=True)
 
     return _get_currently_playing_message(interaction, queue)
 
@@ -311,7 +314,7 @@ def _get_currently_playing_message(
     interaction: discord.Interaction, queue: MusicQueue
 ) -> InteractionResponse:
     if not queue.queue:
-        return InteractionResponse("Şu anda bir şey çalmıyorum", ephemeral=True)
+        return InteractionResponse(_NOT_PLAYING_MESSAGE, ephemeral=True)
 
     return InteractionResponse(
         "",
@@ -420,6 +423,7 @@ def _get_to_next_state(
             name="Çalınan Şarkılar",
             value=queue.get_queue_str(-1),
         )
+
         queue.clear()  # clear the queue, as we are done with it
         return InteractionResponse("", embed=embed)
 

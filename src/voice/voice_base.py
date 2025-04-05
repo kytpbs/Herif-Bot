@@ -13,7 +13,7 @@ class InteractionResponse:
     ephemeral: bool = False
     embed: discord.Embed = MISSING
     view: discord.ui.View = MISSING
-    delete_after: float | None = MISSING
+    delete_after: float | None = None
 
     def __bool__(self) -> bool:
         return False
@@ -94,6 +94,8 @@ def get_voice(
         if not is_user_in_voice:
             # easier to have an exception that it will return null only twice
             # than to have an exception that it may "return None"
+            # unlike TypeScript, python type hinting is not smart enough to know which states might have None,
+            # even if you explicitly tell it with a convoluted Multiple-Union-Type (i.e: a,b | c, None | e,f)
             return VoiceStateType.USER_NOT_IN_VOICE, None  # type: ignore
         return VoiceStateType.NOT_IN_VOICE, None  # type: ignore
 
@@ -112,4 +114,3 @@ def get_voice(
         return VoiceStateType.ALREADY_IN_VOICE, voice
 
     return VoiceStateType.IN_DIFFERENT_VOICE, voice
-
