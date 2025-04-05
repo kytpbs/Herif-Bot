@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import logging
+from async_lru import alru_cache
 import yt_dlp
 
 class MusicNotFoundError(Exception):
@@ -49,7 +50,7 @@ class Music:
 
     @classmethod
     @_return_none_on_error_wrapper
-    @functools.cache
+    @alru_cache(maxsize=None) # do not use functools.cache or else reuses corutine (crash)
     async def search_for_music(cls, search: str) -> "Music | None":
         """
         Searches youtube for the song
