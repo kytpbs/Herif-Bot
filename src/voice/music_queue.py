@@ -1,3 +1,4 @@
+import copy
 import discord
 from src.voice.music_base import Music
 from src.voice import download_manager
@@ -120,3 +121,9 @@ class MusicQueue:
             .set_thumbnail(url=music.thumbnail_url)
             .add_field(name="Liste", value=queue_str)
         )
+
+    def copy(self) -> 'MusicQueue':
+        """
+        Returns a new distinct copy of the current queue
+        """
+        return copy.deepcopy(self)
