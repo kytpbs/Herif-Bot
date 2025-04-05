@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from typing import Optional, Type
 import discord
 
@@ -13,7 +14,9 @@ from src.download_system.downloader import (
 from src.download_system.downloaders.other import UnknownAlternateDownloader
 from src.download_system.downloading_system import get_downloader, get_url_from_text
 
-_view_list: list[discord.ui.View] = []  # This is to add all created views to a list so that they do not get garbage collected
+_view_list: list[
+    discord.ui.View
+] = []  # This is to add all created views to a list so that they do not get garbage collected
 
 
 def _convert_paths_to_discord_files(paths: list[str]) -> list[discord.File]:
@@ -90,6 +93,15 @@ def _get_caption_and_view(
     return caption, view
 
 
+def _process_url(url: str) -> str:
+    if "youtube.com" in url:
+        url = url.split("?")[0]
+        url = url.replace("shorts/", "watch?v=")
+
+    # add any more replacements or other modifications here
+    return url
+
+
 async def get_details(
     downloader: Type[VideoDownloader], url: str, interaction: discord.Interaction
 ) -> Optional[VIDEO_RETURN_TYPE]:
@@ -144,6 +156,7 @@ async def download_video_command(
     include_title: bool | None = None,
 ):
     url = get_url_from_text(url)
+    url = _process_url(url)
 
     downloader = get_downloader(url)
 
