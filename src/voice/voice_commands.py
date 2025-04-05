@@ -19,6 +19,7 @@ from src.voice.old_message_holder import (
 MUSIC_QUEUES: dict[int, MusicQueue] = {}
 _NOT_SERVER_ERROR_MESSAGE = "Bu komutu kullanmak için sunucuda olman gerek"
 _NOT_PLAYING_MESSAGE = "Şu anda bir şey çalmıyorum"
+_DISCONNECT_CALLED = False
 
 
 async def join(
@@ -85,8 +86,20 @@ async def leave(interaction: discord.Interaction) -> InteractionResponse:
         case _:
             return state.get_default_interaction_response()
 
+    queue = MUSIC_QUEUES.get(interaction.guild.id)
+
+    # calling disconnect calls _get_to_next_state, with VERY BROKEN STATE:
+    # (ALREADY_IN_VOICE, VoiceClient) but voice client is not actually connected,
+    # It makes no sense, but thats what happens, so we will set a global temp variable to check if we just called disconnect
+    # and if we did, we will stop executing the first run of _get_to_next_state
+    global _DISCONNECT_CALLED  # pylint: disable=global-statement
+    _DISCONNECT_CALLED = True
     await voice.disconnect()
-    return InteractionResponse("Ses kanalından ayrıldım")
+    if not queue:
+        # should probably never happen but you never know
+        return InteractionResponse("Ses kanalından ayrıldım")
+
+    return _clean_up(interaction, voice, queue)
 
 
 async def pause(interaction: discord.Interaction) -> InteractionResponse:
@@ -363,12 +376,8 @@ def _get_to_next_state(
                 )
             # else: user has left the voice channel, but the bot is still in it, so continue
 
-        case VoiceStateType.NOT_IN_VOICE, VoiceStateType.USER_NOT_IN_VOICE:
-            if not voice:
-                # We lose the MusicQueue if we don't recall get_to_next_state with it anyways.
-                return InteractionResponse(
-                    "Bot kanaldan atıldı, sırayı temizliyorum", ephemeral=True
-                )
+        case VoiceStateType.NOT_IN_VOICE:
+            return _clean_up(interaction, voice, queue)
 
         case VoiceStateType.BUSY_PLAYING:
             # User resumed the music, this function gets called again when the music ends, so no worries about queue
@@ -432,19 +441,71 @@ def _get_to_next_state(
         # if its a loop, it will get replayed, if not loop, bye bye song, cause we can't play it
         download_manager.start_downloading(next_music)
         return _get_to_next_state(interaction, queue)
-
-    voice.play(
+    try:
+        voice.play(
             discord.FFmpegPCMAudio(download_manager.get_download_path(next_music)),
             after=_get_to_next_state_interface(interaction, queue),
         )
+    except discord.ClientException:
+        return InteractionResponse(
+            "Oh no, this should't have happened, What the hell did you do?",
+            ephemeral=True,
+        )
     return _get_currently_playing_message(interaction, queue)
 
+
+def _clean_up(
+    interaction: discord.Interaction,
+    voice: discord.VoiceClient | None,
+    queue: MusicQueue,
+) -> InteractionResponse:
+    logging.debug("Cleaning up")
+    embed = discord.Embed(
+        title="Ses Kanalından Ayrıldım",
+        description="Eski Liste",
+        color=discord.Color.red(),
+    ).add_field(
+        name="Çalınan Şarkılar",
+        value=queue.get_queue_str(-1),
+    )
+
+    old_queue = queue.copy()
+    # we go back twice, because when we start replaying the music, it goes forward once,
+    # so we need to go back twice to actually go back once
+    old_queue.back_to_previous_music()
+    queue.clear()  # clear the queue, as we are done with it
+
+    async def go_back(interaction: discord.Interaction) -> InteractionResponse:
+        assert interaction.guild_id is not None, "JUST WTF HAPPENED HERE, We're cooked"
+        # we need to go back to the old queue, so we can play the music again
+        MUSIC_QUEUES[interaction.guild_id] = old_queue
+        await join(interaction, voice.channel if voice else MISSING)
+        return _get_to_next_state(interaction, old_queue)
+
+    view = discord.ui.View(timeout=None).add_item(
+        voice_view_factories.rewind_queue_button(
+            functools.partial(go_back, interaction)
+        )
+    )
+
+    return InteractionResponse("", embed=embed, view=view)
 
 
 async def _run_next_state(interaction: discord.Interaction, queue: MusicQueue) -> None:
     """
     Interface function that gives a function that calls the actual function
     """
+
+    # See `leave` function for more info
+    # We set a global temp variable to check if we just called disconnect
+    # and if we did, we will stop executing the first run of _get_to_next_state
+    # This is a hack, and i'm not proud of it, but it works
+    # This is due to discord.py's broken state when calling disconnect, still doesn't make sense to me tbh
+    global _DISCONNECT_CALLED  # pylint: disable=global-statement
+    if _DISCONNECT_CALLED:
+        _DISCONNECT_CALLED = False
+        return
+
     interaction_response = _get_to_next_state(interaction, queue)
 
     await clear_messages_to_be_deleted(interaction.guild_id or 0)
