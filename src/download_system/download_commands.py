@@ -45,11 +45,11 @@ def _get_shortened_caption(caption: str) -> str:
 
 
 def _get_view(shortened_caption: str, caption: str):
-    view = discord.ui.View()
+    view = discord.ui.View(timeout=None)
     button = discord.ui.Button(label="🔽\nExpand", style=discord.ButtonStyle.secondary)
 
     async def callback(interaction: discord.Interaction):
-        revert_view = discord.ui.View()
+        revert_view = discord.ui.View(timeout=None)
         button = discord.ui.Button(
             label="🔼\nShorten", style=discord.ButtonStyle.secondary
         )
