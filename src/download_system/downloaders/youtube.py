@@ -60,8 +60,8 @@ class AlternateYoutubeDownloader(AlternateVideoDownloader):
         os.makedirs(path, exist_ok=True)
 
         costum_options = {
-            'format': f'bestvideo[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M][ext=mp4]+bestaudio[ext=m4a]/best[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M][ext=mp4]',
-            "outtmpl": os.path.join(path, "%(id)s.mp4"),
+            'format': f'bestvideo[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M][ext=webm]+bestaudio[ext=m4a]/best[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M][ext=webm]',
+            "outtmpl": os.path.join(path, "%(id)s.%(ext)s"),
             'noplaylist': True,
             'default_search': 'auto',
             'nooverwrites': True,

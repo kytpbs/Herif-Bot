@@ -149,6 +149,39 @@ async def _convert_to_discord_files(
         raise e  # re-raise the exception so we can see what went wrong
 
 
+class VideoConversionError(Exception):
+    pass
+
+
+async def _convert_to_webm(path: str) -> str:
+    end_path = os.path.splitext(path)[0] + ".webm"
+
+    process = await asyncio.create_subprocess_exec(
+        "ffmpeg",
+        "-i",
+        path,
+        "-c:v",
+        "libvpx-vp9",
+        "-crf",
+        "45",
+        "-fs",
+        "8M",         # Limit file size to 8MB
+        end_path,
+    )
+
+    return_code = await process.wait()
+    if return_code != 0:
+        raise VideoConversionError(
+            f"Failed to convert {path} to webm, return code: {return_code}, ERROR: {process.stderr}"
+        )
+    return end_path
+
+
+# may want to use it in the future, but for now it's not needed
+async def _convert_to_webm_files(file_paths: list[str]) -> list[str]:
+    return await asyncio.gather(*[_convert_to_webm(path) for path in file_paths])
+
+
 async def download_video_command(
     interaction: discord.Interaction,
     url: str,
@@ -171,7 +204,16 @@ async def download_video_command(
     if attachments is None:
         return
 
-    discord_files = await _convert_to_discord_files(interaction, attachments)
+    try:
+        file_paths = [attachment.path for attachment in attachments]
+        webm_paths = await _convert_to_webm_files(file_paths)
+        discord_files = _convert_paths_to_discord_files(webm_paths)
+    except VideoConversionError as e:
+        await interaction.followup.send(
+            "Video dönüştürülürken bir hata oluştu, lütfen tekrar deneyin",
+            ephemeral=True,
+        )
+        raise e
 
     real_caption = (
         attachments.caption or f"Video{'s' if len(attachments) > 1 else ''} Downloaded"
