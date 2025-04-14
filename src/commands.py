@@ -1,21 +1,18 @@
-from datetime import datetime
 import logging
+from datetime import datetime
 from typing import Optional
 
 import discord
 from discord import app_commands
 
+from Constants import BOT_ADMIN_SERVER_ID, BOT_NAME, BOT_OWNER_ID, CYAN, KYTPBS_TAG
+from src import Youtube, client
+from src.download_system.download_commands import download_video_command
+from src.Helpers.birthday_helpers import get_user_and_date_from_string
 from src.llm_system import gpt
 from src.llm_system.llm_errors import LLMError
-import src.client as client
-import src.voice_commands as vc_cmds
-from src.download_system.download_commands import download_video_command
-from Constants import BOT_ADMIN_SERVER_ID, BOT_NAME, BOT_OWNER_ID, CYAN, KYTPBS_TAG
-from src import Youtube
-from src.Helpers.birthday_helpers import get_user_and_date_from_string
 from src.voice import voice_commands
 from src.voice.old_message_holder import add_message_to_be_deleted
-
 
 birthdays = client.get_birthdays()
 custom_responses = client.get_custom_responses()
@@ -27,65 +24,13 @@ discord_client = client.get_client_instance()
 
 
 class VoiceCommands(app_commands.Group):
-    @app_commands.command(name="kanala_katıl",
-                          description="belirlediğin ses kanalı, yoksa senin kanalına katılır")
-    async def channel_join(self, interaction: discord.Interaction,
-                           channel: discord.VoiceChannel = discord.utils.MISSING):
-        await vc_cmds.join(interaction, channel)
-
-    @app_commands.command(name="duraklat", description="Sesi duraklatır")
-    async def dur(self, interaction: discord.Interaction):
-        await vc_cmds.pause(interaction)
-
-    @app_commands.command(name="devam_et", description="Sesi devam ettirir")
-    async def devam_et(self, interaction: discord.Interaction):
-        await vc_cmds.resume(interaction)
-
-    @app_commands.command(name="çık", description="Ses Kanalından çıkar")
-    async def cik(self, interaction: discord.Interaction):
-        await vc_cmds.leave(interaction)
-
-    @app_commands.command(name="çal", description="Youtubedan bir şey çalmanı sağlar")
+    @app_commands.command(name="çal", description="Youtube'dan bir şey çalmanı sağlar")
     async def cal(self, interaction: discord.Interaction, arat: str):
-        await vc_cmds.play(interaction, arat)
+        await interaction.response.defer()
+        response = await voice_commands.play(interaction, arat)
+        message = await interaction.followup.send(response.message + "\n\n _Eğer düğmeler bozulur ise: `/çalan` komutunu kullan_", embed=response.embed, ephemeral=response.ephemeral, view=response.view, wait=True)
+        add_message_to_be_deleted(interaction.guild_id, message)
 
-    @app_commands.command(name="ekle", description="Sıraya müzik ekle")
-    async def add(self, interaction: discord.Interaction, arat: str):
-        await vc_cmds.add_to_queue(interaction, arat)
-
-    @app_commands.command(name="boru", description="1 saat boyunca rastegele zamanlarda boru ses efektini çalar")
-    async def pipe(self, interaction: discord.Interaction):
-        await vc_cmds.play(interaction, "https://www.youtube.com/watch?v=oZAGNaLrTd0")
-
-    @app_commands.command(name="liste", description="Çalma Listesini Gösterir")
-    async def show_queue(self, interaction: discord.Interaction):
-        await vc_cmds.list_queue(interaction)
-
-
-class VoiceAdminCommands(app_commands.Group):
-
-    @app_commands.command(name="sustur", description='birisini susturmanı sağlar')
-    async def mute(self, interaction: discord.Interaction, user: discord.Member):
-        if user.guild != interaction.guild:
-            await interaction.response.send_message("Kullanıcı bu sunucuda değil", ephemeral=True)
-            return
-        if not isinstance(user, discord.Member):
-            await interaction.response.send_message("Kullanıcıyı bulamadım lütfen tekrar dene", ephemeral=True)
-            return
-        await user.edit(mute=True)
-        await interaction.response.send_message(f"{user} susturuldu")
-
-    @app_commands.command(name="susturma_kaldır",
-                          description="Susturulmuş birinin susturmasını kapatmanı sağlar")
-    async def unmute(self, interaction: discord.Interaction, user: discord.Member):
-        if not isinstance(user, discord.Member):
-            await interaction.response.send_message("Kullanıcıyı bulamadım lütfen tekrar dene", ephemeral=True)
-            return
-        if user.voice is None:
-            await user.edit(mute=False)
-            await interaction.response.send_message(f"{user} adlı kişinin sesi açıldı")
-            return
-        await interaction.response.send_message(f"{user} adlı kişi ses kanalında değil")
 
 
 @app_commands.allowed_installs(guilds=True, users=True)
@@ -236,10 +181,12 @@ class AdminServerCommands(app_commands.Group):
             await interaction.response.send_message("You don't have permission to use this command", ephemeral=True)
             return
 
-        from contextlib import \
-            redirect_stdout  # pylint: disable=import-outside-toplevel #this is a command for admins only
-        from io import \
-            StringIO  # pylint: disable=import-outside-toplevel #this is a command for admins only
+        from contextlib import (
+            redirect_stdout,  # pylint: disable=import-outside-toplevel #this is a command for admins only
+        )
+        from io import (
+            StringIO,  # pylint: disable=import-outside-toplevel #this is a command for admins only
+        )
 
         with StringIO() as buf, redirect_stdout(buf):
             data = None
@@ -360,8 +307,6 @@ def get_tree_instance():
 
 def setup_commands():
     voice_cmds = VoiceCommands(name="ses", description="Ses komutları!", guild_only=True)
-    admin_voice_cmds = VoiceAdminCommands(name="admin", description="Adminsen kullanabileceğin ses komutları",
-                                          default_permissions=admin, parent=voice_cmds)
     ai_cmds = AiCommands(name="zeki", description="Botu zeki yapan komutlar")
     special_cmds = SpecialCommands(name="özel", description="Bota özel komutlar ekleyip görmen için komutlar")
     special_admin_cmds = AdminSpecialCommands(name="admin", description="Adminlerin kullanabileceği özel komutlar",
@@ -372,7 +317,7 @@ def setup_commands():
                                                 default_permissions=admin, parent=birthday_cmds)
     admin_server_cmds = AdminServerCommands(name="owner", description="Bot Sahibinin Kullanacağı Komutlar",
                                              default_permissions=admin, guild_only=True)
-    tree.add_command(admin_voice_cmds)
+    tree.add_command(voice_cmds)
     tree.add_command(admin_birthday_cmds)
     tree.add_command(special_admin_cmds)
     tree.add_command(ai_cmds)
