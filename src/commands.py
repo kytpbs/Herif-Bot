@@ -28,7 +28,16 @@ class VoiceCommands(app_commands.Group):
     async def cal(self, interaction: discord.Interaction, arat: str):
         await interaction.response.defer()
         response = await voice_commands.play(interaction, arat)
-        message = await interaction.followup.send(response.message + "\n\n _Eğer düğmeler bozulur ise: `/çalan` komutunu kullan_", embed=response.embed, ephemeral=response.ephemeral, view=response.view, wait=True)
+        message = await interaction.followup.send(
+            """
+            _Bu özellik `/çal` ile aynı şeyi yapıyor, lütfen bundan sonra `/ses çal` yerine '/çal' kullanın._
+            _Eğer düğmeler bozulur ise: `/çalan` komutunu kullanabilirsin_\n\n
+            """ + response.message,
+            embed=response.embed,
+            ephemeral=response.ephemeral,
+            view=response.view,
+            wait=True,
+        )
         add_message_to_be_deleted(interaction.guild_id, message)
 
 
