@@ -4,6 +4,16 @@ import logging
 from async_lru import alru_cache
 import yt_dlp
 
+ydl_opts = {
+    "format": "bestaudio",
+    "noplaylist": True,
+    "default_search": "auto",
+    "keepvideo": False,
+    "nooverwrites": True,
+    "quiet": True,
+    "outtmpl": "downloads/youtube_mp3/%(id)s.mp3",
+}
+
 class MusicNotFoundError(Exception):
     pass
 
@@ -50,7 +60,7 @@ class Music:
 
     @classmethod
     @_return_none_on_error_wrapper
-    @alru_cache(maxsize=None) # do not use functools.cache or else reuses corutine (crash)
+    @alru_cache(maxsize=None) # do not use functools.cache or else reuses coroutine (crash)
     async def search_for_music(cls, search: str) -> "Music | None":
         """
         Searches youtube for the song
@@ -60,7 +70,7 @@ class Music:
         """
 
         try:
-            with yt_dlp.YoutubeDL() as ydl:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydt = await asyncio.to_thread(
                     ydl.extract_info, f"ytsearch:{search}", download=False
                 )
