@@ -92,7 +92,9 @@ async def leave(interaction: discord.Interaction) -> InteractionResponse:
         # should probably never happen but you never know
         return InteractionResponse("Ses kanalından ayrıldım")
 
-    return InteractionResponse("Ayrıldım, liste yükleniyor...", ephemeral=True, delete_after=0.5)
+    return InteractionResponse(
+        "Ayrıldım, liste yükleniyor...", ephemeral=True, delete_after=0.5
+    )
 
 
 async def pause(interaction: discord.Interaction) -> InteractionResponse:
@@ -520,6 +522,8 @@ def _get_to_next_state_interface(
                 "An error occurred while trying to get to the next state",
                 exc_info=exception,
             )
-        interaction.client.loop.create_task(_run_next_state(interaction, queue))
+        asyncio.run_coroutine_threadsafe(
+            _run_next_state(interaction, queue), interaction.client.loop
+        )
 
     return call
