@@ -6,7 +6,7 @@ import discord
 from discord import app_commands
 
 from Constants import BOT_ADMIN_SERVER_ID, BOT_NAME, BOT_OWNER_ID, CYAN, KYTPBS_TAG
-from src import Youtube, client
+from src import client
 from src.download_system.download_commands import download_video_command
 from src.Helpers.birthday_helpers import get_user_and_date_from_string
 from src.llm_system import gpt
@@ -16,7 +16,6 @@ from src.voice.old_message_holder import add_message_to_be_deleted
 
 birthdays = client.get_birthdays()
 custom_responses = client.get_custom_responses()
-last_played = Youtube.get_last_played_guilded()
 
 admin = discord.Permissions()
 admin.update(administrator=True)
