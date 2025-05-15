@@ -67,14 +67,6 @@ class AlternateYoutubeDownloader(AlternateVideoDownloader):
             'default_search': 'auto',
             'nooverwrites': True,
             'quiet': True,
-            # Add post-processor to re-encode AV1 videos to H.264 if they are downloaded
-            'postprocessors': [{
-                'key': 'FFmpegVideoConvertor',
-                'preferedformat': 'mp4',
-                'when': 'video.codec:av01'
-            }],
-            # Ensure FFmpeg is used for any needed conversions
-            'prefer_ffmpeg': True,
         }
 
         return await cls._get_list_from_ydt(url, costum_options, path)
