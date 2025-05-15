@@ -177,6 +177,7 @@ class AlternateVideoDownloader(VideoDownloader):
                 requests.utils.cookiejar_from_dict(cookies, ydl.cookiejar)
             try:
                 ydt = await asyncio.to_thread(ydl.extract_info, url, download=True)
+                ydt = ydl.sanitize_info(ydt)
             except yt_dlp.DownloadError as e:
                 if "No video" in str(e): # This is a workaround for yt_dlp not raising a NoVideoFoundError
                     # If there becomes a specific error for this, we can change this to a `isInstance` check
@@ -185,10 +186,12 @@ class AlternateVideoDownloader(VideoDownloader):
                 logging.error("Couldn't download video from url: %s, Error: %s", url, e, exc_info=True)
                 raise DownloadFailedError(f"Couldn't download video from url: {url}") from e
 
-        if ydt is None:
+        if not isinstance(ydt, dict):
             raise DownloadFailedError(f"Couldn't download video from url: {url}")
 
-        infos: list[dict[str, Any]] = ydt.get("entries", [ydt])
+        # the return of `entries` is a list of dicts, and if not ydt is also always a list of dicts.
+        # and if its not either its better to just crash anyways.
+        infos: list[dict[str, Any]]  = ydt.get("entries", [ydt]) # type: ignore[assignment]
 
         if not infos:
             logging.error("No video found on url: %s, ydt data: %s", url, ydt)

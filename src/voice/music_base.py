@@ -74,6 +74,7 @@ class Music:
                 ydt = await asyncio.to_thread(
                     ydl.extract_info, f"ytsearch:{search}", download=False
                 )
+                ydt = ydl.sanitize_info(ydt)
             return cls.from_yt_dlp(ydt)
         except (yt_dlp.DownloadError, KeyError) as e:
             raise MusicNotFoundError(f"Couldn't find music for search: {search}") from e
