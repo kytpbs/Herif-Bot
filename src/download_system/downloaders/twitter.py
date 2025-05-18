@@ -5,8 +5,14 @@ import bs4
 from dotenv import load_dotenv
 import requests
 
-from Constants import MAX_VIDEO_DOWNLOAD_SIZE
-from src.download_system.downloader import AlternateVideoDownloader, DownloadFailedError, VideoDownloader, VideoFile, VIDEO_RETURN_TYPE, VideoFiles
+from src.download_system.downloader import (
+    AlternateVideoDownloader,
+    DownloadFailedError,
+    VideoDownloader,
+    VideoFile,
+    VIDEO_RETURN_TYPE,
+    VideoFiles,
+)
 
 
 load_dotenv()
@@ -51,6 +57,7 @@ def _get_highest_quality_url_list(response: requests.Response) -> list[str]:
 
     return highest_quality_url_list
 
+
 def _get_title(response: requests.Response) -> str:
     data = bs4.BeautifulSoup(response.text, "html.parser")
     title = data.find("p", class_="m-2")
@@ -73,7 +80,7 @@ class TwitterAlternativeDownloader(AlternateVideoDownloader):
         os.makedirs(path, exist_ok=True)
 
         specific_options = {
-            "format": f"best[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M]",
+            "format": "best",  # for some reason twitter downloading in yt-dlp does not work with the same format as youtube
             "outtmpl": os.path.join(path, "%(id)s.%(ext)s"),
             "noplaylist": True,
             "default_search": "auto",
@@ -118,7 +125,10 @@ class TwitterDownloader(VideoDownloader):
         attachment_list = [VideoFile(path) for path in downloaded_file_paths]
 
         if not attachment_list:
-            logging.error("No video was downloaded for this link, trying alternate downloader", exc_info=True)
+            logging.error(
+                "No video was downloaded for this link, trying alternate downloader",
+                exc_info=True,
+            )
             return await TwitterAlternativeDownloader.download_video_from_link(
                 url, path
             )
