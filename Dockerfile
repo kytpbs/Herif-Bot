@@ -5,7 +5,7 @@
 # https://docs.docker.com/engine/reference/builder/
 
 ARG PYTHON_VERSION=3.11
-FROM python:${PYTHON_VERSION}-slim AS base
+FROM python:${PYTHON_VERSION}-alpine AS base
 
 # Prevents Python from writing pyc files.
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -43,7 +43,11 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # Switch to the non-privileged user to run the application.
 
-RUN apt-get update && apt-get install ffmpeg -y && apt-get clean
+RUN apk update && \
+    apk add --no-cache ffmpeg && \
+    apk add --no-cache opus && \
+    apk add --no-cache opus-dev && \
+    apk cache clean
 
 
 # Copy the source code into the container.

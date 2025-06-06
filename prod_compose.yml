@@ -1,0 +1,9 @@
+services:
+  herif_bot:
+    image: docker.io/kytpbs/herif_bot-auto:latest
+    container_name: herifbot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./jsons:/app/jsons

@@ -1,4 +1,6 @@
 import asyncio
+import ctypes
+import ctypes.util
 import functools
 import logging
 from typing import Callable
@@ -20,6 +22,36 @@ MUSIC_QUEUES: dict[int, MusicQueue] = {}
 _NOT_SERVER_ERROR_MESSAGE = "Bu komutu kullanmak için sunucuda olman gerek"
 _NOT_PLAYING_MESSAGE = "Şu anda bir şey çalmıyorum"
 
+def make_sure_opus_is_loaded():
+    """
+    Ensures that opus is loaded, if not, it will try to load it
+    """
+    possible_opus_locations = [
+        ctypes.util.find_library('opus') or 'opus',
+        ctypes.util.find_library('opus.so') or 'opus.so',
+        ctypes.util.find_library('libopus.so') or 'libopus.so',
+        ctypes.util.find_library('opus.so.0') or 'opus.so.0',
+        ctypes.util.find_library('libopus.so.0') or 'libopus.so.0',
+        "/usr/lib/libopus.so", # alpine opus dev location
+    ]
+    possible_error: Exception | None = Exception()
+
+    for path in possible_opus_locations:
+        if discord.opus.is_loaded():
+            break
+        try:
+            discord.opus.load_opus(path)
+            logging.info("Opus loaded from %s", path)
+            return
+        except OSError as e: # hopefully this is the right exception
+            logging.debug("Failed to load opus from %s: %s", path, possible_error)
+            possible_error = e
+            continue
+    else:
+        logging.critical("Failed to load opus from %s: %s", path, possible_error)
+
+
+make_sure_opus_is_loaded()
 
 async def join(
     interaction: discord.Interaction,
@@ -145,6 +177,8 @@ async def play(interaction: discord.Interaction, search: str) -> InteractionResp
             _NOT_SERVER_ERROR_MESSAGE,
             ephemeral=True,
         )
+
+    make_sure_opus_is_loaded()
 
     state, voice = get_voice(interaction.user)
     queue = MUSIC_QUEUES.setdefault(interaction.guild.id, MusicQueue())
