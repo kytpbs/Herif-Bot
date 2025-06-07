@@ -69,6 +69,23 @@ class ErrorHandlingAxiomHandler(AxiomHandler):
     This is useful to prevent the bot from crashing due to logging issues.
     """
 
+    def __init__(self, client: axiom_py.Client, dataset: str):
+        super().__init__(client, dataset)
+        # Check if the dataset is valid before starting the handler, if not raise an error.
+        # This should have been done by `AxiomHandler.__init__`, but it is not, so we do it here.
+        # There is an issue for this here: https://github.com/axiomhq/axiom-py/issues/165
+        try:
+            client.datasets.get(
+                self.dataset
+            )  # This will raise an error if the dataset does not exist
+        except axiom_py.client.AxiomError as e:
+            raise axiom_py.client.AxiomError(
+                e.status,
+                axiom_py.client.AxiomError.Response(
+                    f"{self.dataset}, does not exist", None
+                ),
+            )
+
     def emit(self, record):
         try:
             super().emit(record)
