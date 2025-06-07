@@ -30,11 +30,17 @@ def _get_highest_quality_url_list(response: requests.Response) -> list[str]:
     data = bs4.BeautifulSoup(response.text, "html.parser")
     url = response.url
 
-    download_buttons: list[bs4.element.Tag] = data.find_all(
-        "div", class_="origin-top-right"
-    )
+    download_buttons = data.find_all("div", class_="origin-top-right")
 
     for index, button in enumerate(download_buttons):
+        if not isinstance(button, bs4.element.Tag):
+            logging.warning(
+                "Download button at index %d is not a Tag element in URL: %s",
+                index,
+                url,
+            )
+            continue
+
         highest_quality_url_button = button.find("a")
 
         if not isinstance(highest_quality_url_button, bs4.element.Tag):
