@@ -34,7 +34,7 @@ def is_server(only_true_if_cloud: bool = True) -> bool:
     if dev == "true":
         return False
 
-    return is_cloud or platform in ("linux", "linux1")
+    return is_cloud or platform.startswith("linux")
 
 
 def setup_file_logging():
@@ -43,15 +43,14 @@ def setup_file_logging():
         mode="w",
     )
     log_file.setLevel(logging.INFO)
-    log_file.formatter = _FORMATTER
+    log_file.setFormatter(_FORMATTER)
     logging.getLogger().addHandler(log_file)
 
 
 def setup_console_logging():
     console = logging.StreamHandler()
     console.setLevel(logging.DEBUG)
-    console.formatter = _FORMATTER
-
+    console.setFormatter(_FORMATTER)
     logging.getLogger().addHandler(console)
 
 
