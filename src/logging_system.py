@@ -1,6 +1,8 @@
+from collections import defaultdict
 import logging
 import os
 from sys import platform
+from typing_extensions import override
 
 import axiom_py
 from axiom_py.logging import AxiomHandler
@@ -54,13 +56,19 @@ def setup_console_logging():
     logging.getLogger().addHandler(console)
 
 
-def setup_google_cloud_logging():
+logging_setup: dict[str, bool] = defaultdict(lambda: False)
+
+# I will return logging.Handler | None when there is a chance that it may fail
+# Or else it will just return None, since i can't think of a reason why it would fail
+def setup_google_cloud_logging() -> logging.Handler | None:
     try:
         google_client = google.cloud.logging.Client()
-        google_client.get_default_handler()
+        log_handler: logging.Handler = google_client.get_default_handler()
         google_client.setup_logging(log_level=logging.DEBUG)
+        return log_handler
     except Exception as e:
         logging.error("Failed to setup google cloud logging", exc_info=e)
+        return None
 
 
 class ErrorHandlingAxiomHandler(AxiomHandler):
@@ -75,7 +83,7 @@ class ErrorHandlingAxiomHandler(AxiomHandler):
         # This should have been done by `AxiomHandler.__init__`, but it is not, so we do it here.
         # There is an issue for this here: https://github.com/axiomhq/axiom-py/issues/165
         try:
-            client.datasets.get(
+            _ = client.datasets.get(
                 self.dataset
             )  # This will raise an error if the dataset does not exist
         except axiom_py.client.AxiomError as e:
@@ -86,7 +94,8 @@ class ErrorHandlingAxiomHandler(AxiomHandler):
                 ),
             )
 
-    def emit(self, record):
+    @override
+    def emit(self, record: logging.LogRecord):
         try:
             super().emit(record)
             # For some reason Axiom seems to throw a lot of errors, so to be safe, i will catch all exceptions
@@ -99,34 +108,41 @@ class ErrorHandlingAxiomHandler(AxiomHandler):
             logging.getLogger().addHandler(self)
 
 
-def setup_axiom_logging():
+def setup_axiom_logging() -> logging.Handler | None:
     try:
         client = axiom_py.Client()
         handler = ErrorHandlingAxiomHandler(client, "herifbot")
     except axiom_py.client.AxiomError as e:
         logging.error("Failed to setup Axiom logging", exc_info=e)
-        return
+        return None
     logging.getLogger().addHandler(handler)
     try:
         logging.debug("Axiom logging setup successfully")
         handler.flush()  # force flush to test if the connection is actually working
+        return handler
     except axiom_py.client.AxiomError as e:
         logging.getLogger().removeHandler(handler)
         logging.error(
             "Failed to initialize axiom logging handler, removing it", exc_info=e
         )
-        return
+        return None
 
 
 def setup_logging():
     setup_console_logging()
+    gcloud_handler = None
 
     if is_server(only_true_if_cloud=False):
-        setup_google_cloud_logging()
+        gcloud_handler = setup_google_cloud_logging()
     else:
         setup_file_logging()
 
     # Both google cloud and axiom logging can throw exceptions, so we should
     # be able to see if any one of them fails while one worked,
 
-    setup_axiom_logging()
+    # If axiom fails, and gcloud is fine, then we get a warning
+    # If axiom is fine, and gcloud fails, then we have to re-try gcloud
+    # because we want to report that google cloud logging is not working
+    _ = setup_axiom_logging()
+    if not gcloud_handler:
+        _ = setup_google_cloud_logging()
