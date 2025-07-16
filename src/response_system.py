@@ -8,7 +8,7 @@ class CannotAddResponseError(Exception):
     pass
 
 LOGGER = logging.getLogger("response_system")
-custom_responses = DiskDict("responses.json")
+custom_responses: dict[str, str] = DiskDict("responses.json")
 
 
 def get_answers(question: str, guild_id: str | None = None) -> list[str]:
@@ -19,7 +19,7 @@ def get_answers(question: str, guild_id: str | None = None) -> list[str]:
     except responses.NotConnectedToDBError:
         LOGGER.warning(_NOT_CONNECTED_ERROR_MESSAGE)
 
-    return [custom_responses.get(question, None)]
+    return [custom_responses[question]] if question in custom_responses else []
 
 def get_answer(question: str, guild_id: str | None = None) -> str | None:
     return get_answers(question, guild_id)[0]
@@ -32,7 +32,7 @@ def add_answer(question: str, answer: str, guild_id: str | None = None) -> bool:
         LOGGER.warning(_NOT_CONNECTED_ERROR_MESSAGE)
 
     if question in custom_responses:
-        raise responses.TooManyAnswersError(f"Too many responses for {question}", custom_responses[question])
+        raise responses.TooManyAnswersError(f"Too many responses for {question}", [custom_responses[question]])
 
     custom_responses[question] = answer
     return True

@@ -1,9 +1,14 @@
 from typing import Optional
-from src.sql.sql_errors import NotConnectedError, TooManyAnswersError, AlreadyRespondsTheSameError
+from src.sql.sql_errors import (
+    NotConnectedError,
+    TooManyAnswersError,
+    AlreadyRespondsTheSameError,
+)
 from src.sql.sql_wrapper import LOGGER, get, post
 
 
 NotConnectedToDBError = NotConnectedError
+
 
 def get_all_question_responses(guild_id: Optional[str] = None) -> list[tuple[str, str]]:
     sql_query = "SELECT question, answer FROM global_answers"
@@ -16,8 +21,10 @@ def get_all_question_responses(guild_id: Optional[str] = None) -> list[tuple[str
         return []
     return result
 
+
 def get_all_responses():
     return get("SELECT * FROM responses;")
+
 
 def add_response(response: tuple[str, str], guild_id: Optional[str] = None) -> int:
     answers = get_answers(response[0], guild_id)
@@ -26,11 +33,17 @@ def add_response(response: tuple[str, str], guild_id: Optional[str] = None) -> i
         raise TooManyAnswersError(f"Too many responses for {response[0]}", answers)
 
     if response[1] in answers:
-        raise AlreadyRespondsTheSameError(f"Answer {response[1]} already exists for {response[0]}", response[1])
+        raise AlreadyRespondsTheSameError(
+            f"Answer {response[1]} already exists for {response[0]}", response[1]
+        )
 
     if guild_id:
-        return post("INSERT INTO responses (question, answer, guild_id) VALUES (%s, %s, %s);", response + (guild_id,))
+        return post(
+            "INSERT INTO responses (question, answer, guild_id) VALUES (%s, %s, %s);",
+            response + (guild_id,),
+        )
     return post("INSERT INTO responses (question, answer) VALUES (%s, %s);", response)
+
 
 def get_answers(question: str, guild_id: Optional[str] = None) -> list[str]:
     """Get all answers for a question, however many there are. returns an empty list if there are none.
@@ -47,7 +60,9 @@ def get_answers(question: str, guild_id: Optional[str] = None) -> list[str]:
     sql_query = "SELECT answer FROM global_answers WHERE question = %s"
 
     if guild_id:
-        guild_query = "SELECT answer FROM responses WHERE question = %s AND guild_id = %s"
+        guild_query = (
+            "SELECT answer FROM responses WHERE question = %s AND guild_id = %s"
+        )
         sql_query += f" UNION {guild_query}"
         values += [question, guild_id]
 
@@ -57,8 +72,11 @@ def get_answers(question: str, guild_id: Optional[str] = None) -> list[str]:
     # this returns a list of tuples each with a single element, so we need to extract the element
     return [result[0] for result in result_with_tuples]
 
+
 def delete_answer(question: str, answer, guild_id: str) -> int:
-    query = "DELETE FROM responses WHERE question = %s AND answer = %s AND guild_id = %s"
+    query = (
+        "DELETE FROM responses WHERE question = %s AND answer = %s AND guild_id = %s"
+    )
     return post(query, (question, answer, guild_id))
 
 
@@ -85,6 +103,7 @@ def create_table_if_not_exists():
         """
     )
 
+
 def sync_responses_dict_to_db(responses: dict[str, str]):
     rows = 0
 
@@ -97,8 +116,9 @@ def sync_responses_dict_to_db(responses: dict[str, str]):
 
     return rows
 
+
 try:
-    create_table_if_not_exists() # at the start we might not have the table, so we create it
+    create_table_if_not_exists()  # at the start we might not have the table, so we create it
 except NotConnectedToDBError:
     LOGGER.warning("No connection to the database")
 

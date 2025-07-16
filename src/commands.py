@@ -12,12 +12,13 @@ from src.sql.responses import TooManyAnswersError
 from src.llm_system import gpt
 from src.llm_system.llm_errors import LLMError
 import src.client as client
-from Constants import BOT_ADMIN_SERVER_ID, BOT_NAME, BOT_OWNER_ID, CYAN, KYTPBS_TAG
+from Constants import BOT_ADMIN_SERVER_ID, BOT_NAME, BOT_OWNER_ID, CYAN
 from src.download_system.download_commands import download_video_command
-from src.Helpers.birthday_helpers import get_user_and_date_from_string
 from src.voice import voice_commands
 from src.voice.old_message_holder import add_message_to_be_deleted
 from src.response_system import add_answer, get_answers, get_data, remove_answer
+
+_ONLY_SERVERS_ERROR_TEXT = "Bu komut sadece sunucularda çalışır. "
 
 
 admin = discord.Permissions()
@@ -74,9 +75,11 @@ class BirthdayCommands(app_commands.Group):
         if user is None:
             user = interaction.user  # type: ignore
         user_id = user.id
+
         if interaction.guild_id is None:
-            await interaction.response.send_message("Bu komut sadece sunucularda çalışır", ephemeral=True)
+            await interaction.response.send_message(_ONLY_SERVERS_ERROR_TEXT, ephemeral=True)
             return
+
         try:
             birthday_date = date(int(year), int(month), int(day))
         except ValueError:
@@ -103,7 +106,7 @@ class BirthdayCommands(app_commands.Group):
     @app_commands.command(name="dogumgunu_goster", description="Kişinin doğumgününü gösterir")
     async def show_birthday(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
         if interaction.guild_id is None or not isinstance(interaction.user, discord.Member):
-            await interaction.response.send_message("Bu komut sadece sunucularda çalışır", ephemeral=True)
+            await interaction.response.send_message(_ONLY_SERVERS_ERROR_TEXT, ephemeral=True)
             return
         if user is None:
             user = interaction.user
@@ -122,7 +125,7 @@ class AdminBirthdayCommands(app_commands.Group):
     @app_commands.command(name="dogumgunu_listele", description="Doğumgünlerini listeler, sadece modlar kullanabilir")
     async def list_birthday(self, interaction: discord.Interaction):
         if interaction.guild_id is None or not isinstance(interaction.user, discord.Member):
-            await interaction.response.send_message("Bu komut sadece sunucularda çalışır", ephemeral=True)
+            await interaction.response.send_message(_ONLY_SERVERS_ERROR_TEXT, ephemeral=True)
             return
 
         if interaction.user.guild_permissions.administrator is False:
@@ -140,7 +143,7 @@ class AdminBirthdayCommands(app_commands.Group):
                           description="Doğumgününü silmeni sağlar")
     async def delete_birthday(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
         if interaction.guild_id is None or not isinstance(interaction.user, discord.Member):
-            await interaction.response.send_message("Bu komut sadece sunucularda çalışır")
+            await interaction.response.send_message(_ONLY_SERVERS_ERROR_TEXT)
             return
         user = user or interaction.user
         if interaction.guild_id != BOT_ADMIN_SERVER_ID or (interaction.user != user and not interaction.user.guild_permissions.administrator):
@@ -157,7 +160,7 @@ class SpecialCommands(app_commands.Group):
     @app_commands.command(name="olustur", description="botun senin ayarladığın mesajlara cevap verebilmesini sağlar")
     async def create_command(self, interaction: discord.Interaction, text: str, answer: str):
         if interaction.guild_id is None:
-            await interaction.response.send_message("Bu komut sadece sunucularda çalışır", ephemeral=True)
+            await interaction.response.send_message(_ONLY_SERVERS_ERROR_TEXT, ephemeral=True)
             return
         try:
             result = add_answer(text, answer, guild_id=str(interaction.guild_id))
@@ -202,7 +205,7 @@ class AdminSpecialCommands(app_commands.Group):
     @app_commands.command(name="sil", description="Sunucuda özel eklenmiş bir cevabı siler")
     async def delete_command(self, interaction: discord.Interaction, question: str, answer: str):
         if interaction.guild_id is None:
-            await interaction.response.send_message("Bu komut sadece sunucularda çalışır", ephemeral=True)
+            await interaction.response.send_message(_ONLY_SERVERS_ERROR_TEXT, ephemeral=True)
             return
         is_deleted = remove_answer(question, answer, str(interaction.guild_id))
         if is_deleted:
@@ -214,7 +217,7 @@ class AdminSpecialCommands(app_commands.Group):
     @app_commands.command(name="interaktif-sil", description="Sunucuda özel eklenmiş bir cevabı siler, seçim yapmanı sağlar")
     async def interactive_delete(self, interaction: discord.Interaction, question: str):
         if interaction.guild_id is None:
-            await interaction.response.send_message("Bu komut sadece sunucularda çalışır", ephemeral=True)
+            await interaction.response.send_message(_ONLY_SERVERS_ERROR_TEXT, ephemeral=True)
             return
 
         guild_id = str(interaction.guild_id)
