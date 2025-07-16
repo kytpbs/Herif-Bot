@@ -3,12 +3,20 @@ from discord import app_commands
 
 from Constants import CYAN
 from src import client
+from src.commands.command_group import CommandGroup
 
+# Hopefully this will be moved behind an interface without an implementation detail in the command group
 custom_responses = client.get_custom_responses()
 
 @app_commands.allowed_installs(guilds=True, users=False)
 @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
-class CustomizationCommands(app_commands.Group):
+class CustomizationCommands(app_commands.Group, CommandGroup):
+    @classmethod
+    def get_commands(cls) -> list[discord.app_commands.Command | discord.app_commands.Group | discord.app_commands.ContextMenu]:
+        return [
+                cls(name="özel", description="Bota özel komutlar ekleyip görmen için komutlar"),
+        ]
+
     @app_commands.command(name="olustur", description="botun senin ayarladığın mesajlara cevap verebilmesini sağlar")
     async def create_command(self, interaction: discord.Interaction, text: str, answer: str, degistir: bool = False):
         if custom_responses.get(text) is None:

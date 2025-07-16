@@ -4,6 +4,7 @@ import discord
 from discord import app_commands
 
 from Constants import BOT_ADMIN_SERVER_ID, CYAN, KYTPBS_TAG
+from src.commands.command_group import CommandGroup
 from src.Helpers.birthday_helpers import get_user_and_date_from_string
 from src import client
 
@@ -11,7 +12,13 @@ birthdays = client.get_birthdays()
 
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-class BirthdayCommands(app_commands.Group):
+class BirthdayCommands(app_commands.Group, CommandGroup):
+    @classmethod
+    def get_commands(cls) -> list[discord.app_commands.Command | discord.app_commands.Group | discord.app_commands.ContextMenu]:
+        return [
+                cls(name="doğumgünü", description="Doğumgünü komutları"),
+        ]
+
     @app_commands.command(name="dogumgunu_ekle", description="Doğumgününü eklemeni sağlar")
     async def add_birthday(self, interaction: discord.Interaction, day: str, month: str, year: str,
                            user: discord.Member = None):  # type: ignore
