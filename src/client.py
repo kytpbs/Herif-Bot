@@ -30,8 +30,8 @@ class MyClient(discord.Client):
     async def on_ready(self):
         await self.wait_until_ready()
         if not self.synced:
-            import src.commands as commands  # pylint: disable=import-outside-toplevel # to avoid circular imports
-            tree = commands.get_tree_instance()
+            import command_controller as command_controller  # pylint: disable=import-outside-toplevel # to avoid circular imports
+            tree = command_controller.get_tree_instance()
             await tree.sync()
             start_tasks()
             self.synced = True
