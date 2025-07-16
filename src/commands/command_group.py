@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+import logging
 
 import discord
 
+LOGGER = logging.getLogger("commands")
 
 class CommandGroup(ABC):
     @classmethod
@@ -9,6 +11,7 @@ class CommandGroup(ABC):
         # Default implementation, Should be overridden if there are subcommands or similar
         for command in cls.get_commands():
             tree.add_command(command)
+            LOGGER.debug("Registered command: %s", command.name)
 
     @classmethod
     @abstractmethod
