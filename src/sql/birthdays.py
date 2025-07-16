@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Iterable
 from src.sql.sql_errors import BirthdayAlreadyExistsError, NotConnectedError
 from src.sql.sql_wrapper import LOGGER, get, post
 
@@ -14,16 +15,30 @@ def get_all_birthdays(guild_id: str | int | None = None) -> list[tuple[int, date
         return []
     return result
 
+
 def get_birthday(user_id: str, guild_id: str | None = None) -> date | None:
     values = [user_id]
     sql_query = "SELECT birthday FROM birthdays WHERE user_id = %s"
     if guild_id:
         sql_query += " AND guild_id = %s"
         values.append(guild_id)
-    result = get(sql_query, values)
-    if not result or not result[0]:
+    result: Iterable[Iterable[date]] | None = get(sql_query, values)
+    if not result:
         return None
-    return result[0][0]
+    if len(result) != 1 or len(result[0]) != 1:
+        LOGGER.error(
+            f"Expected exactly one birthday for user {user_id} in guild {guild_id}, "
+            f"but got {len(result)} results."
+        )
+    birthday = result[0][0] # Shouldn't be able to have more then one
+    if not isinstance(birthday, date):
+        LOGGER.error(
+            f"Expected birthday to be of type date for user {user_id} in guild {guild_id}, "
+            f"but got {type(birthday)}."
+        )
+        return None
+    return birthday
+
 
 def get_users_birthday(birthday: date, guild_id: str | None = None) -> list[int]:
     values: list[str | date] = [birthday]
@@ -35,6 +50,7 @@ def get_users_birthday(birthday: date, guild_id: str | None = None) -> list[int]
     if not result:
         return []
     return [user_id for user_id, _ in result]
+
 
 def find_users(birthday: date) -> list[tuple[int, int]]:
     """Find all users who have a birthday on the given date
@@ -51,15 +67,38 @@ def find_users(birthday: date) -> list[tuple[int, int]]:
         return []
     return result
 
+
 def add_birthday(user_id: str, birthday: date, guild_id: str) -> int:
-    if (real_birthday:= get_birthday(user_id, guild_id)):
-        raise BirthdayAlreadyExistsError(f"User {user_id} already has a birthday in the database", real_birthday)
+    if real_birthday := get_birthday(user_id, guild_id):
+        raise BirthdayAlreadyExistsError(
+            f"User {user_id} already has a birthday in the database", real_birthday
+        )
+
+    # User is adding their birthday to a specific guild
+    # This is the preferred way to add birthdays,
+    # Since we don't want to congratulate users in every guild they are in
+    # even though their birthday is the same
+
     if guild_id:
-        return post("INSERT INTO birthdays (user_id, birthday, guild_id) VALUES (%s, %s, %s);", (user_id, birthday, guild_id))
-    return post("INSERT INTO birthdays (user_id, birthday) VALUES (%s, %s);", (user_id, birthday))
+        return post(
+            "INSERT INTO birthdays (user_id, birthday, guild_id) VALUES (%s, %s, %s);",
+            (user_id, birthday, guild_id),
+        )
+
+    # User is adding their birthday to the global birthdays table
+    # This is not recommended, but we allow it for backwards compatibility
+    return post(
+        "INSERT INTO birthdays (user_id, birthday) VALUES (%s, %s);",
+        (user_id, birthday),
+    )
+
 
 def delete_birthday(user_id: str, guild_id: str) -> int:
-    return post("DELETE FROM birthdays WHERE user_id = %s AND guild_id = %s;", (user_id, guild_id))
+    return post(
+        "DELETE FROM birthdays WHERE user_id = %s AND guild_id = %s;",
+        (user_id, guild_id),
+    )
+
 
 def create_table_if_not_exists():
     query = """
@@ -72,16 +111,20 @@ def create_table_if_not_exists():
     """
     post(query)
 
+
 def sync_birthdays_dict_to_db(birthdays: dict[str, date], guild_id: str):
     rows = 0
 
     for user_id, birthday in birthdays.items():
         if get_birthday(user_id, guild_id):
-            LOGGER.debug(f"User {user_id} already has a birthday in the database, skipping...")
+            LOGGER.debug(
+                f"User {user_id} already has a birthday in the database, skipping..."
+            )
             continue
-        rows+= add_birthday(user_id, birthday, guild_id)
+        rows += add_birthday(user_id, birthday, guild_id)
 
     return rows
+
 
 try:
     create_table_if_not_exists()
