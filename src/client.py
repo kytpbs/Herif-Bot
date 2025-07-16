@@ -20,7 +20,6 @@ birthdays = DiskDict("birthdays.json")
 
 # noinspection PyMethodMayBeStatic
 class MyClient(discord.Client):
-
     def __init__(self):
         super().__init__(intents=discord.Intents.all())
         self.deleted = False
@@ -30,8 +29,9 @@ class MyClient(discord.Client):
     async def on_ready(self):
         await self.wait_until_ready()
         if not self.synced:
-            import command_controller as command_controller  # pylint: disable=import-outside-toplevel # to avoid circular imports
-            tree = command_controller.get_tree_instance()
+            from src import command_controller # pylint: disable=import-outside-toplevel # to avoid circular imports
+            tree = command_controller.create_tree(self)
+            command_controller.setup_commands(tree)
             await tree.sync()
             start_tasks()
             self.synced = True
