@@ -1,10 +1,11 @@
-import functools
 import logging
 import os
-from time import time
-from typing import TypeVar
-from collections.abc import Sequence, Mapping
+from collections.abc import Mapping, Sequence
+from typing import LiteralString, TypeAlias, TypeVar
+
 import psycopg
+from async_lru import alru_cache
+from psycopg import sql
 from psycopg.rows import TupleRow
 
 from src.sql.errors import NotConnectedError, SQLFailedMiserably
@@ -15,6 +16,7 @@ LOGGER = logging.getLogger("SQL")
 T = TypeVar("T")
 
 Params = Sequence[T] | Mapping[str, T]
+Query: TypeAlias = LiteralString | sql.SQL | sql.Composed
 
 
 class DatabaseClient:
@@ -24,7 +26,7 @@ class DatabaseClient:
         try:
             await client.connect()
         except psycopg.OperationalError as e:
-            raise NotConnectedError(e)
+            raise NotConnectedError(e) from e
         return client
 
     def __init__(self):
@@ -43,12 +45,12 @@ class DatabaseClient:
         """
         Closes the connection to the database.
         """
-        if self.conn:
+        if self.conn is not None and not self.conn.closed:
             await self.conn.close()
 
     @property
     def connection(self) -> psycopg.AsyncConnection:
-        if not self.conn:
+        if not self.conn or self.conn.closed:
             # This should never happen unless __init__ was directly called
             # and then connect() was never called.
             raise NotConnectedError("Database not connected, call connect()")
@@ -68,15 +70,7 @@ class DatabaseClient:
         if self.conn:
             await self.conn.close()
 
-        self.conn = await psycopg.AsyncConnection.connect(
-            user=os.getenv("SQL_USER", "postgres"),
-            password=os.getenv("SQL_PASSWORD"),
-            dbname=os.getenv("SQL_DATABASE", "herifbot"),
-            host=os.getenv("SQL_HOST", "localhost"),
-            port=os.getenv("SQL_PORT", "5432"),
-            sslmode=os.getenv("SQL_SSL_MODE", "require"),
-            channel_binding=os.getenv("SQL_CHANNEL_BINDING", "require"),
-        )
+        await self._connect()
 
     async def _connect(self):
         user = os.getenv("SQL_USER", "postgres")
@@ -101,9 +95,12 @@ class DatabaseClient:
             channel_binding=channel_binding,
         )
 
-    async def post(self, query: str, params: Params[T] = None):
+    async def post(self, query: Query | sql.SQL, params: Params[T] | None = None) -> int:
         """
-        Executes a query and returns the result.
+        Executes a query and returns the number of rows affected by the query.
+        This should be used for INSERT, UPDATE, and DELETE queries.
+
+        If you want to get the result of a query, use :meth:`get()`.
 
         Args:
             query (str): The query to execute.
@@ -111,23 +108,37 @@ class DatabaseClient:
                 Defaults to None.
 
         Returns:
-            psycopg.AsyncResult: The result of the query.
+            int: The number of rows affected by the query.
         """
         async with self.connection.cursor() as cursor:
-            if params:
-                _ = await cursor.execute(query, params)
-            else:
-                _ = await cursor.execute(query)
+            _ = await cursor.execute(query, params)
 
-            return await cursor.fetchall()
+            cursor.pgresult
+            return cursor.rowcount
 
     # Cache the `get` method to avoid unnecessary database queries.
     # But do with TTL (Time To Live) to avoid caching forever.
-    @functools.lru_cache(maxsize=32, typed=True)
-    async def _get(
-        self, query: str, params: Params[T] | None = None, ttl: int = None
+    # Cache for 100 milliseconds
+    # Should be more than enough for sudden bursts from func calls
+    # The rest we don't need to cache for now anyways
+    @alru_cache(maxsize=32, typed=True, ttl=0.1)
+    async def get(
+        self, query: Query, params: Params[T]
     ) -> list[TupleRow] | None:
-        del ttl  # This is passed so that the cache gets invalidated, not used.
+        """
+        Executes a query and returns the first result.
+
+        This doesn't accept mapping types, due to caching issues.
+
+        Update and create a FrozenDict type to fix this.
+        Args:
+            query (Query): The query to execute.
+            params (Sequence | None): The parameters to pass to the query.
+                Defaults to None.
+
+        Returns:
+            psycopg.AsyncResult: The result of the query.
+        """
         LOGGER.debug("Executing query: '%s' with values: %s", query, params)
 
         async with self.connection.cursor() as cursor:
@@ -147,22 +158,16 @@ class DatabaseClient:
                 )
                 raise SQLFailedMiserably("Query failed") from e
 
-    async def get(self, query: str, params: Params[T] | None = None):
+    def __del__(self):
         """
-        Executes a query and returns the first result.
-
-        Args:
-            query (str): The query to execute.
-            params (tuple | list | dict | None): The parameters to pass to the query.
-                Defaults to None.
-
-        Returns:
-            psycopg.AsyncResult: The result of the query.
+        Cleanup method called when the object is garbage collected.
+        Warns if the connection is still open.
         """
-        # Cache for 100 milliseconds with round to 1st decimal place
-        # Should be more than enough for sudden bursts from func calls
-        # The rest we don't need to cache for now anyways
-        return await self._get(query, params, ttl=round(time(), 1))
+        if self.conn and not self.conn.closed:
+            LOGGER.warning(
+                "DatabaseClient was deleted with an open connection. "
+                "Please call close() or use as an async context manager."
+            )
 
 
 async def _main():
