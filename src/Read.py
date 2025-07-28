@@ -1,3 +1,4 @@
+from datetime import date
 import json
 import logging
 import os
@@ -5,6 +6,22 @@ from typing import overload
 
 from Constants import JSON_FOLDER
 FILE_EXTENSION = ".json"
+
+class DateEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, date):
+            return o.isoformat()  # Convert to string like "2025-07-29"
+        return super().default(o)
+
+def _date_hook(dct):
+    for key, value in dct.items():
+        if isinstance(value, str):
+            try:
+                # Try to parse as date
+                dct[key] = date.fromisoformat(value)
+            except ValueError:
+                pass  # Not a date string, keep as is
+    return dct
 
 
 @overload
@@ -33,7 +50,7 @@ def json_read(name: str, create_if_not_exists: bool = True) -> dict | None:
         return {}
     with open(name, encoding="utf-8") as json_file:
         logging.debug(f"Reading {name}")
-        data = json.load(json_file)
+        data = json.load(json_file, object_hook=_date_hook)
     return data
 
 
@@ -50,6 +67,6 @@ def write_json(name: str, data: dict[str, str]) -> None:
         name = os.path.join(JSON_FOLDER, name)
     os.makedirs(JSON_FOLDER, exist_ok=True)
     with open(name, 'w+', encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
+        json.dump(data, f, indent=4, cls=DateEncoder)
         f.close()
     logging.debug(f"Writing to {name}")
