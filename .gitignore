@@ -24,4 +24,5 @@ cache/
 __pycache__/
 downloads/
 birthdays.json
+jsons/birthday_guild.json
 .vscode/settings.json
