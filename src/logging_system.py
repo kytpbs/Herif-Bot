@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 from Constants import BOT_NAME
 
-load_dotenv()
+_ = load_dotenv()
 FORMAT_STRING = (
     "%(asctime)s %(levelname)s - %(name)s - %(message)s in %(filename)s:%(lineno)d"
 )
@@ -58,8 +58,9 @@ def setup_console_logging():
 
 logging_setup: dict[str, bool] = defaultdict(lambda: False)
 
+
 # I will return logging.Handler | None when there is a chance that it may fail
-# Or else it will just return None, since i can't think of a reason why it would fail
+# Or else it will just return None, since I can't think of a reason why it would fail
 def setup_google_cloud_logging() -> logging.Handler | None:
     try:
         google_client = google.cloud.logging.Client()
@@ -98,7 +99,7 @@ class ErrorHandlingAxiomHandler(AxiomHandler):
     def emit(self, record: logging.LogRecord):
         try:
             super().emit(record)
-            # For some reason Axiom seems to throw a lot of errors, so to be safe, i will catch all exceptions
+            # For some reason Axiom seems to throw a lot of errors, so to be safe, I will catch all exceptions
         except Exception as e:  # pylint: disable=broad-except
             logging.getLogger().removeHandler(self)
             logging.warning(
@@ -118,7 +119,7 @@ def setup_axiom_logging() -> logging.Handler | None:
     logging.getLogger().addHandler(handler)
     try:
         logging.debug("Axiom logging setup successfully")
-        handler.flush()  # force flush to test if the connection is actually working
+        handler.flush()  # Force flush to test if the connection is actually working
         return handler
     except axiom_py.client.AxiomError as e:
         logging.getLogger().removeHandler(handler)
@@ -137,12 +138,12 @@ def setup_logging():
     else:
         setup_file_logging()
 
-    # Both google cloud and axiom logging can throw exceptions, so we should
-    # be able to see if any one of them fails while one worked,
+    # Both Google Cloud and axiom logging can throw exceptions, so we should
+    # be able to see if anyone of them fails while one worked,
 
     # If axiom fails, and gcloud is fine, then we get a warning
-    # If axiom is fine, and gcloud fails, then we have to re-try gcloud
-    # because we want to report that google cloud logging is not working
+    # If axiom is fine, and gcloud fails, then we have to re-try gcloud.
+    # Because we want to report that Google Cloud logging is not working
     _ = setup_axiom_logging()
     if not gcloud_handler:
         _ = setup_google_cloud_logging()
