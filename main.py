@@ -1,6 +1,7 @@
-# import token_system first so that logging is setup correctly (ie. cloud logging) before everything else runs
 # Ensure logging is set up before any other imports
+# This ensures that errors occurring during the import of other modules are logged
 from src.logging_system import setup_logging
+
 setup_logging()
 
 # ruff: noqa: E402
