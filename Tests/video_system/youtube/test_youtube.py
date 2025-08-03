@@ -27,12 +27,10 @@ class TestYoutubeDownloader(DownloadTester):
             videos = await YoutubeDownloader.download_video_from_link(TEST_YOUTUBE_1, DOWNLOAD_PATH)
         except DownloadFailedError as e:
             assert e.msg
-            assert e.args
-            assert len(e.args) > 1
-            assert isinstance(e.args[1].msg, str)
+            assert e.__cause__
 
             import warnings
-            if "Sign in" not in str(e.args[1].msg):
+            if "Sign in" not in str(e.__cause__):
                 raise e # re-raise the exception if it's not a sign in error
             warnings.warn(e.msg)
             return
