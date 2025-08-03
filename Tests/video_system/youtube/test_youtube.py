@@ -26,9 +26,9 @@ class TestYoutubeDownloader(DownloadTester):
         try:
             videos = await YoutubeDownloader.download_video_from_link(TEST_YOUTUBE_1, DOWNLOAD_PATH)
         except DownloadFailedError as e:
-            assert e.msg
+            assert isinstance(e.msg, str)
             import warnings
-            if "Sign in" not in str(e.with_traceback(None).__traceback__):
+            if "login" not in e.msg.lower():
                 raise e # re-raise the exception if it's not a sign in error
             warnings.warn(e.msg)
             return
