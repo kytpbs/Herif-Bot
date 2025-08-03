@@ -28,7 +28,7 @@ class TestYoutubeDownloader(DownloadTester):
         except DownloadFailedError as e:
             assert isinstance(e.msg, str)
             import warnings
-            if "login" not in e.msg.lower():
+            if "login" not in str(e.with_traceback(None)):
                 raise e # re-raise the exception if it's not a sign in error
             warnings.warn(e.msg)
             return
