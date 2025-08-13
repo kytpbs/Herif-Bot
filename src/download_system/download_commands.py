@@ -13,6 +13,7 @@ from src.download_system.downloader import (
 )
 from src.download_system.downloaders.other import UnknownAlternateDownloader
 from src.download_system.downloading_system import get_downloader, get_url_from_text
+from src.Helpers.helper_functions import sanitize_markdown
 
 _view_list: list[
     discord.ui.View
@@ -176,6 +177,8 @@ async def download_video_command(
     real_caption = (
         attachments.caption or f"Video{'s' if len(attachments) > 1 else ''} Downloaded"
     )
+    # Sanitize markdown characters in the caption to prevent Discord formatting
+    real_caption = sanitize_markdown(real_caption)
     caption, view = _get_caption_and_view(real_caption, include_title)
     caption = caption or discord.utils.MISSING
 
@@ -228,6 +231,8 @@ async def try_unknown_link(
     real_caption = (
         attachments.caption or f"Video{'s' if len(attachments) > 1 else ''} Downloaded"
     )
+    # Sanitize markdown characters in the caption to prevent Discord formatting
+    real_caption = sanitize_markdown(real_caption)
     caption, view = _get_caption_and_view(real_caption, include_title)
     caption = caption or ""
 
