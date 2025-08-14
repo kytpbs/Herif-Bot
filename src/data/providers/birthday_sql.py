@@ -55,13 +55,23 @@ class BirthdaySQL(Birthdays):
             UNIQUE(user_id, guild_id)
         )
 
+        CREATE INDEX idx_{0}_get_birthday on {0}(guild_id, user_id);
+        CREATE INDEX idx_{0}_users_birthday on {0}(user_id);
+
+        CREATE INDEX idx_{0}_on_date on {0}(
+            guild_id,
+            EXTRACT(MONTH FROM birthday),
+            EXTRACT(DAY FROM birthday)
+        );
         """).format(sql.Identifier(self._table_name))
         # Use db_client instead of _client to avoid getting an error
         _ = await self._db_client.post(query)
         self._table_exists = True
         LOGGER.info(f"Table {self._table_name} created or already exists")
 
-    async def add_birthday(self, user_id: UserID, guild_id: GuildID, birthday: date) -> None:
+    async def add_birthday(
+        self, user_id: UserID, guild_id: GuildID, birthday: date
+    ) -> None:
         query = sql.SQL("""
             INSERT INTO {0} (user_id, guild_id, birthday)
             VALUES (%s, %s, %s)
