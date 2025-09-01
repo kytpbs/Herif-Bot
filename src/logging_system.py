@@ -19,12 +19,15 @@ FORMAT_STRING = (
 _FORMATTER = logging.Formatter(FORMAT_STRING, datefmt="%Y-%m-%d %H:%M:%S")
 
 
+def _is_true(value: str) -> bool:
+    return value.lower() in ["true", "1", "yes"]
+
 def is_server(only_true_if_cloud: bool = True) -> bool:
     dev = os.getenv("DEV") or "false"
 
     is_cloud = any(
         (
-            is_prod_str.lower() in ["true", "1", "yes"]
+            _is_true(is_prod_str)
             for is_prod_str in map(os.getenv, ["CLOUD", "PROD", "IS_CLOUD", "IS_PROD"])
             if is_prod_str is not None
         )
@@ -33,7 +36,7 @@ def is_server(only_true_if_cloud: bool = True) -> bool:
     if only_true_if_cloud:
         return is_cloud
 
-    if dev == "true":
+    if _is_true(dev):
         return False
 
     return is_cloud or platform.startswith("linux")
