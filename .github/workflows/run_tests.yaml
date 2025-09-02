@@ -25,20 +25,24 @@ jobs:
           #- macos-latest
           #- windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           lfs: 'true'
           fetch-depth: 0
-      # Install uv and python
-      - name: Install uv
+      - uses: FedericoCarboni/setup-ffmpeg@v3
+        name: Install ffmpeg
+        id: setup-ffmpeg
+      - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.py }}
-      - uses: FedericoCarboni/setup-ffmpeg@v3
-        id: setup-ffmpeg
       - name: Install tox
-        run: uv tool install tox --with tox-uv --with tox-gh
+        run: uv tool install --python-preference only-managed --python ${{ matrix.py }} tox --with tox-uv --with tox-gh
       - name: Setup test suite
-        run: tox -vv --notest
+        run: tox run -vv --notest --skip-missing-interpreters false
+        env:
+          TOX_GH_MAJOR_MINOR: ${{ matrix.env }}
       - name: Run test suite
-        run: tox --skip-pkg-install
+        run: tox run --skip-pkg-install
+        env:
+          TOX_GH_MAJOR_MINOR: ${{ matrix.env }}
