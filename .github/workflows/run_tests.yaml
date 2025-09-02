@@ -34,12 +34,11 @@ jobs:
         id: setup-ffmpeg
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v6
-        with:
-          python-version: ${{ matrix.py }}
       - name: Install tox
-        run: uv tool install --python-preference only-managed --python ${{ matrix.py }} tox --with tox-uv --with tox-gh
-      - name: Setup test suite
-        run: tox run -vv --notest --skip-missing-interpreters false
+        run: uv tool install --python-preference only-managed --python 3.13 tox --with tox-uv --with tox-gh
+      - name: Install Python
+        if: matrix.py != '3.13'
+        run: uv python install --python-preference only-managed ${{ matrix.env }}
         env:
           TOX_GH_MAJOR_MINOR: ${{ matrix.env }}
       - name: Run test suite
