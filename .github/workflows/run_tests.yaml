@@ -34,11 +34,8 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.py }}
-      - uses: FedericoCarboni/setup-ffmpeg@v3
-        id: setup-ffmpeg
-      - name: Install tox
-        run: uv tool install tox --with tox-uv --with tox-gh
-      - name: Setup test suite
-        run: tox -vv --notest
+      - name: Install All Deps
+      # Prepare Pytest environment
+        run: uv sync
       - name: Run test suite
-        run: tox --skip-pkg-install
+        run: uv run pytest .
