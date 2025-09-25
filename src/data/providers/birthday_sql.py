@@ -99,7 +99,7 @@ class BirthdaySQL(Birthdays):
             WHERE user_id = %s AND guild_id = %s
         """)
             .format(sql.Identifier(self._table_name))
-            .as_string(self._client.connection)
+            .as_string()
         )
 
         result = await self._client.get(query, (user_id, guild_id))
@@ -114,7 +114,7 @@ class BirthdaySQL(Birthdays):
             WHERE guild_id = %s
         """)
             .format(sql.Identifier(self._table_name))
-            .as_string(self._client.connection)
+            .as_string()
         )
 
         result = await self._client.get(query, (guild_id,))
@@ -136,7 +136,7 @@ class BirthdaySQL(Birthdays):
             AND EXTRACT(MONTH FROM birthday)=EXTRACT(MONTH FROM %s)
         """)
             .format(sql.Identifier(self._table_name))
-            .as_string(self._client.connection)
+            .as_string()
         )
 
         result = await self._client.get(query, (guild_id, date_, date_))
@@ -156,7 +156,7 @@ class BirthdaySQL(Birthdays):
             AND EXTRACT(MONTH FROM birthday)=EXTRACT(MONTH FROM CURRENT_DATE)
         """)
             .format(sql.Identifier(self._table_name))
-            .as_string(self._client.connection)
+            .as_string()
         )
 
         result = await self._client.get(query, (guild_id,))
