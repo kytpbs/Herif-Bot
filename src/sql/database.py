@@ -1,9 +1,11 @@
 import logging
 import os
-from collections.abc import Mapping, Sequence
-from typing import LiteralString, TypeAlias, TypeVar
+from collections.abc import AsyncGenerator, Mapping, Sequence
+from contextlib import asynccontextmanager
+from typing import Final, LiteralString, TypeAlias, TypeVar
 
 import psycopg
+import psycopg_pool
 from async_lru import alru_cache
 from psycopg import sql
 from psycopg.rows import TupleRow
@@ -20,59 +22,40 @@ Query: TypeAlias = LiteralString | sql.SQL | sql.Composed
 
 
 class DatabaseClient:
-    @classmethod
-    async def create(cls):
-        client = cls()
-        try:
-            await client.connect()
-        except psycopg.OperationalError as e:
-            raise NotConnectedError(e) from e
-        return client
+    def __init__(self, conn_str: str | None = None):
+        conn_str = (
+            conn_str
+            or os.getenv("SQL_CONNECTION_STRING")
+            or self._create_conn_str_from_env()
+        )
 
-    def __init__(self):
-        """
-        Initializes the database client.
-
-        Auto connects to the database.
-        Raises an error if connection fails.
-
-        Raises:
-            DatabaseConnectionError: If the connection fails.
-        """
-        self.conn: psycopg.AsyncConnection | None = None
+        self._pool: Final = psycopg_pool.AsyncConnectionPool(
+            conn_str, min_size=0, max_size=10, open=False
+        )
+        pass
 
     async def close(self):
         """
         Closes the connection to the database.
         """
-        if self.conn is not None and not self.conn.closed:
-            await self.conn.close()
+        await self._pool.close()
 
     @property
-    def connection(self) -> psycopg.AsyncConnection:
-        if not self.conn or self.conn.closed:
-            # This should never happen unless __init__ was directly called
-            # and then connect() was never called.
-            raise NotConnectedError("Database not connected, call connect()")
-        return self.conn
+    @asynccontextmanager
+    async def connection(self) -> AsyncGenerator[psycopg.AsyncConnection, None]:
+        async with self._pool.connection() as conn:
+            yield conn
 
-    async def connect(self):
-        """
-        Connects to the database.
-        Raises an error if connection fails.
+    @property
+    @asynccontextmanager
+    async def cursor(
+        self,
+    ) -> AsyncGenerator[tuple[psycopg.AsyncConnection, psycopg.AsyncCursor], None]:
+        async with self._pool.connection() as conn:
+            async with conn.cursor() as cursor:
+                yield (conn, cursor)
 
-        Raises:
-            DatabaseConnectionError: If the connection fails.
-        """
-        if self.conn and not self.conn.closed:
-            return
-
-        if self.conn:
-            await self.conn.close()
-
-        await self._connect()
-
-    async def _connect(self):
+    def _create_conn_str_from_env(self) -> str:
         user = os.getenv("SQL_USER", "postgres")
         password = os.getenv("SQL_PASSWORD")
         database = os.getenv("SQL_DATABASE", "herifbot")
@@ -85,17 +68,11 @@ class DatabaseClient:
             LOGGER.error("No password found in environment variables")
             raise NotConnectedError("No password found in environment variables")
 
-        self.conn = await psycopg.AsyncConnection.connect(
-            user=user,
-            password=password,
-            dbname=database,
-            host=host,
-            port=port,
-            sslmode=sslmode,
-            channel_binding=channel_binding,
-        )
+        return f"postgresql://{user}:{password}@{host}:{port}/{database}?sslmode={sslmode}&channel_binding={channel_binding}"
 
-    async def post(self, query: Query | sql.SQL, params: Params[T] | None = None) -> int:
+    async def post(
+        self, query: Query | sql.SQL, params: Params[T] | None = None
+    ) -> int:
         """
         Executes a query and returns the number of rows affected by the query.
         This should be used for INSERT, UPDATE, and DELETE queries.
@@ -110,7 +87,7 @@ class DatabaseClient:
         Returns:
             int: The number of rows affected by the query.
         """
-        async with self.connection.cursor() as cursor:
+        async with self.cursor as (_, cursor):
             _ = await cursor.execute(query, params)
 
             cursor.pgresult
@@ -122,9 +99,7 @@ class DatabaseClient:
     # Should be more than enough for sudden bursts from func calls
     # The rest we don't need to cache for now anyways
     @alru_cache(maxsize=32, typed=True, ttl=0.1)
-    async def get(
-        self, query: Query, params: Params[T]
-    ) -> list[TupleRow] | None:
+    async def get(self, query: Query, params: Params[T]) -> list[TupleRow] | None:
         """
         Executes a query and returns the first result.
 
@@ -141,7 +116,7 @@ class DatabaseClient:
         """
         LOGGER.debug("Executing query: '%s' with values: %s", query, params)
 
-        async with self.connection.cursor() as cursor:
+        async with self.cursor as (_, cursor):
             try:
                 _ = await cursor.execute(query, params)
                 LOGGER.debug("Query ran successfully")
@@ -158,22 +133,10 @@ class DatabaseClient:
                 )
                 raise SQLFailedMiserably("Query failed") from e
 
-    def __del__(self):
-        """
-        Cleanup method called when the object is garbage collected.
-        Warns if the connection is still open.
-        """
-        if self.conn and not self.conn.closed:
-            LOGGER.warning(
-                "DatabaseClient was deleted with an open connection. "
-                "Please call close() or use as an async context manager."
-            )
-
 
 async def _main():
-    client = await DatabaseClient.create()
-    # client = DatabaseClient()
-    print(client.connection)
+    client = DatabaseClient()
+    print(await client.get("SELECT version()"))
 
 
 if __name__ == "__main__":
