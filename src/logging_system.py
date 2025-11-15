@@ -22,6 +22,7 @@ _FORMATTER = logging.Formatter(FORMAT_STRING, datefmt="%Y-%m-%d %H:%M:%S")
 def _is_true(value: str) -> bool:
     return value.lower() in ["true", "1", "yes"]
 
+
 def is_server(only_true_if_cloud: bool = True) -> bool:
     dev = os.getenv("DEV") or "false"
 
@@ -57,9 +58,6 @@ def setup_console_logging():
     console.setLevel(logging.DEBUG)
     console.setFormatter(_FORMATTER)
     logging.getLogger().addHandler(console)
-
-
-logging_setup: dict[str, bool] = defaultdict(lambda: False)
 
 
 # I will return logging.Handler | None when there is a chance that it may fail
@@ -115,7 +113,8 @@ class ErrorHandlingAxiomHandler(AxiomHandler):
 def setup_axiom_logging() -> logging.Handler | None:
     try:
         client = axiom_py.Client()
-        handler = ErrorHandlingAxiomHandler(client, "herifbot")
+        dataset_name = os.getenv("AXIOM_DATASET") or "herifbot"
+        handler = ErrorHandlingAxiomHandler(client, dataset_name)
     except axiom_py.client.AxiomError as e:
         logging.error("Failed to setup Axiom logging", exc_info=e)
         return None
@@ -142,7 +141,7 @@ def setup_logging():
         setup_file_logging()
 
     # Both Google Cloud and axiom logging can throw exceptions, so we should
-    # be able to see if anyone of them fails while one worked,
+    # be able to see if anyone of them fails while one worked.
 
     # If axiom fails, and gcloud is fine, then we get a warning
     # If axiom is fine, and gcloud fails, then we have to re-try gcloud.
