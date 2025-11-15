@@ -14,7 +14,11 @@ class YoutubeDownloader(AlternateVideoDownloader):
 
         costum_options = {
             # Exclude AV1 codec videos, prioritize H.264/H.265 encoded videos
-            'format': f'bestvideo[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M][ext=mp4][vcodec!^=av01]+bestaudio[ext=m4a]/best[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M][ext=mp4][vcodec!^=av01]',
+            'format': f'bestvideo[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M][ext=mp4][vcodec!^=av01]+bestaudio[ext=m4a]'
+            + f'/best[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M][ext=mp4][vcodec!^=av01]'
+            + f'/best[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M][vcodec!^=av01]'
+            + f'/best[filesize<{MAX_VIDEO_DOWNLOAD_SIZE}M]'  # av1 support is kind of flaky, but if no other option is available, use it
+            + '/bestvideo+bestaudio/best',
             "outtmpl": os.path.join(path, "%(id)s.mp4"),
             'noplaylist': True,
             'default_search': 'auto',
