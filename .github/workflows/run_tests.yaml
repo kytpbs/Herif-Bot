@@ -29,6 +29,9 @@ jobs:
         with:
           lfs: 'true'
           fetch-depth: 0
+      - name: setup ffmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        id: setup-ffmpeg
       # Install uv and python
       - name: Install uv
         uses: astral-sh/setup-uv@v6
