@@ -73,6 +73,28 @@ def setup_google_cloud_logging() -> logging.Handler | None:
         return None
 
 
+def setup_axiom_logging() -> logging.Handler | None:
+    try:
+        client = axiom_py.Client()
+        dataset_name = os.getenv("AXIOM_DATASET") or "herifbot"
+        handler = ErrorHandlingAxiomHandler(client, dataset_name)
+    except axiom_py.client.AxiomError as e:
+        logging.error("Failed to setup Axiom logging", exc_info=e)
+        return None
+    logging.getLogger().addHandler(handler)
+    try:
+        logging.debug("Axiom logging setup successfully")
+        handler.flush()  # Force flush to test if the connection is actually working
+        return handler
+    except axiom_py.client.AxiomError as e:
+        logging.getLogger().removeHandler(handler)
+        logging.error(
+            "Failed to initialize axiom logging handler, removing it", exc_info=e
+        )
+        return None
+
+
+# I will remove this class whenever the issue is fixed
 class ErrorHandlingAxiomHandler(AxiomHandler):
     """
     A custom AxiomHandler that handles errors during logging.
@@ -108,27 +130,6 @@ class ErrorHandlingAxiomHandler(AxiomHandler):
                 exc_info=e,
             )
             logging.getLogger().addHandler(self)
-
-
-def setup_axiom_logging() -> logging.Handler | None:
-    try:
-        client = axiom_py.Client()
-        dataset_name = os.getenv("AXIOM_DATASET") or "herifbot"
-        handler = ErrorHandlingAxiomHandler(client, dataset_name)
-    except axiom_py.client.AxiomError as e:
-        logging.error("Failed to setup Axiom logging", exc_info=e)
-        return None
-    logging.getLogger().addHandler(handler)
-    try:
-        logging.debug("Axiom logging setup successfully")
-        handler.flush()  # Force flush to test if the connection is actually working
-        return handler
-    except axiom_py.client.AxiomError as e:
-        logging.getLogger().removeHandler(handler)
-        logging.error(
-            "Failed to initialize axiom logging handler, removing it", exc_info=e
-        )
-        return None
 
 
 def setup_logging():
