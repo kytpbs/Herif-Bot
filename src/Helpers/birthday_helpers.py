@@ -21,8 +21,7 @@ def get_user_and_date_from_string(
             continue
         dates = date.split("-")
         if len(dates) != 3:
-            e = ValueError("Unknown date format, Please fix!")
-            logging.error(e, date, dates, stack_info=True)
+            logging.error("Unknown date format for user_id: %s, Please fix!", user_id, stack_info=True)
             continue
         date_obj = datetime(int(dates[0]), int(dates[1]), int(dates[2]))
         print(f"{user} : {date_obj}")
