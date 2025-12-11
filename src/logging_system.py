@@ -1,7 +1,8 @@
 import logging
 import os
 from sys import platform
-from axiom_py.client import AxiomError
+import dacite
+import dacite.exceptions
 from typing_extensions import override
 
 import axiom_py
@@ -17,6 +18,7 @@ FORMAT_STRING = (
     "%(asctime)s %(levelname)s - %(name)s - %(message)s in %(filename)s:%(lineno)d"
 )
 _FORMATTER = logging.Formatter(FORMAT_STRING, datefmt="%Y-%m-%d %H:%M:%S")
+_LOGGER = logging.getLogger("Observability")
 
 
 def _is_true(value: str) -> bool:
@@ -64,12 +66,14 @@ def setup_console_logging():
 # Or else it will just return None, since I can't think of a reason why it would fail
 def setup_google_cloud_logging() -> logging.Handler | None:
     try:
+        _LOGGER.debug("Setting up google cloud logging")
         google_client = google.cloud.logging.Client()
         log_handler: logging.Handler = google_client.get_default_handler()
         google_client.setup_logging(log_level=logging.DEBUG)
+        _LOGGER.info("Google cloud logging setup successfully")
         return log_handler
     except Exception as e:
-        logging.error("Failed to setup google cloud logging", exc_info=e)
+        _LOGGER.error("Failed to setup google cloud logging", exc_info=e)
         return None
 
 
@@ -79,16 +83,17 @@ def setup_axiom_logging() -> logging.Handler | None:
         dataset_name = os.getenv("AXIOM_DATASET") or "herifbot"
         handler = ErrorHandlingAxiomHandler(client, dataset_name)
     except axiom_py.client.AxiomError as e:
-        logging.error("Failed to setup Axiom logging", exc_info=e)
+        _LOGGER.error("Failed to setup Axiom logging", exc_info=e)
         return None
     logging.getLogger().addHandler(handler)
     try:
-        logging.debug("Axiom logging setup successfully")
+        _LOGGER.debug("Attempting to flush Axiom logging handler")
         handler.flush()  # Force flush to test if the connection is actually working
+        _LOGGER.info("Axiom logging setup successfully")
         return handler
     except axiom_py.client.AxiomError as e:
         logging.getLogger().removeHandler(handler)
-        logging.error(
+        _LOGGER.error(
             "Failed to initialize axiom logging handler, removing it", exc_info=e
         )
         return None
@@ -112,15 +117,18 @@ class ErrorHandlingAxiomHandler(AxiomHandler):
         # I'm tired of creating yet another issue for this, so I will just log and then flush to test
 
         try:
-            self.flush()
-        except Exception as e:
+            _ = client.datasets.get(
+                dataset
+            )  # This will raise an error if the dataset does not exist
+        except (
+            axiom_py.client.AxiomError,
+            dacite.exceptions.WrongTypeError,
+            AttributeError,
+        ) as e:
             raise axiom_py.client.AxiomError(
-                e.status if isinstance(e, AxiomError) else 0,
-                axiom_py.client.AxiomError.Response(
-                    f"{self.dataset}, does not exist, or you are not connected to the internet",
-                    str(e),
-                ),
-            )
+                getattr(e, "status", 500),
+                axiom_py.client.AxiomError.Response(f"{dataset}, does not exist", None),
+            ) from e
 
     @override
     def emit(self, record: logging.LogRecord):
