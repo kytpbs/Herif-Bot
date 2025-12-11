@@ -1,7 +1,7 @@
-from collections import defaultdict
 import logging
 import os
 from sys import platform
+from axiom_py.client import AxiomError
 from typing_extensions import override
 
 import axiom_py
@@ -106,15 +106,19 @@ class ErrorHandlingAxiomHandler(AxiomHandler):
         # Check if the dataset is valid before starting the handler, if not raise an error.
         # This should have been done by `AxiomHandler.__init__`, but it is not, so we do it here.
         # There is an issue for this here: https://github.com/axiomhq/axiom-py/issues/165
+
+        logging.debug("Initializing Axiom logging handler")
+        # Do not use `self.client.datasets.get` here, because its broken in current version
+        # I'm tired of creating yet another issue for this, so I will just log and then flush to test
+
         try:
-            _ = client.datasets.get(
-                self.dataset
-            )  # This will raise an error if the dataset does not exist
-        except axiom_py.client.AxiomError as e:
+            self.flush()
+        except Exception as e:
             raise axiom_py.client.AxiomError(
-                e.status,
+                e.status if isinstance(e, AxiomError) else 0,
                 axiom_py.client.AxiomError.Response(
-                    f"{self.dataset}, does not exist", None
+                    f"{self.dataset}, does not exist, or you are not connected to the internet",
+                    str(e),
                 ),
             )
 
