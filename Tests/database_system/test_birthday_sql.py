@@ -10,7 +10,7 @@ from src.sql.database import DatabaseClient
 
 
 @pytest.fixture(scope="module")
-def event_loop_policy(request):
+def event_loop_policy(request: pytest.FixtureRequest):
     del request  # Unused parameter, but required by pytest fixture signature
     if platform == "win32":
         # psycopg3 does not support the default event loop policy on Windows
@@ -18,11 +18,10 @@ def event_loop_policy(request):
         return asyncio.WindowsSelectorEventLoopPolicy()
     return asyncio.DefaultEventLoopPolicy()
 
-async def test_get_all_birthdays():
-    client = await DatabaseClient.create()
+async def test_get_birthdays():
+    client = DatabaseClient()
 
     birthdays = await BirthdaySQL.create(client)
-
 
     await birthdays.add_birthday(1, 1, date.fromisoformat("2023-01-01"))
     await birthdays.add_birthday(2, 1, date.fromisoformat("2023-01-02"))
@@ -33,7 +32,7 @@ async def test_get_all_birthdays():
 
     await birthdays.add_birthday(3, 1, birthday)
 
-    assert len(await birthdays.get_all_birthdays(1)) == 3
+    assert len(await birthdays.get_birthdays(1)) == 3
     assert len(await birthdays.get_birthdays_today(1)) == 1
 
     assert await birthdays.get_birthday(1, 1) == date.fromisoformat("2023-01-01")
@@ -45,6 +44,31 @@ async def test_get_all_birthdays():
     assert await birthdays.get_birthday(3, 1) is None
     assert len(await birthdays.get_birthdays_today(1)) == 0
 
+    # Clean up
+    await birthdays.remove_birthday(1, 1)
+    await birthdays.remove_birthday(2, 1)
+
     await client.close()
-    if client.conn:
-        await client.conn.close()
+
+async def test_duplicate_birthday_addition():
+    client = DatabaseClient()
+
+    birthdays = await BirthdaySQL.create(client)
+
+    await birthdays.add_birthday(4, 1, date.fromisoformat("2023-01-01"))
+
+    with pytest.raises(Exception):
+        # Adding the same birthday again should raise an exception
+        await birthdays.add_birthday(4, 1, date.fromisoformat("2023-01-01"))
+    
+    with pytest.raises(Exception):
+        # Adding the same birthday again with different date should also raise an exception
+        await birthdays.add_birthday(4, 1, date.fromisoformat("2024-02-02"))
+
+    assert await birthdays.get_all_birthdays(4) == [
+        date.fromisocalendar(2023, 1, 1)
+    ]
+
+    await birthdays.remove_birthday(4, 1)
+
+    await client.close()

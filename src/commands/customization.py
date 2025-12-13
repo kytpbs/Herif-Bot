@@ -3,7 +3,7 @@ from discord import app_commands
 
 from Constants import CYAN
 from src import client
-from src.commands.command_group import CommandGroup
+from src.commands.command_group import CommandGroup, CommandList
 
 # Hopefully this will be moved behind an interface without an implementation detail in the command group
 custom_responses = client.get_custom_responses()
@@ -12,7 +12,7 @@ custom_responses = client.get_custom_responses()
 @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
 class CustomizationCommands(app_commands.Group, CommandGroup):
     @classmethod
-    def get_commands(cls) -> list[discord.app_commands.Command | discord.app_commands.Group | discord.app_commands.ContextMenu]:
+    def get_commands(cls) -> CommandList:
         return [
                 cls(name="özel", description="Bota özel komutlar ekleyip görmen için komutlar"),
         ]
@@ -70,4 +70,3 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
         del custom_responses[text]
         embed = discord.Embed(title="Cevap Silindi", description=f"'{text}: {response}' adlı cevap silindi", color=CYAN)
         await interaction.response.send_message(embed=embed)
-

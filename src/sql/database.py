@@ -9,10 +9,12 @@ import psycopg_pool
 from async_lru import alru_cache
 from psycopg import sql
 from psycopg.rows import TupleRow
+from dotenv import load_dotenv
 
 from src.sql.errors import NotConnectedError, SQLFailedMiserably
 
 LOGGER = logging.getLogger("SQL")
+_ = load_dotenv()
 
 
 T = TypeVar("T")
@@ -23,6 +25,16 @@ Query: TypeAlias = LiteralString | sql.SQL | sql.Composed
 
 class DatabaseClient:
     def __init__(self, conn_str: str | None = None):
+        """
+        Initializes the database client.
+
+        Will lazy-load the connection pool on first use.
+        If you want to eagerly load, call :meth:`setup()` after initialization.
+
+        Args:
+            conn_str (str | None): The connection string to use.
+                If None, will attempt to read from the environment variable
+        """
         conn_str = (
             conn_str
             or os.getenv("SQL_CONNECTION_STRING")
@@ -32,7 +44,16 @@ class DatabaseClient:
         self._pool: Final = psycopg_pool.AsyncConnectionPool(
             conn_str, min_size=0, max_size=10, open=False
         )
-        pass
+        
+        self._has_setup: bool = False
+
+    async def setup(self):
+        """
+        Sets up the database client, opening the connection pool.
+        Normally not needed, as the pool will lazy-load on first use.
+        """
+        await self._pool.open()
+        self._has_setup = True
 
     async def close(self):
         """
@@ -43,6 +64,7 @@ class DatabaseClient:
     @property
     @asynccontextmanager
     async def connection(self) -> AsyncGenerator[psycopg.AsyncConnection, None]:
+        await self._pool.open()
         async with self._pool.connection() as conn:
             yield conn
 
@@ -51,7 +73,7 @@ class DatabaseClient:
     async def cursor(
         self,
     ) -> AsyncGenerator[tuple[psycopg.AsyncConnection, psycopg.AsyncCursor], None]:
-        async with self._pool.connection() as conn:
+        async with self.connection as conn:
             async with conn.cursor() as cursor:
                 yield (conn, cursor)
 
@@ -61,8 +83,8 @@ class DatabaseClient:
         database = os.getenv("SQL_DATABASE", "herifbot")
         host = os.getenv("SQL_HOST", "localhost")
         port = os.getenv("SQL_PORT", "5432")
-        sslmode = os.getenv("SQL_SSL_MODE", "require")
-        channel_binding = os.getenv("SQL_CHANNEL_BINDING", "require")
+        sslmode = os.getenv("SQL_SSLMODE", "require")
+        channel_binding = os.getenv("SQL_CHANNELBINDING", "require")
 
         if not password:
             LOGGER.error("No password found in environment variables")
@@ -99,7 +121,7 @@ class DatabaseClient:
     # Should be more than enough for sudden bursts from func calls
     # The rest we don't need to cache for now anyways
     @alru_cache(maxsize=32, typed=True, ttl=0.1)
-    async def get(self, query: Query, params: Params[T]) -> list[TupleRow] | None:
+    async def get(self, query: Query, params: Params[T] | None = None) -> list[TupleRow] | None:
         """
         Executes a query and returns the first result.
 

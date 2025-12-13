@@ -1,12 +1,12 @@
 import discord
 from discord import app_commands
 
-from src.commands.command_group import CommandGroup
+from src.commands.command_group import CommandGroup, CommandList
 from src.download_system.download_commands import download_video_command
 
 class DownloadCommands(CommandGroup):
     @classmethod
-    def get_commands(cls):
+    def get_commands(cls) -> CommandList:
         return [
             download_video,
             download_video_link,

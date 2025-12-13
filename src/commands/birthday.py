@@ -1,82 +1,203 @@
-from datetime import datetime
+from datetime import date
+import functools
+import logging
+from typing import cast
 
 import discord
 from discord import app_commands
 
-from Constants import BOT_ADMIN_SERVER_ID, CYAN, KYTPBS_TAG
-from src.commands.command_group import CommandGroup
-from src.Helpers.birthday_helpers import get_user_and_date_from_string
-from src import client
+from Constants import CYAN
+from src.client import MyClient
+from src.data.birtdays import BirthdayDoesNotExist
+from src.commands.command_group import CommandGroup, CommandList
 
-birthdays = client.get_birthdays()
+_LOGGER = logging.getLogger("Birthdays")
+
 
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 class BirthdayCommands(app_commands.Group, CommandGroup):
     @classmethod
-    def get_commands(cls) -> list[discord.app_commands.Command | discord.app_commands.Group | discord.app_commands.ContextMenu]:
+    def get_commands(cls) -> CommandList:
         return [
-                cls(name="doğumgünü", description="Doğumgünü komutları"),
+            cls(name="doğumgünü", description="Doğumgünü komutları"),
         ]
 
-    @app_commands.command(name="dogumgunu_ekle", description="Doğumgününü eklemeni sağlar")
-    async def add_birthday(self, interaction: discord.Interaction, day: str, month: str, year: str,
-                           user: discord.Member = None):  # type: ignore
+    async def _birthday_autocomplete(
+        self, interaction: discord.Interaction[MyClient], current: str
+    ) -> list[app_commands.Choice[int]]:
+        return await self._birthday_atr_autocomplete(interaction, current)
+
+    async def _birthday_atr_autocomplete(
+        self, interaction: discord.Interaction[MyClient], current: str, attr: str = "day"
+    ) -> list[app_commands.Choice[int]]:
+        birthday_provider = await interaction.client.data_manager.birthday_provider
+
+        try:
+            birthdays = await birthday_provider.get_all_birthdays(interaction.user.id)
+        except BirthdayDoesNotExist:
+            return []
+
+        return sorted(
+            # Use set comprehension to remove duplicates
+            {
+                app_commands.Choice(
+                    name=str(cast(int, getattr(birthday, attr))),
+                    value=cast(int, getattr(birthday, attr)),
+                )
+                for birthday in birthdays
+                if current in str(cast(int, getattr(birthday, attr)))
+            },
+            key=lambda x: x.value,
+        )
+
+    @app_commands.command(
+        name="dogumgunu_ekle", description="Doğumgününü eklemeni sağlar"
+    )
+    @app_commands.autocomplete(
+        day=functools.update_wrapper(
+            functools.partial(_birthday_atr_autocomplete, attr="day"),
+            _birthday_autocomplete,
+        ),
+        month=functools.update_wrapper(
+            functools.partial(_birthday_atr_autocomplete, attr="month"),
+            _birthday_autocomplete,
+        ),
+        year=functools.update_wrapper(
+            functools.partial(_birthday_atr_autocomplete, attr="year"),
+            _birthday_autocomplete,
+        ),
+    )
+    async def add_birthday(
+        self,
+        interaction: discord.Interaction[MyClient],
+        day: app_commands.Range[int, 1, 31],
+        month: app_commands.Range[int, 1, 12],
+        year: app_commands.Range[int, 1900, date.today().year],
+        user: discord.Member | None = None,
+    ):
+        """Add a birthday for a user, or for yourself if no user is provided.
+
+        Args:
+            interaction (discord.Interaction[MyClient])
+            day (int): _day of the month_ (1-31)
+            month (int): _month of the year_ (1-12)
+            year (int): _year_ (e.g., 1990)
+            user (discord.Member | None, optional): _The user whose birthday is being added. Defaults to adding it for the interaction user.
+        """
+        birthday_provider = await interaction.client.data_manager.birthday_provider
+        assert isinstance(interaction.user, discord.Member)
+        assert isinstance(interaction.guild_id, int)
+
         if user is None:
-            user = interaction.user  # type: ignore
-        user_id = user.id
-        date = datetime(int(year), int(month), int(day))
-        date_string = str(date.year) + "-" + str(date.month) + "-" + str(date.day)
-        if user_id in birthdays and birthdays[str(user_id)] is not None:
-            await interaction.response.send_message(
-                f"{user.mention} adlı kişinin doğum günü zaten '{birthdays[str(user_id)]}' olarak ayarlanmış " +
-                f"Değiştirmek için lütfen {KYTPBS_TAG} kişisine ulaşın", ephemeral=True)
-            return
-        birthdays[str(user_id)] = date_string
-        await interaction.response.send_message(
-            f"{user.mention} adlı kişinin doğum günü '{date_string}' olarak ayarlandı")
+            user = interaction.user
 
-    @app_commands.command(name="dogumgunu_goster", description="Kişinin doğumgününü gösterir")
-    async def show_birthday(self, interaction: discord.Interaction, user: discord.Member):
-        user_id = str(user.id)
-        if birthdays.get(user_id) is not None:
-            await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü '{birthdays[user_id]}'")
+        try:
+            birthday_date = date(year, month, day)
+        except ValueError:
+            _ = await interaction.response.send_message(
+                "Geçersiz tarih girdin, lütfen tekrar dene", ephemeral=True
+            )
             return
-        await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü kayıtlı değil",
-                                                ephemeral=True)
-    @app_commands.command(name="doğumgünü_sil",
-                          description="Doğumgününü silmeni sağlar")
-    async def delete_birthday(self, interaction: discord.Interaction, user: discord.Member):
-        if not isinstance(interaction.user, discord.Member):
-            await interaction.response.send_message("Sadece Sunucularda çalışır")
-            return
-        if (interaction.user != user and not interaction.user.guild_permissions.administrator) or user.guild.id != BOT_ADMIN_SERVER_ID:
-            await interaction.response.send_message("Sadece Kendi Doğumgününü Silebilirsin", ephemeral=True)
-            return
-        user_id = str(user.id)
-        if birthdays.get(user_id) is None:
-            await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü zaten kayıtlı değil",
-                                                    ephemeral=True)
-            return
-        del birthdays[user_id]
-        await interaction.response.send_message(f"{user.mention} adlı kişinin doğum günü silindi")
 
-    
+        birthday = await birthday_provider.get_birthday(user.id, interaction.guild_id)
 
-    @app_commands.command(name="dogumgunu_listele", description="Doğumgünlerini listeler, sadece modlar kullanabilir")
+        if birthday:
+            _ = await interaction.response.send_message(
+                f"{user.mention} adlı kişinin doğum günü zaten '{birthday.strftime('%d/%m/%Y')}' olarak ayarlanmış "
+                + "Değiştirmek için önce doğum gününü silmelisin",
+                ephemeral=True,
+            )
+            return
+
+        await birthday_provider.add_birthday(
+            user.id, interaction.guild_id, birthday_date
+        )
+
+        _ = await interaction.response.send_message(
+            f"{user.mention} adlı kişinin doğum günü '{birthday_date.strftime('%d/%m/%Y')}' olarak ayarlandı"
+        )
+
+    @app_commands.command(
+        name="dogumgunu_goster", description="Kişinin doğumgününü gösterir"
+    )
+    async def show_birthday(
+        self, interaction: discord.Interaction[MyClient], user: discord.Member | None = None
+    ):
+        birthday_provider = await interaction.client.data_manager.birthday_provider
+        assert isinstance(interaction.user, discord.Member)
+        assert isinstance(interaction.guild_id, int)
+        user = user or interaction.user
+
+        birthday = await birthday_provider.get_birthday(user.id, interaction.guild_id)
+
+        if birthday:
+            _ = await interaction.response.send_message(
+                f"{user.mention} adlı kişinin doğum günü '{birthday.strftime('%d/%m/%Y')}'"
+            )
+            return
+        _ = await interaction.response.send_message(
+            f"{user.mention} adlı kişinin doğum günü kayıtlı değil", ephemeral=True
+        )
+
+    @app_commands.command(
+        name="doğumgünü_sil", description="Doğumgününü silmeni sağlar"
+    )
+    async def delete_birthday(
+        self, interaction: discord.Interaction[MyClient], user: discord.Member | None = None
+    ):
+        if not isinstance(interaction.user, discord.Member) or not interaction.guild_id:
+            _ = await interaction.response.send_message("Sadece Sunucularda çalışır", ephemeral=True)
+            return
+        user = user or interaction.user
+        if (
+            interaction.user != user
+            and not interaction.user.guild_permissions.administrator
+        ):
+            _ = await interaction.response.send_message(
+                "Sadece Kendi Doğumgününü Silebilirsin", ephemeral=True
+            )
+            return
+        # TODO: might wanna change the logic before this
+
+        birthday_provider = await interaction.client.data_manager.birthday_provider
+
+        try:
+            await birthday_provider.remove_birthday(user.id, interaction.guild_id)
+            _ = await interaction.response.send_message(
+                f"{user.mention} adlı kişinin doğum günü silindi"
+            )
+        except BirthdayDoesNotExist:
+            _ = await interaction.response.send_message(
+                f"{user.mention} adlı kişinin doğum günü bu sunucuda zaten kayıtlı değil",
+                ephemeral=True,
+            )
+
+    @app_commands.command(
+        name="dogumgunu_listele",
+        description="Doğumgünlerini listeler, sadece modlar kullanabilir",
+    )
     @app_commands.checks.has_permissions(administrator=True)
-    async def list_birthday(self, interaction: discord.Interaction):
-        if not isinstance(interaction.user, discord.Member):
-            await interaction.response.send_message("Bir hata oluştu, lütfen tekrar deneyin", ephemeral=True)
+    async def list_birthday(self, interaction: discord.Interaction[MyClient]):
+        if not isinstance(interaction.user, discord.Member) or not interaction.guild_id:
+            _ = await interaction.response.send_message(
+                "Bu komut sadece sunucularda kullanılabilir", ephemeral=True
+            )
             return
+        birthday_provider = await interaction.client.data_manager.birthday_provider
 
         if interaction.user.guild_permissions.administrator is False:
-            await interaction.response.send_message("Bu komutu kullanmak için gerekli iznin yok", ephemeral=True)
+            _ = await interaction.response.send_message(
+                "Bu komutu kullanmak için gerekli iznin yok", ephemeral=True
+            )
             return
 
-        embed = discord.Embed(title="Doğumgünleri", description="Doğumgünleri", color=CYAN)
-        new_list = get_user_and_date_from_string(birthdays)
-        for user, date in new_list.items():
-            embed.add_field(name=f"{user}:", value=f"{date}", inline=False)
-        await interaction.response.send_message(embed=embed)
+        embed = discord.Embed(
+            title="Doğumgünleri", description="Doğumgünleri", color=CYAN
+        )
 
+        birthdays = await birthday_provider.get_birthdays(interaction.guild_id)
+
+        for user, birthday in birthdays.items():
+            _ = embed.add_field(name=f"{user}:", value=f"{birthday}", inline=False)
+        _ = await interaction.response.send_message(embed=embed)
