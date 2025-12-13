@@ -3,12 +3,12 @@ import discord
 from discord import app_commands
 
 from Constants import BOT_NAME
-from src.commands.command_group import CommandGroup
+from src.commands.command_group import CommandGroup, CommandList
 
 
 class MessagesCommands(CommandGroup):
     @classmethod
-    def get_commands(cls) -> list[discord.app_commands.Command | discord.app_commands.Group | discord.app_commands.ContextMenu]:
+    def get_commands(cls) -> CommandList:
         return [
             fake_message,
             pin_message,

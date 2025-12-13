@@ -4,6 +4,7 @@ from datetime import datetime
 import discord
 
 from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID, BOSS_BOT_CHANNEL_ID
+from src.data.data_manager import DataManager
 from src.llm_system.llm_errors import LLMError, NoTokenError, RanOutOfMoneyError
 from src.llm_system import gpt
 from src import file_handeler
@@ -25,6 +26,11 @@ class MyClient(discord.Client):
         self.deleted = False
         self.synced = False
         self.old_channel = None
+        self._data_manager = DataManager()
+
+    @property
+    def data_manager(self) -> DataManager:
+        return self._data_manager
 
     async def on_ready(self):
         await self.wait_until_ready()
@@ -218,7 +224,6 @@ class MyClient(discord.Client):
             await message.reply("Bir şeyler ters gitti... lütfen sonra tekrar dene")
             raise e # re-raise the error to log it
         await message.reply(str(answer)) # not using an embed because it's easier to parse history this way.
-
 
 client = MyClient()
 
