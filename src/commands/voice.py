@@ -1,7 +1,7 @@
 import discord
 from discord import app_commands
 
-from src.commands.command_group import CommandGroup
+from src.commands.command_group import CommandGroup, CommandList
 from src.voice import voice_commands
 from src.voice.old_message_holder import add_message_to_be_deleted
 
@@ -10,7 +10,7 @@ from src.voice.old_message_holder import add_message_to_be_deleted
 @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
 class VoiceCommands(app_commands.Group, CommandGroup):
     @classmethod
-    def get_commands(cls) -> list[discord.app_commands.Command | discord.app_commands.Group | discord.app_commands.ContextMenu]:
+    def get_commands(cls) -> CommandList:
         return [
             cls(name="ses", description="Ses komutları!", guild_only=True),
             new_play,
@@ -36,7 +36,7 @@ class VoiceCommands(app_commands.Group, CommandGroup):
 
 
 
-app_commands.allowed_installs(guilds=True, users=False)
+@app_commands.allowed_installs(guilds=True, users=False)
 @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
 @app_commands.command(name="çal")
 async def new_play(interaction: discord.Interaction, url: str):

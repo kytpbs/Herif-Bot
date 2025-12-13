@@ -35,12 +35,12 @@ GuildID: TypeAlias = int
 Birthday: TypeAlias = date
 
 
-class Birthdays(ABC):
+class BirthdayProvider(ABC):
     """
     Abstract class for birthdays
 
     Made to be used with guild specific birthdays
-    Since these guilds will each also have their own birthday congratulion groups
+    Since these guilds will each also have their own birthday congratulation groups
     And users will be able to opt into their birthday being congratulated
     """
 
@@ -50,23 +50,28 @@ class Birthdays(ABC):
 
     @abstractmethod
     async def add_birthday(
-        self, user_id: UserID, guild_id: GuildID, birthday: date
+        self, user_id: UserID, guild_id: GuildID, birthday: Birthday
     ) -> None:
         pass
 
     @abstractmethod
-    async def get_birthday(self, user_id: UserID, guild_id: GuildID) -> date | None:
+    async def get_birthday(self, user_id: UserID, guild_id: GuildID) -> Birthday | None:
         pass
 
     @abstractmethod
-    async def get_all_birthdays(self, guild_id: GuildID) -> Mapping[UserID, date]:
+    async def get_all_birthdays(self, user_id: UserID) -> list[Birthday]:
+        """Get all distinct birthdays for a user"""
+
+    @abstractmethod
+    async def get_birthdays(self, guild_id: GuildID) -> Mapping[UserID, Birthday]:
         pass
 
     @abstractmethod
     async def get_birthdays_on_date(
-        self, guild_id: GuildID, date_: date
-    ) -> Mapping[UserID, date]:
+        self, guild_id: GuildID, date_: Birthday
+    ) -> Mapping[UserID, Birthday]:
         pass
 
-    async def get_birthdays_today(self, guild_id: GuildID) -> Mapping[UserID, date]:
+    async def get_birthdays_today(self, guild_id: GuildID) -> Mapping[UserID, Birthday]:
+        date.today()
         return await self.get_birthdays_on_date(guild_id, datetime.now(UTC).date())

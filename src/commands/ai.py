@@ -1,7 +1,7 @@
 import discord
 from discord import app_commands
 
-from src.commands.command_group import CommandGroup
+from src.commands.command_group import CommandGroup, CommandList
 from src.llm_system import gpt
 from src.llm_system.llm_errors import LLMError
 
@@ -10,11 +10,11 @@ from src.llm_system.llm_errors import LLMError
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 class AiCommands(app_commands.Group, CommandGroup):
     @classmethod
-    def get_commands(cls):
+    def get_commands(cls) -> CommandList:
         return [
             cls(name="zeki", description="Botu zeki yapan komutlar"),
             story_writer,
-        ]
+        ] # pyright: ignore[reportUnknownVariableType]
 
     @app_commands.command(name="soru", description="bota bir soru sor")
     async def chatgpt(self, interaction: discord.Interaction, message: str):
