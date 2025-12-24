@@ -1,17 +1,16 @@
+from abc import ABC, abstractmethod
 import logging
 import os
-from collections.abc import AsyncGenerator, Mapping, Sequence
-from contextlib import asynccontextmanager
-from typing import Final, LiteralString, TypeAlias, TypeVar
+from collections.abc import Mapping, Sequence
+from contextlib import AbstractAsyncContextManager
+from typing import Any, LiteralString, TypeAlias, TypeVar
 
 import psycopg
-import psycopg_pool
-from async_lru import alru_cache
 from psycopg import sql
 from psycopg.rows import TupleRow
 from dotenv import load_dotenv
 
-from src.sql.errors import NotConnectedError, SQLFailedMiserably
+from src.sql.errors import NotConnectedError
 
 LOGGER = logging.getLogger("SQL")
 _ = load_dotenv()
@@ -19,12 +18,13 @@ _ = load_dotenv()
 
 T = TypeVar("T")
 
-Params = Sequence[T] | Mapping[str, T]
+Params: TypeAlias = Sequence[T] | Mapping[str, T]
 Query: TypeAlias = LiteralString | sql.SQL | sql.Composed
 
 
-class DatabaseClient:
-    def __init__(self, conn_str: str | None = None):
+class DatabaseClient(ABC):
+    @abstractmethod
+    def __init__(self, conn_str: str | None = None) -> None:
         """
         Initializes the database client.
 
@@ -35,47 +35,33 @@ class DatabaseClient:
             conn_str (str | None): The connection string to use.
                 If None, will attempt to read from the environment variable
         """
-        conn_str = (
-            conn_str
-            or os.getenv("SQL_CONNECTION_STRING")
-            or self._create_conn_str_from_env()
-        )
 
-        self._pool: Final = psycopg_pool.AsyncConnectionPool(
-            conn_str, min_size=0, max_size=10, open=False
-        )
-        
-        self._has_setup: bool = False
-
-    async def setup(self):
+    @abstractmethod
+    async def setup(self) -> None:
         """
         Sets up the database client, opening the connection pool.
         Normally not needed, as the pool will lazy-load on first use.
         """
-        await self._pool.open()
-        self._has_setup = True
 
-    async def close(self):
+    @abstractmethod
+    async def close(self) -> None:
         """
         Closes the connection to the database.
         """
-        await self._pool.close()
 
     @property
-    @asynccontextmanager
-    async def connection(self) -> AsyncGenerator[psycopg.AsyncConnection, None]:
-        await self._pool.open()
-        async with self._pool.connection() as conn:
-            yield conn
+    @abstractmethod
+    async def connection(
+        self,
+    ) -> AbstractAsyncContextManager[psycopg.AsyncConnection]: ...
 
     @property
-    @asynccontextmanager
+    @abstractmethod
     async def cursor(
         self,
-    ) -> AsyncGenerator[tuple[psycopg.AsyncConnection, psycopg.AsyncCursor], None]:
-        async with self.connection as conn:
-            async with conn.cursor() as cursor:
-                yield (conn, cursor)
+    ) -> AbstractAsyncContextManager[
+        tuple[psycopg.AsyncConnection, psycopg.AsyncCursor]
+    ]: ...
 
     def _create_conn_str_from_env(self) -> str:
         user = os.getenv("SQL_USER", "postgres")
@@ -92,8 +78,9 @@ class DatabaseClient:
 
         return f"postgresql://{user}:{password}@{host}:{port}/{database}?sslmode={sslmode}&channel_binding={channel_binding}"
 
+    @abstractmethod
     async def post(
-        self, query: Query | sql.SQL, params: Params[T] | None = None
+        self, query: Query | sql.SQL, params: Params[Any] | None = None
     ) -> int:
         """
         Executes a query and returns the number of rows affected by the query.
@@ -109,21 +96,17 @@ class DatabaseClient:
         Returns:
             int: The number of rows affected by the query.
         """
-        async with self.cursor as (_, cursor):
-            _ = await cursor.execute(query, params)
 
-            cursor.pgresult
-            return cursor.rowcount
-
-    # Cache the `get` method to avoid unnecessary database queries.
-    # But do with TTL (Time To Live) to avoid caching forever.
-    # Cache for 100 milliseconds
-    # Should be more than enough for sudden bursts from func calls
     # The rest we don't need to cache for now anyways
-    @alru_cache(maxsize=32, typed=True, ttl=0.1)
-    async def get(self, query: Query, params: Params[T] | None = None) -> list[TupleRow] | None:
+    @abstractmethod
+    async def get(
+        self, query: Query, params: Params[Any] | None = None
+    ) -> list[TupleRow] | None:
         """
         Executes a query and returns the first result.
+        has a limiter cache to prevent repeated queries,
+        if you need to bypass the cache, update the query slightly,
+        a new API will be made with more options later.
 
         This doesn't accept mapping types, due to caching issues.
 
@@ -136,34 +119,3 @@ class DatabaseClient:
         Returns:
             psycopg.AsyncResult: The result of the query.
         """
-        LOGGER.debug("Executing query: '%s' with values: %s", query, params)
-
-        async with self.cursor as (_, cursor):
-            try:
-                _ = await cursor.execute(query, params)
-                LOGGER.debug("Query ran successfully")
-                return await cursor.fetchall()
-            except psycopg.ProgrammingError:
-                LOGGER.debug("Query returned no results")
-                return None
-            except psycopg.Error as e:
-                LOGGER.error(
-                    "Failed to run query: '%s', with values '%s'. Error: %s",
-                    query,
-                    params,
-                    e,
-                )
-                raise SQLFailedMiserably("Query failed") from e
-
-
-async def _main():
-    client = DatabaseClient()
-    print(await client.get("SELECT version()"))
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-    asyncio.run(_main())

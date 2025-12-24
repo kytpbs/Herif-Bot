@@ -371,6 +371,15 @@ wheels = [
 ]
 
 [[package]]
+name = "frozendict"
+version = "2.4.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/b2/2a3d1374b7780999d3184e171e25439a8358c47b481f68be883c14086b4c/frozendict-2.4.7.tar.gz", hash = "sha256:e478fb2a1391a56c8a6e10cc97c4a9002b410ecd1ac28c18d780661762e271bd", size = 317082, upload-time = "2025-11-11T22:40:14.251Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/74/f94141b38a51a553efef7f510fc213894161ae49b88bffd037f8d2a7cb2f/frozendict-2.4.7-py3-none-any.whl", hash = "sha256:972af65924ea25cf5b4d9326d549e69a9a4918d8a76a9d3a7cd174d98b237550", size = 16264, upload-time = "2025-11-11T22:40:12.836Z" },
+]
+
+[[package]]
 name = "frozenlist"
 version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -645,6 +654,7 @@ dependencies = [
     { name = "axiom-py" },
     { name = "beautifulsoup4" },
     { name = "discord-py" },
+    { name = "frozendict" },
     { name = "google-cloud-logging" },
     { name = "instaloader" },
     { name = "openai" },
@@ -652,6 +662,7 @@ dependencies = [
     { name = "pynacl" },
     { name = "python-dotenv" },
     { name = "requests" },
+    { name = "typing-extensions" },
     { name = "yt-dlp" },
 ]
 
@@ -667,6 +678,7 @@ requires-dist = [
     { name = "axiom-py", specifier = ">=0.9.0" },
     { name = "beautifulsoup4", specifier = ">=4.12.3" },
     { name = "discord-py", specifier = ">=2.2.3" },
+    { name = "frozendict", specifier = ">=2.4.7" },
     { name = "google-cloud-logging", specifier = ">=3.6" },
     { name = "instaloader", specifier = ">=4.12" },
     { name = "openai", specifier = ">=1.43.1" },
@@ -674,6 +686,7 @@ requires-dist = [
     { name = "pynacl", specifier = ">=1.5.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "requests", specifier = ">=2.31.0" },
+    { name = "typing-extensions", specifier = ">=4.13.2" },
     { name = "yt-dlp", specifier = ">=2025.8.11" },
 ]
 

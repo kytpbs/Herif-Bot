@@ -17,6 +17,8 @@ dependencies = [
     "async-lru>=2.0.5",
     "axiom-py>=0.9.0",
     "psycopg[binary,pool]>=3.2.10",
+    "typing-extensions>=4.13.2",
+    "frozendict>=2.4.7",
 ]
 
 [dependency-groups]
