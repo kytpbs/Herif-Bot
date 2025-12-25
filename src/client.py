@@ -3,17 +3,21 @@ from datetime import datetime
 
 import discord
 
-from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID, BOSS_BOT_CHANNEL_ID
+import src.Messages  # pylint: disable=unused-import # to register the message commands
+from Constants import (
+    BOSS_BOT_CHANNEL_ID,
+    CYAN,
+    DELETED_MESSAGES_CHANNEL_ID,
+    GENERAL_CHAT_ID,
+)
+from src import command_controller, file_handeler
+from src import member_update_handlers as member_handlers
 from src.data.data_manager import DataManager
-from src.llm_system.llm_errors import LLMError, NoTokenError, RanOutOfMoneyError
+from src.Helpers import helper_functions
 from src.Helpers.helper_functions import get_general_channel
 from src.llm_system import gpt
-from src import file_handeler
+from src.llm_system.llm_errors import LLMError, NoTokenError, RanOutOfMoneyError
 from src.message_handeler import call_command
-import src.Messages # pylint: disable=unused-import # to register the message commands
-from src.Helpers import helper_functions
-from src import member_update_handlers as member_handlers
-
 from src.Tasks import Tasks
 
 
@@ -33,14 +37,14 @@ class MyClient(discord.Client):
 
     async def on_ready(self):
         await self.wait_until_ready()
-        if not self.synced:
-            from src import command_controller # pylint: disable=import-outside-toplevel # to avoid circular imports
-            tree = command_controller.create_tree(self)
-            command_controller.setup_commands(tree)
-            await tree.sync()
-            self._tasks.start()
-            self.synced = True
         logging.info("Logged on as %s", self.user)
+        if self.synced:
+            return
+        tree = command_controller.create_tree(self)
+        command_controller.setup_commands(tree)
+        await tree.sync()
+        self._tasks.start()
+        self.synced = True
 
     async def on_member_join(self, member: discord.Member):
         logging.debug("%s, joined %s",member.name, member.guild.name)
@@ -56,7 +60,7 @@ class MyClient(discord.Client):
             await channel.send("Zeki bir insan valrlığı olan " + "**" + str(member) +
                                "**" + " Bu saçmalık serverdan ayrıldı")
 
-    async def on_guild_channel_create(self, channel):
+    async def on_guild_channel_create(self, channel: discord.abc.GuildChannel):
         logging.debug("At %s, %s was created.",channel.guild.name, channel)
 
         deleted_messages_channel = self.get_channel(DELETED_MESSAGES_CHANNEL_ID)
@@ -118,7 +122,7 @@ class MyClient(discord.Client):
         if isinstance(channel, discord.TextChannel):
             await channel.send(embed=embed)
 
-    async def on_message_edit(self, before, message):
+    async def on_message_edit(self, before: discord.Message, message: discord.Message):
         if message.author == self.user:
             return
         if before.content == message.content:

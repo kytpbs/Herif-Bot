@@ -17,16 +17,22 @@ def create_tree(client: discord.Client):
     setup_error_handler(tree)
     return tree
 
+
 async def _on_tree_error(interaction: discord.Interaction, error: Exception):
     logging.error("An error occurred while processing an interaction", exc_info=error)
     if interaction.response.is_done():
-        await interaction.followup.send("Bilinmeyen bir hata, lütfen tekrar deneyin", ephemeral=True)
+        await interaction.followup.send(
+            "Bilinmeyen bir hata, lütfen tekrar deneyin", ephemeral=True
+        )
     else:
-        await interaction.response.send_message("Bilinmeyen bir hata, lütfen tekrar deneyin", ephemeral=True)
+        _ = await interaction.response.send_message(
+            "Bilinmeyen bir hata, lütfen tekrar deneyin", ephemeral=True
+        )
 
 
 def setup_error_handler(tree: app_commands.CommandTree):
     tree.error(_on_tree_error)
+
 
 def setup_commands(tree: app_commands.CommandTree):
     AiCommands.register_commands(tree)
@@ -36,4 +42,3 @@ def setup_commands(tree: app_commands.CommandTree):
     DownloadCommands.register_commands(tree)
     MessagesCommands.register_commands(tree)
     VoiceCommands.register_commands(tree)
-
