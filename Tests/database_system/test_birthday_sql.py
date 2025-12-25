@@ -1,12 +1,12 @@
-
 import asyncio
 from datetime import UTC, date, datetime
 from sys import platform
 
 import pytest
 
+from src.sql.postgres import PostgresDBClient
+from src.data.birthdays import BirthdayAlreadyExists
 from src.data.providers.birthday_sql import BirthdaySQL
-from src.sql.database import DatabaseClient
 
 
 @pytest.fixture(scope="module")
@@ -18,8 +18,9 @@ def event_loop_policy(request: pytest.FixtureRequest):
         return asyncio.WindowsSelectorEventLoopPolicy()
     return asyncio.DefaultEventLoopPolicy()
 
+
 async def test_get_birthdays():
-    client = DatabaseClient()
+    client = PostgresDBClient()
 
     birthdays = await BirthdaySQL.create(client)
 
@@ -50,24 +51,23 @@ async def test_get_birthdays():
 
     await client.close()
 
+
 async def test_duplicate_birthday_addition():
-    client = DatabaseClient()
+    client = PostgresDBClient()
 
     birthdays = await BirthdaySQL.create(client)
 
     await birthdays.add_birthday(4, 1, date.fromisoformat("2023-01-01"))
 
-    with pytest.raises(Exception):
+    with pytest.raises(BirthdayAlreadyExists):
         # Adding the same birthday again should raise an exception
         await birthdays.add_birthday(4, 1, date.fromisoformat("2023-01-01"))
-    
-    with pytest.raises(Exception):
+
+    with pytest.raises(BirthdayAlreadyExists):
         # Adding the same birthday again with different date should also raise an exception
         await birthdays.add_birthday(4, 1, date.fromisoformat("2024-02-02"))
 
-    assert await birthdays.get_all_birthdays(4) == [
-        date.fromisocalendar(2023, 1, 1)
-    ]
+    assert await birthdays.get_all_birthdays(4) == [date(2023, 1, 1)]
 
     await birthdays.remove_birthday(4, 1)
 
