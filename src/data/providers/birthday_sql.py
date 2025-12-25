@@ -5,7 +5,7 @@ from datetime import date
 from psycopg import sql
 from typing_extensions import override
 
-from src.data.birtdays import (
+from src.data.birthdays import (
     BirthdayAlreadyExists,
     BirthdayDoesNotExist,
     BirthdayProvider,
@@ -110,7 +110,7 @@ class BirthdaySQL(BirthdayProvider):
             WHERE user_id = %s AND guild_id = %s
         """)
             .format(sql.Identifier(self._table_name))
-            .as_string()
+            
         )
 
         result = await self._client.get(query, (user_id, guild_id))
@@ -126,7 +126,7 @@ class BirthdaySQL(BirthdayProvider):
             WHERE user_id = %s
         """)
             .format(sql.Identifier(self._table_name))
-            .as_string()
+            
         )
         result = await self._client.get(query, (user_id,))
         if not result:
@@ -141,7 +141,7 @@ class BirthdaySQL(BirthdayProvider):
             WHERE guild_id = %s
         """)
             .format(sql.Identifier(self._table_name))
-            .as_string()
+            
         )
 
         result = await self._client.get(query, (guild_id,))
@@ -164,7 +164,7 @@ class BirthdaySQL(BirthdayProvider):
             AND EXTRACT(MONTH FROM birthday)=EXTRACT(MONTH FROM %s)
         """)
             .format(sql.Identifier(self._table_name))
-            .as_string()
+            
         )
 
         result = await self._client.get(query, (guild_id, date_, date_))
@@ -185,7 +185,7 @@ class BirthdaySQL(BirthdayProvider):
             AND EXTRACT(MONTH FROM birthday)=EXTRACT(MONTH FROM CURRENT_DATE)
         """)
             .format(sql.Identifier(self._table_name))
-            .as_string()
+            
         )
 
         result = await self._client.get(query, (guild_id,))
