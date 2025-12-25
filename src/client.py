@@ -6,15 +6,14 @@ import discord
 from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID, BOSS_BOT_CHANNEL_ID
 from src.data.data_manager import DataManager
 from src.llm_system.llm_errors import LLMError, NoTokenError, RanOutOfMoneyError
+from src.Helpers.helper_functions import get_general_channel
 from src.llm_system import gpt
 from src import file_handeler
 from src.message_handeler import call_command
 import src.Messages # pylint: disable=unused-import # to register the message commands
 from src.Helpers import helper_functions
 from src import member_update_handlers as member_handlers
-from src.Helpers.helper_functions import DiskDict, get_general_channel
 
-custom_responses = DiskDict('responses.json')
 from src.Tasks import Tasks
 
 
@@ -176,6 +175,7 @@ class MyClient(discord.Client):
         # do not delete the attachment, because it breaks the upload
 
     async def on_message(self, message: discord.Message):
+        customs_provider = await self.data_manager.customization_provider
         user = message.author
         channel = message.channel
         guild = message.guild
@@ -197,8 +197,8 @@ class MyClient(discord.Client):
                 await self.on_dm(message)
             return
 
-        if custom_responses.get(message.content) is not None:
-            await message.reply(custom_responses[message.content])
+        if (response := await customs_provider.get_response(message.guild.id, message.content)):
+            await message.reply(response.response)
 
         if time == "06:11:":  # 9:11 for +3 timezone
             await channel.send("🛫🛬💥🏢🏢")
@@ -230,7 +230,3 @@ client = MyClient()
 
 def get_client_instance():
     return client
-
-
-def get_custom_responses():
-    return custom_responses
