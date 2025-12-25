@@ -1,3 +1,4 @@
+from dataclasses import asdict, is_dataclass
 from datetime import date
 import json
 import logging
@@ -11,6 +12,8 @@ class DateEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, date):
             return o.isoformat()  # Convert to string like "2025-07-29"
+        if is_dataclass(o) and not isinstance(o, type):
+            return asdict(o)
         return super().default(o)
 
 def _date_hook(dct):
