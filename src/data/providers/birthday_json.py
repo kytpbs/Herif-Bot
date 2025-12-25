@@ -1,8 +1,9 @@
 from collections.abc import Mapping, MutableMapping
 from datetime import date
+from typing import Final
 from typing_extensions import override
 
-from src.data.birtdays import (
+from src.data.birthdays import (
     Birthday,
     BirthdayAlreadyExists,
     BirthdayDoesNotExist,
@@ -18,7 +19,7 @@ BirthdayGuilds = MutableMapping[GuildID, UserBirthdays]
 
 class BirthdayJsonDB(BirthdayProvider):
     def __init__(self):
-        self.guild_birthdays: BirthdayGuilds = DiskDict("birthday_guild.json")
+        self.guild_birthdays: Final[BirthdayGuilds] = DiskDict("birthday_guild.json")
 
     @override
     async def remove_birthday(self, user_id: UserID, guild_id: GuildID):

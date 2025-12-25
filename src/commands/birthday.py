@@ -1,15 +1,17 @@
 from datetime import date
 import functools
 import logging
-from typing import cast
+from typing import Literal, cast
 
 import discord
 from discord import app_commands
 
 from Constants import CYAN
-from src.client import MyClient
-from src.data.birtdays import BirthdayDoesNotExist
+from src.data.data_manager import DiscordClientWithDataManager
+from src.data.birthdays import BirthdayDoesNotExist
 from src.commands.command_group import CommandGroup, CommandList
+
+DataManagerInteraction = discord.Interaction[DiscordClientWithDataManager]
 
 _LOGGER = logging.getLogger("Birthdays")
 
@@ -24,12 +26,17 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         ]
 
     async def _birthday_autocomplete(
-        self, interaction: discord.Interaction[MyClient], current: str
+        self,
+        interaction: DataManagerInteraction,
+        current: str,
     ) -> list[app_commands.Choice[int]]:
         return await self._birthday_atr_autocomplete(interaction, current)
 
     async def _birthday_atr_autocomplete(
-        self, interaction: discord.Interaction[MyClient], current: str, attr: str = "day"
+        self,
+        interaction: DataManagerInteraction,
+        current: str,
+        attr: Literal["day", "month", "year"] = "day",
     ) -> list[app_commands.Choice[int]]:
         birthday_provider = await interaction.client.data_manager.birthday_provider
 
@@ -70,7 +77,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
     )
     async def add_birthday(
         self,
-        interaction: discord.Interaction[MyClient],
+        interaction: DataManagerInteraction,
         day: app_commands.Range[int, 1, 31],
         month: app_commands.Range[int, 1, 12],
         year: app_commands.Range[int, 1900, date.today().year],
@@ -79,7 +86,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         """Add a birthday for a user, or for yourself if no user is provided.
 
         Args:
-            interaction (discord.Interaction[MyClient])
+            interaction (DataManagerInteraction)
             day (int): _day of the month_ (1-31)
             month (int): _month of the year_ (1-12)
             year (int): _year_ (e.g., 1990)
@@ -122,7 +129,9 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         name="dogumgunu_goster", description="Kişinin doğumgününü gösterir"
     )
     async def show_birthday(
-        self, interaction: discord.Interaction[MyClient], user: discord.Member | None = None
+        self,
+        interaction: DataManagerInteraction,
+        user: discord.Member | None = None,
     ):
         birthday_provider = await interaction.client.data_manager.birthday_provider
         assert isinstance(interaction.user, discord.Member)
@@ -144,10 +153,14 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         name="doğumgünü_sil", description="Doğumgününü silmeni sağlar"
     )
     async def delete_birthday(
-        self, interaction: discord.Interaction[MyClient], user: discord.Member | None = None
+        self,
+        interaction: DataManagerInteraction,
+        user: discord.Member | None = None,
     ):
         if not isinstance(interaction.user, discord.Member) or not interaction.guild_id:
-            _ = await interaction.response.send_message("Sadece Sunucularda çalışır", ephemeral=True)
+            _ = await interaction.response.send_message(
+                "Sadece Sunucularda çalışır", ephemeral=True
+            )
             return
         user = user or interaction.user
         if (
@@ -178,7 +191,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         description="Doğumgünlerini listeler, sadece modlar kullanabilir",
     )
     @app_commands.checks.has_permissions(administrator=True)
-    async def list_birthday(self, interaction: discord.Interaction[MyClient]):
+    async def list_birthday(self, interaction: DataManagerInteraction):
         if not isinstance(interaction.user, discord.Member) or not interaction.guild_id:
             _ = await interaction.response.send_message(
                 "Bu komut sadece sunucularda kullanılabilir", ephemeral=True

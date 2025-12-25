@@ -13,10 +13,9 @@ import src.Messages # pylint: disable=unused-import # to register the message co
 from src.Helpers import helper_functions
 from src import member_update_handlers as member_handlers
 from src.Helpers.helper_functions import DiskDict, get_general_channel
-from src.Tasks import start_tasks
 
 custom_responses = DiskDict('responses.json')
-birthdays = DiskDict("birthdays.json")
+from src.Tasks import Tasks
 
 
 # noinspection PyMethodMayBeStatic
@@ -27,6 +26,7 @@ class MyClient(discord.Client):
         self.synced = False
         self.old_channel = None
         self._data_manager = DataManager()
+        self._tasks = Tasks(self)
 
     @property
     def data_manager(self) -> DataManager:
@@ -39,7 +39,7 @@ class MyClient(discord.Client):
             tree = command_controller.create_tree(self)
             command_controller.setup_commands(tree)
             await tree.sync()
-            start_tasks()
+            self._tasks.start()
             self.synced = True
         logging.info("Logged on as %s", self.user)
 
@@ -234,7 +234,3 @@ def get_client_instance():
 
 def get_custom_responses():
     return custom_responses
-
-
-def get_birthdays():
-    return birthdays

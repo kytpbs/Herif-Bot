@@ -4,7 +4,7 @@ from typing import Final, Protocol
 import discord
 
 from src.sql.postgres import PostgresDBClient
-from src.data.birtdays import BirthdayProvider
+from src.data.birthdays import BirthdayProvider
 from src.data.providers.birthday_factory import BirthdayFactory
 from src.sql.database import DatabaseClient
 from src.sql.errors import NotConnectedError

@@ -1,7 +1,7 @@
 import logging
 
 from src.sql.database import DatabaseClient
-from src.data.birtdays import BirthdayProvider
+from src.data.birthdays import BirthdayProvider
 from src.data.providers.birthday_json import BirthdayJsonDB
 from src.data.providers.birthday_sql import BirthdaySQL
 from src.sql.errors import NotConnectedError
