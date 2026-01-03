@@ -216,12 +216,13 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         interaction: DataManagerInteraction,
         user: discord.Member | None = None,
     ):
-        if not isinstance(interaction.user, discord.Member) or not interaction.guild_id:
-            _ = await interaction.response.send_message(
-                "Sadece Sunucularda çalışır", ephemeral=True
-            )
-            return
-        user = user or interaction.user
+        birthday_provider = await interaction.client.data_manager.birthday_provider
+        assert isinstance(interaction.user, discord.Member)
+        assert isinstance(interaction.guild_id, int)
+
+        if user is None:
+            user = interaction.user
+
         if (
             interaction.user != user
             and not interaction.user.guild_permissions.administrator
@@ -230,9 +231,6 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
                 "Sadece Kendi Doğumgününü Silebilirsin", ephemeral=True
             )
             return
-        # TODO: might wanna change the logic before this
-
-        birthday_provider = await interaction.client.data_manager.birthday_provider
 
         try:
             await birthday_provider.remove_birthday(user.id, interaction.guild_id)
