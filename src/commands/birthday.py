@@ -8,7 +8,7 @@ from discord import app_commands
 
 from Constants import CYAN
 from src.data.data_manager import DiscordClientWithDataManager
-from src.data.birthdays import BirthdayDoesNotExist
+from src.data.birthdays import BirthdayConfig, BirthdayDoesNotExist
 from src.commands.command_group import CommandGroup, CommandList
 
 DataManagerInteraction = discord.Interaction[DiscordClientWithDataManager]
@@ -17,13 +17,72 @@ _LOGGER = logging.getLogger("Birthdays")
 
 
 @app_commands.allowed_installs(guilds=True, users=True)
-@app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+@app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
 class BirthdayCommands(app_commands.Group, CommandGroup):
     @classmethod
     def get_commands(cls) -> CommandList:
         return [
             cls(name="doğumgünü", description="Doğumgünü komutları"),
         ]
+
+    # Config Setup Commands
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+    @app_commands.command(
+        name="ayarlar",
+        description="Bir birthday'a ait ayarları ayarlamak için kullanılır",
+    )
+    @app_commands.checks.has_permissions(administrator=True)
+    async def birthday_config(
+        self,
+        interaction: DataManagerInteraction,
+        congratulate_channel: discord.TextChannel | None = None,
+        congratulate_role: discord.Role | None = None,
+    ):
+        birthday_provider = await interaction.client.data_manager.birthday_provider
+        if not isinstance(interaction.user, discord.Member) or not interaction.guild_id:
+            _ = await interaction.response.send_message(
+                "Bu komut sadece sunucularda kullanılabilir", ephemeral=True
+            )
+            return
+
+        user = interaction.user
+        guild_id = interaction.guild_id
+
+        if not user.guild_permissions.administrator:
+            _ = await interaction.response.send_message(
+                "Bu komutu kullanmak için gerekli iznin yok", ephemeral=True
+            )
+            return
+
+        pre_existing_config = None
+
+        if not congratulate_channel and not (
+            pre_existing_config := await birthday_provider.get_birthday_config(guild_id)
+        ):
+            _ = await interaction.response.send_message(
+                "Birthday ayarları ayarlanmadı, lütfen bir channel ve bir role belirtin",
+                ephemeral=True,
+            )
+            return
+
+        channel_id = (
+            congratulate_channel.id
+            if congratulate_channel
+            # LSP is confused about the possibility of pre_existing_config being None
+            # It is not possible for it to be None when congratulate_channel is None
+            else pre_existing_config.channel_id # pyright: ignore[reportOptionalMemberAccess]
+        )
+
+        role_id = (
+            congratulate_role.id
+            if congratulate_role
+            else None
+        )
+
+        await birthday_provider.set_birthday_config(
+            guild_id, BirthdayConfig(channel_id, role_id)
+        )
+        _ = await interaction.response.send_message("Doğumgünü ayarları güncellendi")
 
     async def _birthday_autocomplete(
         self,
@@ -157,12 +216,13 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         interaction: DataManagerInteraction,
         user: discord.Member | None = None,
     ):
-        if not isinstance(interaction.user, discord.Member) or not interaction.guild_id:
-            _ = await interaction.response.send_message(
-                "Sadece Sunucularda çalışır", ephemeral=True
-            )
-            return
-        user = user or interaction.user
+        birthday_provider = await interaction.client.data_manager.birthday_provider
+        assert isinstance(interaction.user, discord.Member)
+        assert isinstance(interaction.guild_id, int)
+
+        if user is None:
+            user = interaction.user
+
         if (
             interaction.user != user
             and not interaction.user.guild_permissions.administrator
@@ -171,9 +231,6 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
                 "Sadece Kendi Doğumgününü Silebilirsin", ephemeral=True
             )
             return
-        # TODO: might wanna change the logic before this
-
-        birthday_provider = await interaction.client.data_manager.birthday_provider
 
         try:
             await birthday_provider.remove_birthday(user.id, interaction.guild_id)

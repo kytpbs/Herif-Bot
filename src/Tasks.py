@@ -6,10 +6,12 @@ import discord
 from discord.ext import tasks
 
 from Constants import BIRTHDAY_ROLE_ID, GENERAL_CHAT_ID
+from src.data.birthdays import BirthdayProvider, GuildID
 from src.data.data_manager import DataManagerProvider
 from src.file_handeler import delete_saved_attachments
 
 _BIRTHDAY_LOGGER = logging.getLogger("Birthdays")
+_ATTACHMENT_LOGGER = logging.getLogger("file_handler")
 
 
 class BirthdayTasksContextProvider(DataManagerProvider, Protocol):
@@ -24,15 +26,10 @@ class BirthdayTasksContextProvider(DataManagerProvider, Protocol):
     ): ...
 
 
-async def _remove_role_from_all_members(guild: discord.Guild, role_id: int):
-    role = guild.get_role(role_id)
-    if not isinstance(role, discord.Role):
-        _BIRTHDAY_LOGGER.error(f"Rol Bulunamadı aranan id: {role_id}")
-        return
-
+async def _remove_role_from_all_members(guild: discord.Guild, role: discord.Role):
     for member in guild.members:
-        if member.get_role(role_id) is not None:
-            _BIRTHDAY_LOGGER.info(f"{member} adlı kişinin doğum günü rolü kaldırılıyor")
+        if member.get_role(role.id) is not None:
+            _BIRTHDAY_LOGGER.debug("Removing birthday role from member")
             await member.remove_roles(role)
 
 
@@ -42,7 +39,52 @@ async def _congratulate_birthday(
     birthday: date,
 ):
     age = datetime.now().year - birthday.year
-    _ = await general.send(f"{user.mention} {age} yaşına girdi. Doğum günün kutlu olsun!")
+    _ = await general.send(
+        f"{user.mention} {age} yaşına girdi. Doğum günün kutlu olsun!"
+    )
+
+
+async def _check_birthdays(
+    client: BirthdayTasksContextProvider,
+    birthday_provider: BirthdayProvider,
+    guild_id: GuildID,
+):
+    birthday_provider = await client.data_manager.birthday_provider
+
+    _BIRTHDAY_LOGGER.info("Checking birthdays")
+    general = client.get_channel(GENERAL_CHAT_ID)
+
+    if not isinstance(general, discord.abc.Messageable):
+        _BIRTHDAY_LOGGER.error(
+            "Could not find the birthday channel, aborting birthday check"
+        )
+        return
+
+    role = general.guild.get_role(BIRTHDAY_ROLE_ID)
+    if not isinstance(role, discord.Role):
+        _BIRTHDAY_LOGGER.warning(
+            "Could not find birthday role, skipping, not giving birthdays"
+        )
+
+    # remove birthday role from members that have it.
+    if role:
+        await _remove_role_from_all_members(general.guild, role)
+
+    birthdays = await birthday_provider.get_birthdays_today(general.guild.id)
+
+    for user_id, birthday in birthdays.items():
+        user = general.guild.get_member(user_id)
+
+        if not user:
+            _BIRTHDAY_LOGGER.error(
+                "There is a birthday for a user that does not exist, silently skipping"
+            )
+            continue
+
+        await _congratulate_birthday(general, user, birthday)
+
+        if role:
+            await user.add_roles(role)
 
 
 class Tasks:
@@ -57,39 +99,11 @@ class Tasks:
         time=time(hour=6, minute=30, tzinfo=timezone.utc)
     )  # 9.30 for +3 timezone
     async def check_birthdays(self):
-        birthday_provider = await self._client.data_manager.birthday_provider
+        # TODO: DO THIS
+        pass
 
-        _BIRTHDAY_LOGGER.info("Checking birthdays")
-        general = self._client.get_channel(GENERAL_CHAT_ID)
-
-        if not isinstance(general, discord.abc.Messageable):
-            _BIRTHDAY_LOGGER.error(f"Kanal Bulunamadı aranan id: {GENERAL_CHAT_ID}")
-            return
-
-        rol = general.guild.get_role(BIRTHDAY_ROLE_ID)
-        if not isinstance(rol, discord.Role):
-            _BIRTHDAY_LOGGER.error(f"Rol Bulunamadı aranan id: {BIRTHDAY_ROLE_ID}")
-
-        # remove birthday role from members that have it.
-        if rol is not None:
-            await _remove_role_from_all_members(general.guild, rol.id)
-
-        birthdays = await birthday_provider.get_birthdays_today(general.guild.id)
-
-        for user_id, birthday in birthdays.items():
-            user = general.guild.get_member(user_id)
-
-            if not user:
-                _BIRTHDAY_LOGGER.error(f"Kullanıcı Bulunamadı aranan id: {user_id}")
-                continue
-
-            await _congratulate_birthday(general, user, birthday)
-
-            if rol:
-                await user.add_roles(rol)  # add birthday role to user. if it exists
 
     @staticmethod
     @tasks.loop(hours=168)  # 1 week
     async def clean_downloaded_attachments():
-        _BIRTHDAY_LOGGER.info("cleaning downloaded attachments")
         await delete_saved_attachments()
