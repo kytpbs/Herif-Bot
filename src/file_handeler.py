@@ -31,6 +31,8 @@ async def download_all_attachments(message: Message):
 def _download_file(url: str, file_path: str):
     try:
         logger.debug("Downloading file %s", url)
+        #TODO: ASYNC THIS SHIT LIKE NOW, DO YOU KNOW HOW FUCKED THIS WILL BE????
+        # IT MEANS THAT IF SOMEONE SENDS A 500MB FILE, IT WILL TAKE DOWN THE BOT FOR MORE THAN WHOLE MINUTE JUST TO WAIT FOR IT TO DOWNOLAD????
         response = requests.get(url, timeout=30) # download the file
 
         content = response.content
