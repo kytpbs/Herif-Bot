@@ -6,6 +6,7 @@ from typing_extensions import override
 from src.data.birthdays import (
     Birthday,
     BirthdayAlreadyExists,
+    BirthdayConfig,
     BirthdayDoesNotExist,
     BirthdayProvider,
     GuildID,
@@ -16,10 +17,13 @@ from src.Helpers.helper_functions import DiskDict
 UserBirthdays = MutableMapping[UserID, Birthday]
 BirthdayGuilds = MutableMapping[GuildID, UserBirthdays]
 
+BirthdayConfigs = MutableMapping[GuildID, BirthdayConfig]
+
 
 class BirthdayJsonDB(BirthdayProvider):
     def __init__(self):
         self.guild_birthdays: Final[BirthdayGuilds] = DiskDict("birthday_guild.json")
+        self.configs: Final[BirthdayConfigs] = DiskDict("birthday_config.json")
 
     @override
     async def remove_birthday(self, user_id: UserID, guild_id: GuildID):
@@ -29,7 +33,9 @@ class BirthdayJsonDB(BirthdayProvider):
         del birthdays[user_id]
 
     @override
-    async def add_birthday(self, user_id: UserID, guild_id: GuildID, birthday: Birthday):
+    async def add_birthday(
+        self, user_id: UserID, guild_id: GuildID, birthday: Birthday
+    ):
         birthdays = self.guild_birthdays.setdefault(guild_id, {})
         if user_id in birthdays:
             raise BirthdayAlreadyExists()
@@ -66,3 +72,21 @@ class BirthdayJsonDB(BirthdayProvider):
             for user_id, birthday in birthdays.items()
             if birthday.day == date_.day and birthday.month == date_.month
         }
+
+    @override
+    async def set_birthday_config(
+        self, guild_id: GuildID, config: BirthdayConfig
+    ) -> None:
+        self.configs[guild_id] = config
+
+    @override
+    async def remove_birthday_config(self, guild_id: GuildID) -> None:
+        if guild_id not in self.configs:
+            _LOGGER.debug(f"No birthday config found for guild {guild_id} to remove")
+            raise BirthdayDoesNotExist()
+        del self.configs[guild_id]
+        _LOGGER.debug(f"Removed birthday config for guild {guild_id}")
+
+    @override
+    async def get_birthday_config(self, guild_id: GuildID) -> BirthdayConfig | None:
+        return self.configs.get(guild_id)
