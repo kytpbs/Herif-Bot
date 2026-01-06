@@ -20,7 +20,7 @@ BirthdayGuilds = MutableMapping[GuildID, UserBirthdays]
 BirthdayConfigs = MutableMapping[GuildID, BirthdayConfig]
 
 
-class BirthdayJsonDB(BirthdayProvider):
+class BirthdayJson(BirthdayProvider):
     def __init__(self):
         self.guild_birthdays: Final[BirthdayGuilds] = DiskDict("birthday_guild.json")
         self.configs: Final[BirthdayConfigs] = DiskDict("birthday_config.json")

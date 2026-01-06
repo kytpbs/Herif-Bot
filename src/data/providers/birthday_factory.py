@@ -2,7 +2,7 @@ import logging
 
 from src.sql.database import DatabaseClient
 from src.data.birthdays import BirthdayProvider
-from src.data.providers.birthday_json import BirthdayJsonDB
+from src.data.providers.birthday_json import BirthdayJson
 from src.data.providers.birthday_sql import BirthdaySQL
 from src.sql.errors import NotConnectedError
 
@@ -32,7 +32,7 @@ class BirthdayFactory:
             return self._get_json_provider()
 
     def _get_json_provider(self) -> BirthdayProvider:
-        return BirthdayJsonDB()
+        return BirthdayJson()
 
     async def _get_sql_provider(self) -> BirthdayProvider:
         if self._db_client is None:

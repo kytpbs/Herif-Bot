@@ -8,7 +8,7 @@ import pytest
 import Constants
 from src import Read
 from src.data.birthdays import BirthdayAlreadyExists, BirthdayDoesNotExist
-from src.data.providers.birthday_json import BirthdayJsonDB
+from src.data.providers.birthday_json import BirthdayJson
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -22,7 +22,7 @@ def json_folder_fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path
 
 
 async def test_get_all_birthdays():
-    birthdays = BirthdayJsonDB()
+    birthdays = BirthdayJson()
 
     await birthdays.add_birthday(1, 1, date(2023, 1, 1))
     await birthdays.add_birthday(2, 1, date(2023, 1, 2))
@@ -49,7 +49,7 @@ async def test_get_all_birthdays():
 async def test_birthday_exceptions():
     # Clean up before test
 
-    birthdays = BirthdayJsonDB()
+    birthdays = BirthdayJson()
 
     # Test adding duplicate birthday raises exception
     await birthdays.add_birthday(1, 1, date.fromisoformat("2023-01-01"))
