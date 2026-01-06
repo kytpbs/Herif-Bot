@@ -1,6 +1,7 @@
 import os
 from collections.abc import Mapping
 from datetime import date
+from typing import cast
 
 from psycopg import sql
 from typing_extensions import override
@@ -10,11 +11,12 @@ from src.data.birthdays import (
     BirthdayConfig,
     BirthdayDoesNotExist,
     BirthdayProvider,
-    BirthdayUnknownError,
     DBNotConnected,
     GuildID,
+    MalformedBirthdayDataReceived,
     UserID,
 )
+
 from src.sql.database import LOGGER, DatabaseClient
 
 _LOGGER = LOGGER.getChild("BirthdaySQL")
@@ -101,17 +103,18 @@ class BirthdaySQL(BirthdayProvider):
         rows_affected = await self._client.post(query, (user_id, guild_id, birthday))
         if rows_affected == 0:
             raise BirthdayAlreadyExists(f"Birthday for user {user_id} already exists")
-        _LOGGER.info(f"Added birthday for user {user_id} in guild {guild_id}")
+        _LOGGER.debug(f"Added birthday for user {user_id} in guild {guild_id}")
 
     @override
     async def remove_birthday(self, user_id: UserID, guild_id: GuildID) -> None:
         query = sql.SQL("""
             DELETE FROM {0} WHERE user_id = %s AND guild_id = %s
-        """).format(sql.Identifier(self._birthday_table_name))
+    """).format(sql.Identifier(self._birthday_table_name))
 
         rows_affected = await self._client.post(query, (user_id, guild_id))
         if rows_affected < 1:
             raise BirthdayDoesNotExist()
+        _LOGGER.debug("Removed birthday for user %s in guild %s", user_id, guild_id)
 
     @override
     async def get_birthday(self, user_id: UserID, guild_id: GuildID) -> date | None:
@@ -126,7 +129,7 @@ class BirthdaySQL(BirthdayProvider):
         return result[0][0]
 
     @override
-    async def get_all_birthdays(self, user_id: UserID) -> list[date]:
+    async def get_birthdays_for_user(self, user_id: UserID) -> list[date]:
         query = sql.SQL("""
             SELECT DISTINCT birthday FROM {0}
             WHERE user_id = %s
@@ -137,7 +140,7 @@ class BirthdaySQL(BirthdayProvider):
         return [row[0] for row in result]
 
     @override
-    async def get_birthdays(self, guild_id: GuildID) -> Mapping[int, date]:
+    async def get_birthdays_in_guild(self, guild_id: GuildID) -> Mapping[int, date]:
         query = sql.SQL("""
             SELECT user_id, birthday FROM {0}
             WHERE guild_id = %s
@@ -149,7 +152,7 @@ class BirthdaySQL(BirthdayProvider):
         try:
             return {row[0]: row[1] for row in result}
         except (ValueError, TypeError, IndexError) as e:
-            raise BirthdayUnknownError("Somehow at least 2 rows did not exist") from e
+            raise MalformedBirthdayDataReceived() from e
 
     @override
     async def get_birthdays_on_date(
@@ -168,27 +171,32 @@ class BirthdaySQL(BirthdayProvider):
         try:
             return {row[0]: row[1] for row in result}
         except (ValueError, TypeError, IndexError) as e:
-            raise BirthdayUnknownError("Somehow at least 2 rows did not exist") from e
+            raise MalformedBirthdayDataReceived() from e
 
-    @override
-    async def get_birthdays_today(self, guild_id: GuildID) -> Mapping[int, date]:
+    async def get_all_birthdays_on_date(
+        self, date_: date
+    ) -> Mapping[GuildID, Mapping[GuildID, date]]:
         query = sql.SQL("""
-            SELECT user_id, birthday FROM {0}
-            WHERE guild_id = %s
-            AND EXTRACT(DAY FROM birthday)=EXTRACT(DAY FROM CURRENT_DATE)
-            AND EXTRACT(MONTH FROM birthday)=EXTRACT(MONTH FROM CURRENT_DATE)
+            SELECT guild_id, user_id, birthday FROM {0}
+            WHERE EXTRACT(DAY FROM birthday)=%s
+            AND EXTRACT(MONTH FROM birthday)=%s
         """).format(sql.Identifier(self._birthday_table_name))
 
-        result = await self._client.get(query, (guild_id,))
+        result = cast(
+            list[tuple[int, int, date]] | None,
+            await self._client.get(query, (date_.day, date_.month)),
+        )
+
         if not result:
             return {}
+        all_birthdays: dict[GuildID, dict[UserID, date]] = {}
         try:
-            return {row[0]: row[1] for row in result}
-        except (ValueError, TypeError, IndexError) as e:
-            raise BirthdayUnknownError("Somehow at least 2 rows did not exist") from e
-
-    async def get_all_birthdays_on_date(self, date_: date) -> Mapping[GuildID, Mapping[GuildID, date]]:
-        raise NotImplementedError()
+            for guild_id, user_id, birthday in result:
+                guild_birthdays = all_birthdays.setdefault(guild_id, {})
+                guild_birthdays[user_id] = birthday
+            return all_birthdays
+        except (ValueError, TypeError, IndexError, AssertionError) as e:
+            raise MalformedBirthdayDataReceived() from e
 
     @override
     async def set_birthday_config(

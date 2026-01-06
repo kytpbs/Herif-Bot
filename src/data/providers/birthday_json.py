@@ -1,6 +1,8 @@
-from collections.abc import Mapping, MutableMapping
+from collections.abc import MutableMapping
 from datetime import date
+import logging
 from typing import Final
+
 from typing_extensions import override
 
 from src.data.birthdays import (
@@ -19,6 +21,8 @@ BirthdayGuilds = MutableMapping[GuildID, UserBirthdays]
 
 BirthdayConfigs = MutableMapping[GuildID, BirthdayConfig]
 
+_LOGGER = logging.getLogger("BirthdayJson")
+
 
 class BirthdayJson(BirthdayProvider):
     def __init__(self):
@@ -31,6 +35,7 @@ class BirthdayJson(BirthdayProvider):
         if user_id not in birthdays:
             raise BirthdayDoesNotExist()
         del birthdays[user_id]
+        _LOGGER.debug("Removed birthday for user %s in guild %s", user_id, guild_id)
 
     @override
     async def add_birthday(
@@ -40,6 +45,7 @@ class BirthdayJson(BirthdayProvider):
         if user_id in birthdays:
             raise BirthdayAlreadyExists()
         birthdays[user_id] = birthday
+        _LOGGER.debug("Added birthday for user %s in guild %s", user_id, guild_id)
 
     @override
     async def get_birthday(self, user_id: UserID, guild_id: GuildID) -> date | None:
@@ -47,7 +53,7 @@ class BirthdayJson(BirthdayProvider):
         return birthdays.get(user_id)
 
     @override
-    async def get_all_birthdays(self, user_id: UserID) -> list[Birthday]:
+    async def get_birthdays_for_user(self, user_id: UserID) -> list[Birthday]:
         # get a user's birthdays in every possible guild
         # O(n) where n is the number of guilds, but that's fine since this is
         # only for backup and should normally be provided by SQL providers
@@ -59,13 +65,13 @@ class BirthdayJson(BirthdayProvider):
         return all_birthdays
 
     @override
-    async def get_birthdays(self, guild_id: GuildID) -> Mapping[UserID, Birthday]:
+    async def get_birthdays_in_guild(self, guild_id: GuildID) -> UserBirthdays:
         return self.guild_birthdays.get(guild_id, {})
 
     @override
     async def get_birthdays_on_date(
         self, guild_id: GuildID, date_: date
-    ) -> Mapping[UserID, Birthday]:
+    ) -> UserBirthdays:
         birthdays = self.guild_birthdays.get(guild_id, {})
         return {
             user_id: birthday
@@ -78,6 +84,15 @@ class BirthdayJson(BirthdayProvider):
         self, guild_id: GuildID, config: BirthdayConfig
     ) -> None:
         self.configs[guild_id] = config
+        _LOGGER.debug(f"Added birthday config for guild {guild_id}")
+
+    @override
+    async def get_all_birthdays_on_date(self, date_: date) -> BirthdayGuilds:
+        return {
+            guild_id: matching_birthdays
+            for guild_id in self.guild_birthdays.keys()
+            if (matching_birthdays := await self.get_birthdays_on_date(guild_id, date_))
+        }
 
     @override
     async def remove_birthday_config(self, guild_id: GuildID) -> None:
