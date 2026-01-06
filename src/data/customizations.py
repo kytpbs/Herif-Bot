@@ -5,6 +5,7 @@ from typing import TypeAlias
 
 from src.sql.errors import (
     AlreadyExists,
+    MalformedSQLDataReceived,
     NotConnectedError,
     SQLError,
     SQLFailedMiserably,
@@ -28,6 +29,9 @@ class CustomizationDoesNotExist(CustomizationError):
 
 
 class CustomizationUnknownError(CustomizationError, SQLFailedMiserably):
+    pass
+
+class MalformedCustomizationDataReceived(MalformedSQLDataReceived, CustomizationError):
     pass
 
 

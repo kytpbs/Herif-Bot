@@ -11,9 +11,9 @@ from src.data.customizations import (
     CustomizationAlreadyExists,
     CustomizationDoesNotExist,
     CustomizationProvider,
-    CustomizationUnknownError,
     DBNotConnected,
     GuildID,
+    MalformedCustomizationDataReceived,
     Response,
     UserID,
 )
@@ -61,8 +61,7 @@ class CustomizationSQL(CustomizationProvider):
             idx_guild=sql.Identifier(f"{self._table_name}_guild_idx"),
             idx_guild_command=sql.Identifier(f"{self._table_name}_guild_command_idx"),
         )
-        async with self._db_client.connection as conn:
-            _ = await conn.execute(query)
+        _ = await self._db_client.post(query)
         self._table_exists = True
 
     @override
@@ -100,14 +99,10 @@ class CustomizationSQL(CustomizationProvider):
     async def get_response(
         self, guild_id: GuildID, command_input: Command
     ) -> CustomCommand | None:
-        query = (
-            sql.SQL("""
+        query = sql.SQL("""
         SELECT response, added_by_user_id FROM {table_name}
         WHERE guild_id = %s AND command_input = %s
-        """)
-            .format(table_name=sql.Identifier(self._table_name))
-            
-        )
+        """).format(table_name=sql.Identifier(self._table_name))
         result = await self._client.get(query, (guild_id, command_input))
         if (
             not result
@@ -127,15 +122,11 @@ class CustomizationSQL(CustomizationProvider):
     async def get_all_custom_commands(
         self, guild_id: GuildID, limit: int | None = None
     ) -> Mapping[Command, CustomCommand]:
-        query = (
-            sql.SQL("""
+        query = sql.SQL("""
         SELECT command_input, response, added_by_user_id FROM {table_name}
         WHERE guild_id = %s
         LIMIT %s
-        """)
-            .format(table_name=sql.Identifier(self._table_name))
-            
-        )
+        """).format(table_name=sql.Identifier(self._table_name))
         result = await self._client.get(query, (guild_id, limit))
         if not result:
             return {}
@@ -150,22 +141,16 @@ class CustomizationSQL(CustomizationProvider):
                 for row in result
             }
         except (ValueError, TypeError, IndexError) as e:
-            raise CustomizationUnknownError(
-                "Somehow at least 3 rows did not exist"
-            ) from e
+            raise MalformedCustomizationDataReceived() from e
 
     @override
     async def get_creator(
         self, guild_id: GuildID, command_input: Command
     ) -> UserID | None:
-        query = (
-            sql.SQL("""
+        query = sql.SQL("""
         SELECT added_by_user_id FROM {table_name}
         WHERE guild_id = %s AND command_input = %s
-    """)
-            .format(table_name=sql.Identifier(self._table_name))
-            
-        )
+    """).format(table_name=sql.Identifier(self._table_name))
         result = await self._client.get(query, (guild_id, command_input))
         if not result or not result[0] or not isinstance(result[0][0], int):
             return None
