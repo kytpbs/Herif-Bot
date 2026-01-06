@@ -1,8 +1,8 @@
 import logging
 import os
 from collections.abc import AsyncGenerator, Mapping, Sequence
-from contextlib import asynccontextmanager
-from typing import Any, Final, LiteralString, cast
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from typing import Any, Final, cast
 from frozendict import frozendict
 from typing_extensions import override
 
@@ -11,13 +11,11 @@ import psycopg_pool
 from async_lru import alru_cache
 from psycopg import sql
 from psycopg.rows import TupleRow
-from dotenv import load_dotenv
 
 from src.sql.database import DatabaseClient, Params, Query
 from src.sql.errors import NotConnectedError, SQLFailedMiserably
 
 _LOGGER = logging.getLogger("SQL")
-_ = load_dotenv()
 
 
 class PostgresDBClient(DatabaseClient):
@@ -62,21 +60,33 @@ class PostgresDBClient(DatabaseClient):
 
     @property
     @asynccontextmanager
-    @override
-    async def connection(self) -> AsyncGenerator[psycopg.AsyncConnection, None]:
+    async def _connection(self) -> AsyncGenerator[psycopg.AsyncConnection, None]:
         await self._pool.open()
         async with self._pool.connection() as conn:
             yield conn
 
     @property
-    @asynccontextmanager
     @override
-    async def cursor(
+    def connection(self) -> AbstractAsyncContextManager[psycopg.AsyncConnection]:
+        return self._connection
+
+    @property
+    @asynccontextmanager
+    async def _cursor(
         self,
     ) -> AsyncGenerator[tuple[psycopg.AsyncConnection, psycopg.AsyncCursor], None]:
         async with self.connection as conn:
             async with conn.cursor() as cursor:
                 yield (conn, cursor)
+
+    @property
+    @override
+    def cursor(
+        self,
+    ) -> AbstractAsyncContextManager[
+        tuple[psycopg.AsyncConnection, psycopg.AsyncCursor]
+    ]:
+        return self._cursor
 
     def _create_conn_str_from_env(self) -> str:
         user = os.getenv("SQL_USER", "postgres")
@@ -122,7 +132,7 @@ class PostgresDBClient(DatabaseClient):
     ) -> list[TupleRow] | None:
         match params:
             case Mapping():
-                new_params = cast(frozendict[str,Any], frozendict(params))
+                new_params = cast(frozendict[str, Any], frozendict(params))
             case Sequence():
                 new_params = tuple(params)
             case None:
@@ -130,11 +140,11 @@ class PostgresDBClient(DatabaseClient):
         match query:
             case sql.SQL() | sql.Composed():
                 query_str = query.as_string()
-            case LiteralString():
+            case str(): # Includes LiteralString, which is not a runtime type
                 query_str = query
         return await self._get_cached(query_str, new_params)
 
-    @alru_cache(maxsize=32, typed=True, ttl=0.1)
+    @alru_cache(maxsize=32, typed=True, ttl=0.5)
     async def _get_cached(
         self, query: Query, params: Params[Any] | None = None
     ) -> list[TupleRow] | None:
@@ -162,7 +172,6 @@ class PostgresDBClient(DatabaseClient):
         Returns:
             psycopg.AsyncResult: The result of the query.
         """
-        _LOGGER.debug("Executing query: '%s' with values: %s", query, params)
 
         async with self.cursor as (_, cursor):
             try:
@@ -183,6 +192,9 @@ class PostgresDBClient(DatabaseClient):
 
 
 async def _main():
+    # Only for testing purposes, so shut up pylint
+    from dotenv import load_dotenv # pylint: disable=import-outside-toplevel
+    _ = load_dotenv()
     client = PostgresDBClient()
     print(await client.get("SELECT version()"))
 

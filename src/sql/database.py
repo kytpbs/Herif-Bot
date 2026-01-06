@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 import logging
-import os
 from collections.abc import Mapping, Sequence
 from contextlib import AbstractAsyncContextManager
 from typing import Any, LiteralString, TypeAlias, TypeVar
@@ -10,7 +9,6 @@ from psycopg import sql
 from psycopg.rows import TupleRow
 from dotenv import load_dotenv
 
-from src.sql.errors import NotConnectedError
 
 LOGGER = logging.getLogger("SQL")
 _ = load_dotenv()
@@ -51,32 +49,17 @@ class DatabaseClient(ABC):
 
     @property
     @abstractmethod
-    async def connection(
+    def connection(
         self,
     ) -> AbstractAsyncContextManager[psycopg.AsyncConnection]: ...
 
     @property
     @abstractmethod
-    async def cursor(
+    def cursor(
         self,
     ) -> AbstractAsyncContextManager[
         tuple[psycopg.AsyncConnection, psycopg.AsyncCursor]
     ]: ...
-
-    def _create_conn_str_from_env(self) -> str:
-        user = os.getenv("SQL_USER", "postgres")
-        password = os.getenv("SQL_PASSWORD")
-        database = os.getenv("SQL_DATABASE", "herifbot")
-        host = os.getenv("SQL_HOST", "localhost")
-        port = os.getenv("SQL_PORT", "5432")
-        sslmode = os.getenv("SQL_SSLMODE", "require")
-        channel_binding = os.getenv("SQL_CHANNELBINDING", "require")
-
-        if not password:
-            LOGGER.error("No password found in environment variables")
-            raise NotConnectedError("No password found in environment variables")
-
-        return f"postgresql://{user}:{password}@{host}:{port}/{database}?sslmode={sslmode}&channel_binding={channel_binding}"
 
     @abstractmethod
     async def post(
@@ -105,12 +88,9 @@ class DatabaseClient(ABC):
         """
         Executes a query and returns the first result.
         has a limiter cache to prevent repeated queries,
-        if you need to bypass the cache, update the query slightly,
-        a new API will be made with more options later.
+        if you need to bypass the cache do the query using :attr:`cursor` or update the query slightly each time (not recommended).
+        a new API will be made with more options later, don't know when though, so don't use this for time-sensitive data.
 
-        This doesn't accept mapping types, due to caching issues.
-
-        Update and create a FrozenDict type to fix this.
         Args:
             query (Query): The query to execute.
             params (Sequence | None): The parameters to pass to the query.
