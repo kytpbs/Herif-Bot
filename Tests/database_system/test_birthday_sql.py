@@ -33,14 +33,14 @@ async def test_get_birthdays():
 
     await birthdays.add_birthday(3, 1, birthday)
 
-    assert len(await birthdays.get_birthdays(1)) == 3
+    assert len(await birthdays.get_birthdays_in_guild(1)) == 3
     assert len(await birthdays.get_birthdays_today(1)) == 1
 
     assert await birthdays.get_birthday(1, 1) == date.fromisoformat("2023-01-01")
 
     await birthdays.remove_birthday(3, 1)
 
-    await asyncio.sleep(0.1)  # Ensure cache is not used
+    await asyncio.sleep(0.5)  # Ensure cache is not used
 
     assert await birthdays.get_birthday(3, 1) is None
     assert len(await birthdays.get_birthdays_today(1)) == 0
@@ -67,7 +67,7 @@ async def test_duplicate_birthday_addition():
         # Adding the same birthday again with different date should also raise an exception
         await birthdays.add_birthday(4, 1, date.fromisoformat("2024-02-02"))
 
-    assert await birthdays.get_all_birthdays(4) == [date(2023, 1, 1)]
+    assert await birthdays.get_birthdays_for_user(4) == [date(2023, 1, 1)]
 
     await birthdays.remove_birthday(4, 1)
 

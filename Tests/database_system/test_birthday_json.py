@@ -33,7 +33,7 @@ async def test_get_all_birthdays():
 
     await birthdays.add_birthday(3, 1, birthday)
 
-    assert len(await birthdays.get_birthdays(1)) == 3
+    assert len(await birthdays.get_birthdays_in_guild(1)) == 3
     assert len(await birthdays.get_birthdays_today(1)) == 1
 
     assert await birthdays.get_birthday(1, 1) == date(2023, 1, 1)
