@@ -1,4 +1,5 @@
 import logging
+from typing import Final
 
 from src.data.customizations import CustomizationProvider
 from src.data.providers.customization_json import CustomizationJson
@@ -18,7 +19,7 @@ class CustomizationFactory:
             client (DatabaseClient | None): The database client to use for SQL provider, if None, JSON provider will be used
         """
         self._customization_provider: CustomizationProvider | None = None
-        self._db_client = client
+        self._db_client: Final = client
 
     @property
     async def create_customization_provider(self) -> CustomizationProvider:

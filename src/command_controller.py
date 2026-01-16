@@ -31,7 +31,7 @@ async def _on_tree_error(interaction: discord.Interaction, error: Exception):
 
 
 def setup_error_handler(tree: app_commands.CommandTree):
-    tree.error(_on_tree_error)
+    _ = tree.error(_on_tree_error)
 
 
 def setup_commands(tree: app_commands.CommandTree):

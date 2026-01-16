@@ -14,11 +14,11 @@ class AiCommands(app_commands.Group, CommandGroup):
         return [
             cls(name="zeki", description="Botu zeki yapan komutlar"),
             story_writer,
-        ] # pyright: ignore[reportUnknownVariableType]
+        ]
 
     @app_commands.command(name="soru", description="bota bir soru sor")
     async def chatgpt(self, interaction: discord.Interaction, message: str):
-        await interaction.response.defer(ephemeral=False)
+        _ = await interaction.response.defer(ephemeral=False)
         try:
             answer = await gpt.interaction_chat(interaction, message, include_history=False)
         except LLMError:
@@ -28,7 +28,7 @@ class AiCommands(app_commands.Group, CommandGroup):
 
     @app_commands.command(name="sohbet", description="Botun sohbete katılmasını sağlar! (eski mesaj okur!)")
     async def question(self, interaction: discord.Interaction, message: str):
-        await interaction.response.defer(ephemeral=False)
+        _ = await interaction.response.defer(ephemeral=False)
         try:
             answer = await gpt.interaction_chat(interaction, message)
         except LLMError:
@@ -40,7 +40,7 @@ class AiCommands(app_commands.Group, CommandGroup):
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.command(name="feridun_abi", description="Yine seks hikayesi mi yazıyorsun feridun abi?")
 async def story_writer(interaction: discord.Interaction, message: str):
-    await interaction.response.defer(ephemeral=False)
+    _ = await interaction.response.defer(ephemeral=False)
     try:
         answer = await gpt.story_writer(interaction, message)
     except LLMError:
