@@ -33,7 +33,6 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
             cls(name="doğumgünü", description="Doğumgünü komutları"),
         ]
 
-
     # Config Setup Commands
     @app_commands.command(
         name="ayarlar",
@@ -271,12 +270,11 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
             _ = embed.add_field(name=f"{user}:", value=f"{birthday}", inline=False)
         _ = await interaction.response.send_message(embed=embed)
 
-
     @app_commands.command(
         name="ayarlar_sil",
         description="Sunucuda doğum günü kutlamalarını devre dışı bırakır",
     )
-    @app_commands.checks.has_permissions(administrator=True) #! Admin only
+    @app_commands.checks.has_permissions(administrator=True)  #! Admin only
     async def remove_config(
         self,
         interaction: DataManagerInteraction,
