@@ -1,3 +1,4 @@
+# pylint: disable=redefined-outer-name
 import os
 from pathlib import Path
 
@@ -12,7 +13,7 @@ from src.data.customizations import (
 from src.data.providers.customization_json import CustomizationJson
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function", autouse=True)
 def json_folder_fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     folder = tmp_path / "jsons"
     folder.mkdir()
@@ -22,10 +23,12 @@ def json_folder_fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path
     return folder
 
 
-async def test_custom_command_crud_json(json_folder_fixture: Path):
-    del json_folder_fixture  # ensures fixture is used to isolate files
-    customizations = CustomizationJson()
+@pytest.fixture(scope="function")
+def customizations() -> CustomizationJson:
+    return CustomizationJson()
 
+
+async def test_custom_command_crud_json(customizations: CustomizationJson):
     guild_id = 0
     command_input = "pytest_custom_command"
     response = "pytest response"
@@ -49,10 +52,9 @@ async def test_custom_command_crud_json(json_folder_fixture: Path):
     assert await customizations.get_all_custom_commands(guild_id) == {}
 
 
-async def test_duplicate_custom_command_addition_json(json_folder_fixture: Path):
-    del json_folder_fixture  # ensures fixture is used to isolate files
-    customizations = CustomizationJson()
-
+async def test_duplicate_custom_command_addition_json(
+    customizations: CustomizationJson,
+):
     guild_id = 0
     command_input = "pytest_duplicate_command"
     response = "first response"
@@ -67,9 +69,8 @@ async def test_duplicate_custom_command_addition_json(json_folder_fixture: Path)
     assert commands[command_input].response == response
 
 
-async def test_delete_non_existent_custom_command_json(json_folder_fixture: Path):
-    del json_folder_fixture
-    customizations = CustomizationJson()
-
+async def test_delete_non_existent_custom_command_json(
+    customizations: CustomizationJson,
+):
     with pytest.raises(CustomizationDoesNotExist):
         await customizations.delete_custom_command(0, "does_not_exist")
