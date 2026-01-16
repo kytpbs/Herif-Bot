@@ -108,7 +108,7 @@ class CustomizationSQL(CustomizationProvider):
             not result
             or not result[0]
             or not isinstance(result[0][0], str)
-            or not isinstance(result[0][1], int)
+            or not isinstance(result[0][1], UserID | None)
         ):
             return None
         return CustomCommand(
@@ -136,7 +136,7 @@ class CustomizationSQL(CustomizationProvider):
                     guild_id=guild_id,
                     command_input=cast(str, row[0]),
                     response=cast(str, row[1]),
-                    added_by_user_id=cast(int, row[2]),
+                    added_by_user_id=cast(UserID | None, row[2]),
                 )
                 for row in result
             }
@@ -152,6 +152,6 @@ class CustomizationSQL(CustomizationProvider):
         WHERE guild_id = %s AND command_input = %s
     """).format(table_name=sql.Identifier(self._table_name))
         result = await self._client.get(query, (guild_id, command_input))
-        if not result or not result[0] or not isinstance(result[0][0], int):
+        if not result or not result[0] or not isinstance(result[0][0], UserID | None):
             return None
         return result[0][0]
