@@ -175,7 +175,7 @@ class BirthdaySQL(BirthdayProvider):
 
     async def get_all_birthdays_on_date(
         self, date_: date
-    ) -> Mapping[GuildID, Mapping[GuildID, date]]:
+    ) -> Mapping[GuildID, Mapping[UserID, date]]:
         query = sql.SQL("""
             SELECT guild_id, user_id, birthday FROM {0}
             WHERE EXTRACT(DAY FROM birthday)=%s
@@ -183,7 +183,7 @@ class BirthdaySQL(BirthdayProvider):
         """).format(sql.Identifier(self._birthday_table_name))
 
         result = cast(
-            list[tuple[int, int, date]] | None,
+            list[tuple[GuildID, UserID, date]] | None,
             await self._client.get(query, (date_.day, date_.month)),
         )
 
@@ -206,7 +206,7 @@ class BirthdaySQL(BirthdayProvider):
             INSERT INTO {0} (guild_id, channel_id, role_id)
             VALUES (%s, %s, %s)
             ON CONFLICT (guild_id) DO UPDATE SET
-                channel_id = %s
+                channel_id = %s,
                 role_id = COALESCE(EXCLUDED.role_id, {0}.role_id)
         """).format(sql.Identifier(self._config_table_name))
 
@@ -244,7 +244,7 @@ class BirthdaySQL(BirthdayProvider):
             not result
             or not result[0]
             or not isinstance(result[0][0], int)
-            or not isinstance(result[0][1], int)
+            or not isinstance(result[0][1], int | None)
         ):
             return None
         return BirthdayConfig(result[0][0], result[0][1])
