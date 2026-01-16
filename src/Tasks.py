@@ -5,7 +5,6 @@ from typing import Final, Mapping, Protocol
 import discord
 from discord.ext import tasks
 
-from Constants import BIRTHDAY_ROLE_ID, GENERAL_CHAT_ID
 from src.data.birthdays import BirthdayProvider, GuildID
 from src.data.data_manager import DataManagerProvider
 from src.file_handeler import delete_saved_attachments
@@ -75,7 +74,11 @@ class Tasks:
             )
             return
 
-        role = congratulate_channel.guild.get_role(config.role_id or -1) # -1 will never be a valid role id, so returns None
+        role = (
+            congratulate_channel.guild.get_role(config.role_id)
+            if config.role_id
+            else None
+        )
         if not isinstance(role, discord.Role):
             _BIRTHDAY_LOGGER.warning(
                 "Could not find birthday role, skipping, not giving birthdays"
@@ -92,7 +95,9 @@ class Tasks:
                 # user_id and guild_id are not exactly Private data, so logging is fine here
                 # At least I think so
                 _BIRTHDAY_LOGGER.error(
-                    "Could not find user %s in guild %s, skipping birthday", user_id, guild_id
+                    "Could not find user %s in guild %s, skipping birthday",
+                    user_id,
+                    guild_id,
                 )
                 # Someone probably left the guild
                 continue
@@ -110,10 +115,7 @@ class Tasks:
 
         todays_birthdays = await birthday_provider.get_all_birthdays_today()
         for guild_id, birthdays in todays_birthdays.items():
-            await self._process_birthdays_check(
-                guild_id, birthdays, birthday_provider
-            )
-
+            await self._process_birthdays_check(guild_id, birthdays, birthday_provider)
 
     @staticmethod
     @tasks.loop(hours=168)  # 1 week
