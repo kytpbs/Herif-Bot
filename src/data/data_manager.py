@@ -39,12 +39,13 @@ class DataManager:
         return await self._customization_factory.create_customization_provider
 
 
+# Special typing for discord.Client with DataManager
 class DiscordClientWithDataManager(discord.Client):
     @property
-    def data_manager(self) -> DataManager:
-        ...
+    def data_manager(self) -> DataManager: ...
 
+
+# Protocol for classes that provide access to DataManager
 class DataManagerProvider(Protocol):
     @property
-    def data_manager(self) -> DataManager:
-        ...
+    def data_manager(self) -> DataManager: ...
