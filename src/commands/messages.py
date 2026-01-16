@@ -21,7 +21,7 @@ class MessagesCommands(CommandGroup):
 async def fake_message(interaction: discord.Interaction, user: discord.Member, message: str):
     channel = interaction.channel
     if not isinstance(channel, discord.TextChannel):
-        await interaction.response.send_message("Cannot use in non-text channels", ephemeral=True)
+        _ = await interaction.response.send_message("Cannot use in non-text channels", ephemeral=True)
         return
 
     webhooks = await channel.webhooks()
@@ -43,7 +43,7 @@ async def fake_message(interaction: discord.Interaction, user: discord.Member, m
 @app_commands.context_menu(name="Mesajı_Sabitle")
 async def pin_message(interaction: discord.Interaction, message: discord.Message):
     await message.pin(reason=f"{interaction.user.name} Adlı kişi tarafından sabitlendi")
-    await interaction.response.send_message(
+    _ = await interaction.response.send_message(
         f"{message.author.mention} adlı kişinin; **{message.content}** mesajı sabitlendi", ephemeral=True)
 
 
