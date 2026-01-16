@@ -19,7 +19,7 @@ _LOGGER = logging.getLogger("SQL")
 
 
 class PostgresDBClient(DatabaseClient):
-    def __init__(self, conn_str: str | None = None):
+    def __init__(self, conn_str: str | None = None, **kwargs: Any) -> None:
         """
         Initializes the database client.
 
@@ -30,25 +30,27 @@ class PostgresDBClient(DatabaseClient):
             conn_str (str | None): The connection string to use.
                 If None, will attempt to read from the environment variable
         """
+        # Call super, even if it does nothing, for future compatibility
+        super().__init__(conn_str)
         conn_str = (
             conn_str
             or os.getenv("SQL_CONNECTION_STRING")
-            or self._create_conn_str_from_env()
+            or self._create_conn_str_from_env(cast(str, kwargs.get("dbname")))
         )
 
         self._pool: Final = psycopg_pool.AsyncConnectionPool(
-            conn_str, min_size=0, max_size=10, open=False
+            conn_str, min_size=0, max_size=10, open=False, kwargs=kwargs
         )
 
         self._has_setup: bool = False
 
     @override
-    async def setup(self):
+    async def setup(self, wait: bool = False, timeout: float = 30) -> None:
         """
         Sets up the database client, opening the connection pool.
         Normally not needed, as the pool will lazy-load on first use.
         """
-        await self._pool.open()
+        await self._pool.open(wait=wait, timeout=timeout)
         self._has_setup = True
 
     @override
@@ -88,10 +90,10 @@ class PostgresDBClient(DatabaseClient):
     ]:
         return self._cursor
 
-    def _create_conn_str_from_env(self) -> str:
+    def _create_conn_str_from_env(self, db_name: str | None = None) -> str:
         user = os.getenv("SQL_USER", "postgres")
         password = os.getenv("SQL_PASSWORD")
-        database = os.getenv("SQL_DATABASE", "herifbot")
+        database = db_name or os.getenv("SQL_DATABASE", "herifbot")
         host = os.getenv("SQL_HOST", "localhost")
         port = os.getenv("SQL_PORT", "5432")
         sslmode = os.getenv("SQL_SSLMODE", "require")
@@ -140,7 +142,7 @@ class PostgresDBClient(DatabaseClient):
         match query:
             case sql.SQL() | sql.Composed():
                 query_str = query.as_string()
-            case str(): # Includes LiteralString, which is not a runtime type
+            case str():  # Includes LiteralString, which is not a runtime type
                 query_str = query
         return await self._get_cached(query_str, new_params)
 
@@ -152,16 +154,14 @@ class PostgresDBClient(DatabaseClient):
 
     # Cache the `get` method to avoid unnecessary database queries.
     # But do with TTL (Time To Live) to avoid caching forever.
-    # Cache for 100 milliseconds
+    # Cache for 500 milliseconds
     # Should be more than enough for sudden bursts from func calls
     # The rest we don't need to cache for now anyways
     async def _get(
         self, query: Query, params: Params[Any] | None = None
     ) -> list[TupleRow] | None:
         """
-        Executes a query and returns the first result.
-
-        This doesn't accept mapping types, due to caching issues.
+        Executes a query and returns all results. Returns None if something goes wrong.
 
         Update and create a FrozenDict type to fix this.
         Args:
@@ -170,7 +170,7 @@ class PostgresDBClient(DatabaseClient):
                 Defaults to None.
 
         Returns:
-            psycopg.AsyncResult: The result of the query.
+            list[TupleRow] | None: The result of the query.
         """
 
         async with self.cursor as (_, cursor):
@@ -190,10 +190,17 @@ class PostgresDBClient(DatabaseClient):
                 )
                 raise SQLFailedMiserably("Query failed") from e
 
+    def clear_cache(self) -> None:
+        """
+        Clears the query cache.
+        """
+        self._get_cached.cache_clear()
+
 
 async def _main():
     # Only for testing purposes, so shut up pylint
-    from dotenv import load_dotenv # pylint: disable=import-outside-toplevel
+    from dotenv import load_dotenv  # pylint: disable=import-outside-toplevel
+
     _ = load_dotenv()
     client = PostgresDBClient()
     print(await client.get("SELECT version()"))
