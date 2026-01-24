@@ -84,7 +84,7 @@ class BirthdayJson(BirthdayProvider):
         self, guild_id: GuildID, config: BirthdayConfig
     ) -> None:
         self.configs[guild_id] = config
-        _LOGGER.debug(f"Added birthday config for guild {guild_id}")
+        _LOGGER.debug("Added birthday config for guild %s", guild_id)
 
     @override
     async def get_all_birthdays_on_date(self, date_: date) -> BirthdayGuilds:
@@ -97,10 +97,10 @@ class BirthdayJson(BirthdayProvider):
     @override
     async def remove_birthday_config(self, guild_id: GuildID) -> None:
         if guild_id not in self.configs:
-            _LOGGER.debug(f"No birthday config found for guild {guild_id} to remove")
+            _LOGGER.debug("No birthday config found for guild %s to remove", guild_id)
             raise BirthdayDoesNotExist()
         del self.configs[guild_id]
-        _LOGGER.debug(f"Removed birthday config for guild {guild_id}")
+        _LOGGER.debug("Removed birthday config for guild %s", guild_id)
 
     @override
     async def get_birthday_config(self, guild_id: GuildID) -> BirthdayConfig | None:
