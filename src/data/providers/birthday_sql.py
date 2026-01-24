@@ -219,7 +219,7 @@ class BirthdaySQL(BirthdayProvider):
                 config.channel_id,
             ),
         )
-        _LOGGER.debug(f"Added birthday config for guild {guild_id}")
+        _LOGGER.debug("Added birthday config for guild %s", guild_id)
 
     @override
     async def remove_birthday_config(self, guild_id: GuildID) -> None:
@@ -229,9 +229,9 @@ class BirthdaySQL(BirthdayProvider):
 
         rows_affected = await self._client.post(query, (guild_id,))
         if rows_affected < 1:
-            _LOGGER.debug(f"No birthday config found for guild {guild_id} to remove")
+            _LOGGER.debug("No birthday config found for guild %s to remove", guild_id)
             raise BirthdayDoesNotExist()
-        _LOGGER.debug(f"Removed birthday config for guild {guild_id}")
+        _LOGGER.debug("Removed birthday config for guild %s", guild_id)
 
     @override
     async def get_birthday_config(self, guild_id: GuildID) -> BirthdayConfig | None:

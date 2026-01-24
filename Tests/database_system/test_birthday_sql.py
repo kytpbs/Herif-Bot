@@ -27,12 +27,12 @@ async def birthdays(
 ) -> AsyncGenerator[BirthdaySQL, None]:
     birthdays_client = await BirthdaySQL.create(client)
     yield birthdays_client
-    await client.post(
+    _ = await client.post(
         sql.SQL("DROP TABLE IF EXISTS {table_name}").format(
             table_name=sql.Identifier(birthdays_client._birthday_table_name)  # pyright: ignore[reportPrivateUsage] # pylint: disable=protected-access
         )
     )
-    await client.post(
+    _ = await client.post(
         sql.SQL("DROP TABLE IF EXISTS {table_name}").format(
             table_name=sql.Identifier(birthdays_client._config_table_name)  # pyright: ignore[reportPrivateUsage] # pylint: disable=protected-access
         )
