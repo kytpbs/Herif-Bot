@@ -180,6 +180,7 @@ class MyClient(discord.Client):
 
     async def on_message(self, message: discord.Message):
         customs_provider = await self.data_manager.customization_provider
+        server_config_provider = await self.data_manager.server_config_provider
         user = message.author
         channel = message.channel
         guild = message.guild
@@ -201,7 +202,11 @@ class MyClient(discord.Client):
                 await self.on_dm(message)
             return
 
-        if (response := await customs_provider.get_response(message.guild.id, message.content)):
+        # Check if customizations are enabled for this guild (defaults to enabled if not configured)
+        customization_config = await server_config_provider.get_customization_config(message.guild.id)
+        is_customization_enabled = customization_config.is_enabled if customization_config else True
+
+        if is_customization_enabled and (response := await customs_provider.get_response(message.guild.id, message.content)):
             await message.reply(response.response)
 
         if time == "06:11:":  # 9:11 for +3 timezone

@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import TypeAlias
 
@@ -40,13 +39,6 @@ class MalformedBirthdayDataReceived(MalformedSQLDataReceived, BirthdayError):
 UserID: TypeAlias = int
 GuildID: TypeAlias = int
 Birthday: TypeAlias = date
-
-@dataclass
-class BirthdayConfig:
-    """Represents the configuration for a guild's birthdays"""
-
-    channel_id: int
-    role_id: int | None = None
 
 
 class BirthdayProvider(ABC):
@@ -146,44 +138,6 @@ class BirthdayProvider(ABC):
 
         Returns:
             Mapping[GuildID(int), Mapping[UserID(int), Birthday(date)]]: A mapping of guild IDs to mappings of user IDs to their birthdays on the specified date, **Empty** if none exist
-        """
-
-    @abstractmethod
-    async def set_birthday_config(
-        self, guild_id: GuildID, config: BirthdayConfig
-    ) -> None:
-        """Sets the birthday configuration for a specific guild, overwriting any existing configuration.
-
-        <p>
-        <b>Warning:
-            Overwrites</b> any existing configuration for the guild if one exists.
-        </p>
-
-        Args:
-            guild_id (GuildID(int)): The ID of the guild for which the configuration is to be set
-            config (BirthdayConfig): The birthday configuration to be set for the guild
-        """
-
-    @abstractmethod
-    async def get_birthday_config(self, guild_id: GuildID) -> BirthdayConfig | None:
-        """Gets the guild's birthday configuration returning None if not setup
-
-        Args:
-            guild_id (GuildID): The ID of the guild whose birthday configuration is to be retrieved
-
-        Returns:
-            BirthdayConfig | None: The birthday configuration for the specified guild, or None if no configuration exists
-        """
-
-    @abstractmethod
-    async def remove_birthday_config(self, guild_id: GuildID) -> None:
-        """Removes the birthday configuration for a specific guild. Meaning disabling birthdays in that guild.
-
-        Args:
-            guild_id (GuildID(int)): The ID of the guild whose configuration is to be removed
-
-        Raises:
-            BirthdayDoesNotExist: If no configuration exists for the specified guild
         """
 
     async def get_birthdays_today(self, guild_id: GuildID) -> Mapping[UserID, Birthday]:

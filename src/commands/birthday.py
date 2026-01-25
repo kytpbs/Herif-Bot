@@ -7,7 +7,8 @@ from discord import app_commands
 
 from Constants import CYAN
 from src.data.data_manager import DiscordClientWithDataManager
-from src.data.birthdays import BirthdayConfig, BirthdayDoesNotExist
+from src.data.birthdays import BirthdayDoesNotExist
+from src.data.server_config import BirthdayConfig, ServerConfigDoesNotExist
 from src.commands.command_group import CommandGroup, CommandList
 
 DataManagerInteraction = discord.Interaction[DiscordClientWithDataManager]
@@ -45,7 +46,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         congratulate_channel: discord.TextChannel | None = None,
         congratulate_role: discord.Role | None = None,
     ):
-        birthday_provider = await interaction.client.data_manager.birthday_provider
+        server_config_provider = await interaction.client.data_manager.server_config_provider
         user, guild_id = _assert_guild_membered(interaction)
         if not user or not guild_id:
             return
@@ -59,7 +60,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         pre_existing_config = None
 
         if not congratulate_channel and not (
-            pre_existing_config := await birthday_provider.get_birthday_config(guild_id)
+            pre_existing_config := await server_config_provider.get_birthday_config(guild_id)
         ):
             _ = await interaction.response.send_message(
                 "Birthday ayarları ayarlanmadı, lütfen bir channel ve bir role belirtin",
@@ -77,7 +78,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
 
         role_id = congratulate_role.id if congratulate_role else None
 
-        await birthday_provider.set_birthday_config(
+        await server_config_provider.set_birthday_config(
             guild_id, BirthdayConfig(channel_id, role_id)
         )
         _ = await interaction.response.send_message("Doğumgünü ayarları güncellendi")
@@ -279,15 +280,15 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         self,
         interaction: DataManagerInteraction,
     ):
-        birthday_provider = await interaction.client.data_manager.birthday_provider
+        server_config_provider = await interaction.client.data_manager.server_config_provider
         user, guild_id = _assert_guild_membered(interaction)
         if not user or not guild_id:
             return
 
         try:
-            await birthday_provider.remove_birthday_config(guild_id)
+            await server_config_provider.remove_birthday_config(guild_id)
             _ = await interaction.response.send_message("Birthday ayarları silindi")
-        except BirthdayDoesNotExist:
+        except ServerConfigDoesNotExist:
             _ = await interaction.response.send_message(
                 "Birthday ayarları zaten silinmiş", ephemeral=True
             )

@@ -8,7 +8,6 @@ from typing_extensions import override
 
 from src.data.birthdays import (
     BirthdayAlreadyExists,
-    BirthdayConfig,
     BirthdayDoesNotExist,
     BirthdayProvider,
     DBNotConnected,
@@ -33,9 +32,6 @@ class BirthdaySQL(BirthdayProvider):
         self._db_client: DatabaseClient = client
         self._table_exists: bool = False
         self._birthday_table_name: str = os.getenv("BIRTHDAY_TABLE_NAME", "birthdays")
-        self._config_table_name: str = os.getenv(
-            "BIRTHDAY_CONFIG_TABLE_NAME", "birthday_config"
-        )
 
     @property
     def _client(self):
@@ -64,12 +60,6 @@ class BirthdaySQL(BirthdayProvider):
             UNIQUE(user_id, guild_id)
         );
 
-        CREATE TABLE IF NOT EXISTS {config_table_name}(
-            guild_id BIGINT PRIMARY KEY,
-            channel_id BIGINT NOT NULL,
-            role_id BIGINT
-        );
-
         CREATE INDEX IF NOT EXISTS {idx_get} on {birthday_table_name}(guild_id, user_id);
         CREATE INDEX IF NOT EXISTS {idx_users} on {birthday_table_name}(user_id);
 
@@ -80,7 +70,6 @@ class BirthdaySQL(BirthdayProvider):
         );
         """).format(
             birthday_table_name=sql.Identifier(self._birthday_table_name),
-            config_table_name=sql.Identifier(self._config_table_name),
             idx_get=sql.Identifier(f"idx_{self._birthday_table_name}_get_birthday"),
             idx_users=sql.Identifier(f"idx_{self._birthday_table_name}_users_birthday"),
             idx_date=sql.Identifier(f"idx_{self._birthday_table_name}_on_date"),
@@ -197,54 +186,3 @@ class BirthdaySQL(BirthdayProvider):
             return all_birthdays
         except (ValueError, TypeError, IndexError, AssertionError) as e:
             raise MalformedBirthdayDataReceived() from e
-
-    @override
-    async def set_birthday_config(
-        self, guild_id: GuildID, config: BirthdayConfig
-    ) -> None:
-        query = sql.SQL("""
-            INSERT INTO {0} (guild_id, channel_id, role_id)
-            VALUES (%s, %s, %s)
-            ON CONFLICT (guild_id) DO UPDATE SET
-                channel_id = %s,
-                role_id = COALESCE(EXCLUDED.role_id, {0}.role_id)
-        """).format(sql.Identifier(self._config_table_name))
-
-        _ = await self._client.post(
-            query,
-            (
-                guild_id,
-                config.channel_id,
-                config.role_id,
-                config.channel_id,
-            ),
-        )
-        _LOGGER.debug("Added birthday config for guild %s", guild_id)
-
-    @override
-    async def remove_birthday_config(self, guild_id: GuildID) -> None:
-        query = sql.SQL("""
-            DELETE FROM {0} WHERE guild_id = %s
-        """).format(sql.Identifier(self._config_table_name))
-
-        rows_affected = await self._client.post(query, (guild_id,))
-        if rows_affected < 1:
-            _LOGGER.debug("No birthday config found for guild %s to remove", guild_id)
-            raise BirthdayDoesNotExist()
-        _LOGGER.debug("Removed birthday config for guild %s", guild_id)
-
-    @override
-    async def get_birthday_config(self, guild_id: GuildID) -> BirthdayConfig | None:
-        query = sql.SQL("""
-            SELECT channel_id, role_id FROM {0}
-            WHERE guild_id = %s
-        """).format(sql.Identifier(self._config_table_name))
-        result = await self._client.get(query, (guild_id,))
-        if (
-            not result
-            or not result[0]
-            or not isinstance(result[0][0], int)
-            or not isinstance(result[0][1], int | None)
-        ):
-            return None
-        return BirthdayConfig(result[0][0], result[0][1])

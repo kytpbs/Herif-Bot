@@ -6,8 +6,10 @@ import discord
 from src.sql.postgres import PostgresDBClient
 from src.data.birthdays import BirthdayProvider
 from src.data.customizations import CustomizationProvider
+from src.data.server_config import ServerConfigProvider
 from src.data.providers.birthday_factory import BirthdayFactory
 from src.data.providers.customization_factory import CustomizationFactory
+from src.data.providers.server_config_factory import ServerConfigFactory
 from src.sql.database import DatabaseClient
 from src.sql.errors import NotConnectedError
 
@@ -29,6 +31,7 @@ class DataManager:
             )
         self._birthday_factory: Final = BirthdayFactory(self._db_client)
         self._customization_factory: Final = CustomizationFactory(self._db_client)
+        self._server_config_factory: Final = ServerConfigFactory(self._db_client)
 
     @property
     async def birthday_provider(self) -> BirthdayProvider:
@@ -37,6 +40,10 @@ class DataManager:
     @property
     async def customization_provider(self) -> CustomizationProvider:
         return await self._customization_factory.create_customization_provider
+
+    @property
+    async def server_config_provider(self) -> ServerConfigProvider:
+        return await self._server_config_factory.create_server_config_provider
 
 
 # Special typing for discord.Client with DataManager

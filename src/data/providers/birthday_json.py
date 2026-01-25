@@ -8,7 +8,6 @@ from typing_extensions import override
 from src.data.birthdays import (
     Birthday,
     BirthdayAlreadyExists,
-    BirthdayConfig,
     BirthdayDoesNotExist,
     BirthdayProvider,
     GuildID,
@@ -19,15 +18,12 @@ from src.Helpers.helper_functions import DiskDict
 UserBirthdays = MutableMapping[UserID, Birthday]
 BirthdayGuilds = MutableMapping[GuildID, UserBirthdays]
 
-BirthdayConfigs = MutableMapping[GuildID, BirthdayConfig]
-
 _LOGGER = logging.getLogger("BirthdayJson")
 
 
 class BirthdayJson(BirthdayProvider):
     def __init__(self):
         self.guild_birthdays: Final[BirthdayGuilds] = DiskDict("birthday_guild.json")
-        self.configs: Final[BirthdayConfigs] = DiskDict("birthday_config.json")
 
     @override
     async def remove_birthday(self, user_id: UserID, guild_id: GuildID):
@@ -80,28 +76,9 @@ class BirthdayJson(BirthdayProvider):
         }
 
     @override
-    async def set_birthday_config(
-        self, guild_id: GuildID, config: BirthdayConfig
-    ) -> None:
-        self.configs[guild_id] = config
-        _LOGGER.debug("Added birthday config for guild %s", guild_id)
-
-    @override
     async def get_all_birthdays_on_date(self, date_: date) -> BirthdayGuilds:
         return {
             guild_id: matching_birthdays
             for guild_id in self.guild_birthdays.keys()
             if (matching_birthdays := await self.get_birthdays_on_date(guild_id, date_))
         }
-
-    @override
-    async def remove_birthday_config(self, guild_id: GuildID) -> None:
-        if guild_id not in self.configs:
-            _LOGGER.debug("No birthday config found for guild %s to remove", guild_id)
-            raise BirthdayDoesNotExist()
-        del self.configs[guild_id]
-        _LOGGER.debug("Removed birthday config for guild %s", guild_id)
-
-    @override
-    async def get_birthday_config(self, guild_id: GuildID) -> BirthdayConfig | None:
-        return self.configs.get(guild_id)
