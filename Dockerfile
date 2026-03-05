@@ -22,6 +22,9 @@ WORKDIR /app
 # Install ffmpeg
 RUN apt-get update && apt-get install ffmpeg -y && apt-get clean
 
+# Install deno, for yt-dlp JS challange support
+# https://github.com/yt-dlp/yt-dlp/wiki/EJS
+COPY --from=denoland/deno:bin /deno /usr/local/bin/deno
 
 # Install the project's dependencies using the lockfile and settings
 RUN --mount=type=cache,target=/root/.cache/uv \
