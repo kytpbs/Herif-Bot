@@ -5,9 +5,9 @@ from typing import Final, Mapping, Protocol
 import discord
 from discord.ext import tasks
 
-from src.data.birthdays import BirthdayProvider, GuildID
-from src.data.server_config import ServerConfigProvider
+from src.data.birthdays import GuildID
 from src.data.data_manager import DataManagerProvider
+from src.data.server_config import ServerConfigProvider
 from src.file_handeler import delete_saved_attachments
 
 _BIRTHDAY_LOGGER = logging.getLogger("Birthdays")
@@ -59,7 +59,8 @@ class Tasks:
         server_config_provider: ServerConfigProvider,
     ):
         _BIRTHDAY_LOGGER.info("Checking birthdays")
-        config = await server_config_provider.get_birthday_config(guild_id)
+        server_config = server_config_provider.get_config(guild_id)
+        config = await server_config.birthday_config
         if config is None:
             _BIRTHDAY_LOGGER.info(
                 "No birthday configuration found for guild %s, aborting birthday check",
@@ -117,7 +118,9 @@ class Tasks:
 
         todays_birthdays = await birthday_provider.get_all_birthdays_today()
         for guild_id, birthdays in todays_birthdays.items():
-            await self._process_birthdays_check(guild_id, birthdays, server_config_provider)
+            await self._process_birthdays_check(
+                guild_id, birthdays, server_config_provider
+            )
 
     @staticmethod
     @tasks.loop(hours=168)  # 1 week

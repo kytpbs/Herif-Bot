@@ -203,10 +203,10 @@ class MyClient(discord.Client):
             return
 
         # Check if customizations are enabled for this guild (defaults to enabled if not configured)
-        customization_config = await server_config_provider.get_customization_config(message.guild.id)
-        is_customization_enabled = customization_config.is_enabled if customization_config else True
+        server_config = server_config_provider.get_config(message.guild.id)
+        customization_config = await server_config.customization_config
 
-        if is_customization_enabled and (response := await customs_provider.get_response(message.guild.id, message.content)):
+        if customization_config.is_enabled and (response := await customs_provider.get_response(message.guild.id, message.content)):
             await message.reply(response.response)
 
         if time == "06:11:":  # 9:11 for +3 timezone

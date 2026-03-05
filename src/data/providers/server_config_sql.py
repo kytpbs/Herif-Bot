@@ -138,16 +138,14 @@ class ServerConfigSQL(ServerConfigProvider):
         _LOGGER.debug("Set customization config for guild %s to enabled=%s", guild_id, config.is_enabled)
 
     @override
-    async def get_customization_config(
-        self, guild_id: GuildID
-    ) -> CustomizationConfig | None:
+    async def get_customization_config(self, guild_id: GuildID) -> CustomizationConfig:
         query = sql.SQL("""
             SELECT is_enabled FROM {0}
             WHERE guild_id = %s
         """).format(sql.Identifier(self._customization_config_table_name))
         result = await self._client.get(query, (guild_id,))
         if not result or not result[0] or not isinstance(result[0][0], bool):
-            return None
+            return CustomizationConfig()
         return CustomizationConfig(result[0][0])
 
     @override
