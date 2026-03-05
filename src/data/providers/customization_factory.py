@@ -7,7 +7,6 @@ from src.data.providers.customization_sql import CustomizationSQL
 from src.sql.database import DatabaseClient
 from src.sql.errors import NotConnectedError
 
-
 _LOGGER = logging.getLogger("Customizations")
 
 

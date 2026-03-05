@@ -15,7 +15,6 @@ from src.data.birthdays import (
     MalformedBirthdayDataReceived,
     UserID,
 )
-
 from src.sql.database import LOGGER, DatabaseClient
 
 _LOGGER = LOGGER.getChild("BirthdaySQL")
@@ -77,7 +76,7 @@ class BirthdaySQL(BirthdayProvider):
         # Use db_client instead of _client to avoid getting an error
         _ = await self._db_client.post(query)
         self._table_exists = True
-        _LOGGER.info(f"Table {self._birthday_table_name} created or already exists")
+        _LOGGER.info("Table %s created or already exists", self._birthday_table_name)
 
     @override
     async def add_birthday(
@@ -92,7 +91,7 @@ class BirthdaySQL(BirthdayProvider):
         rows_affected = await self._client.post(query, (user_id, guild_id, birthday))
         if rows_affected == 0:
             raise BirthdayAlreadyExists(f"Birthday for user {user_id} already exists")
-        _LOGGER.debug(f"Added birthday for user {user_id} in guild {guild_id}")
+        _LOGGER.debug("Added birthday for user %s in guild %s", user_id, guild_id)
 
     @override
     async def remove_birthday(self, user_id: UserID, guild_id: GuildID) -> None:

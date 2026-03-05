@@ -1,6 +1,6 @@
+import logging
 from collections.abc import MutableMapping
 from datetime import date
-import logging
 from typing import Final
 
 from typing_extensions import override

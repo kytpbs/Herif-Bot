@@ -1,10 +1,10 @@
 import logging
 from typing import Final
 
-from src.sql.database import DatabaseClient
 from src.data.birthdays import BirthdayProvider
 from src.data.providers.birthday_json import BirthdayJson
 from src.data.providers.birthday_sql import BirthdaySQL
+from src.sql.database import DatabaseClient
 from src.sql.errors import NotConnectedError
 
 _LOGGER = logging.getLogger("Birthdays")

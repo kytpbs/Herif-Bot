@@ -3,15 +3,15 @@ from typing import Final, Protocol
 
 import discord
 
-from src.sql.postgres import PostgresDBClient
 from src.data.birthdays import BirthdayProvider
 from src.data.customizations import CustomizationProvider
-from src.data.server_config import ServerConfigProvider
 from src.data.providers.birthday_factory import BirthdayFactory
 from src.data.providers.customization_factory import CustomizationFactory
 from src.data.providers.server_config_factory import ServerConfigFactory
+from src.data.server_config import ServerConfigProvider
 from src.sql.database import DatabaseClient
 from src.sql.errors import NotConnectedError
+from src.sql.postgres import PostgresDBClient
 
 _LOGGER = logging.getLogger("DataManager")
 
