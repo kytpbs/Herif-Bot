@@ -1,9 +1,34 @@
 from datetime import UTC, datetime, timedelta
 import logging
+import re
 from typing import Any
 import discord
 
 from src import Read
+
+
+def sanitize_markdown(text: str) -> str:
+    """
+    Sanitizes markdown characters in text by adding backslashes before them.
+    This prevents Discord from interpreting the text as markdown formatting.
+    
+    Args:
+        text (str): The text to sanitize
+        
+    Returns:
+        str: The sanitized text with markdown characters escaped
+    """
+    if not text:
+        return text
+        
+    # Characters that need to be escaped for Discord markdown
+    # Order matters - backslash must be escaped first
+    markdown_chars = ['\\', '*', '_', '`', '~', '|', '[', ']', '<', '>']
+    
+    for char in markdown_chars:
+        text = text.replace(char, f'\\{char}')
+    
+    return text
 
 
 def get_general_channel(guild: discord.Guild):
