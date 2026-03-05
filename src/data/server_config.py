@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TypeAlias
+from typing import Final, TypeAlias
+
+from async_lru import alru_cache
 
 from src.sql.errors import (
     AlreadyExists,
@@ -53,6 +55,42 @@ class CustomizationConfig:
     is_enabled: bool = True
 
 
+class ServerConfigAccessor:
+    """
+    Lazy accessor for server configuration that only queries the database when properties are accessed.
+
+    Provides a clean API with async properties while maintaining performance through lazy loading.
+    Caches results within the same instance to avoid duplicate queries.
+    """
+
+    def __init__(self, guild_id: GuildID, provider: "ServerConfigProvider"):
+        self._guild_id: Final = guild_id
+        self._provider: Final = provider
+        self._cache: Final[dict[str, BirthdayConfig | CustomizationConfig | None]] = {}
+
+    @property
+    @alru_cache(ttl=60 * 5)  # Cache results for 5 minutes
+    async def birthday_config(self) -> BirthdayConfig | None:
+        """
+        Lazily fetches and caches the birthday configuration for this guild.
+
+        Returns:
+            BirthdayConfig | None: The birthday configuration, or None if not configured
+        """
+        return await self._provider.get_birthday_config(self._guild_id)
+
+    @property
+    @alru_cache(ttl=60 * 5)  # Cache results for 5 minutes
+    async def customization_config(self) -> CustomizationConfig:
+        """
+        Lazily fetches and caches the customization configuration for this guild.
+
+        Returns:
+            CustomizationConfig: The customization configuration, with default values if not configured
+        """
+        return await self._provider.get_customization_config(self._guild_id)
+
+
 class ServerConfigProvider(ABC):
     """
     Abstract class for server/guild configuration
@@ -79,7 +117,7 @@ class ServerConfigProvider(ABC):
 
     @abstractmethod
     async def get_birthday_config(self, guild_id: GuildID) -> BirthdayConfig | None:
-        """Gets the guild's birthday configuration returning None if not setup
+        """Gets the guild's birthday configuration returning None if admin has not set up birthdays.
 
         Args:
             guild_id (GuildID): The ID of the guild whose birthday configuration is to be retrieved
@@ -103,7 +141,8 @@ class ServerConfigProvider(ABC):
     async def set_customization_config(
         self, guild_id: GuildID, config: CustomizationConfig
     ) -> None:
-        """Sets the customization configuration for a specific guild, overwriting any existing configuration.
+        """Sets the customization configuration for a specific guild, overwriting any existing configuration
+        except if role_id is not given and channel_id is given, in which case role_id will be set to previous value.
 
         Args:
             guild_id (GuildID(int)): The ID of the guild for which the configuration is to be set
@@ -111,16 +150,14 @@ class ServerConfigProvider(ABC):
         """
 
     @abstractmethod
-    async def get_customization_config(
-        self, guild_id: GuildID
-    ) -> CustomizationConfig | None:
-        """Gets the guild's customization configuration returning None if not setup
+    async def get_customization_config(self, guild_id: GuildID) -> CustomizationConfig:
+        """Gets the guild's customization configuration, returning default values if not setup.
 
         Args:
             guild_id (GuildID): The ID of the guild whose customization configuration is to be retrieved
 
         Returns:
-            CustomizationConfig | None: The customization configuration for the specified guild, or None if no configuration exists (defaults to enabled)
+            CustomizationConfig: The customization configuration for the specified guild, with default values if no configuration exists (defaults to enabled)
         """
 
     @abstractmethod
@@ -133,3 +170,26 @@ class ServerConfigProvider(ABC):
         Raises:
             ServerConfigDoesNotExist: If no configuration exists for the specified guild
         """
+
+    def get_config(self, guild_id: GuildID) -> ServerConfigAccessor:
+        """
+        Returns a convenient object all server configurations for the specified guild.
+
+        All configurations are lazily loaded when accessed. And will be heavily cached for subsequent accesses.
+
+        See:
+            :meth:`ServerConfigProvider.get_birthday_config` to get birthday server configs without caching and lazy loading
+            :meth:`ServerConfigProvider.get_customization_config` to get customization server configs without caching and lazy loading
+
+        Args:
+            guild_id (GuildID): The ID of the guild whose configuration accessor is to be created
+
+        Returns:
+            ServerConfigAccessor: A lazy accessor for server configurations
+
+        Example:
+            >>> config = server_config_provider.get_config(guild_id)
+            >>> birthday_cfg = await config.birthday_config  # Only queries birthday_config table
+            >>> custom_cfg = await config.customization_config  # Only queries customization_config table
+        """
+        return ServerConfigAccessor(guild_id, self)
