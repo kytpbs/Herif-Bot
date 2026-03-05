@@ -1,15 +1,15 @@
-from datetime import date
 import functools
+from datetime import date
 from typing import Literal, cast
 
 import discord
 from discord import app_commands
 
 from Constants import CYAN
-from src.data.data_manager import DiscordClientWithDataManager
-from src.data.birthdays import BirthdayDoesNotExist
-from src.data.server_config import BirthdayConfig, ServerConfigDoesNotExist
 from src.commands.command_group import CommandGroup, CommandList
+from src.data.birthdays import BirthdayDoesNotExist
+from src.data.data_manager import DiscordClientWithDataManager
+from src.data.server_config import BirthdayConfig, ServerConfigDoesNotExist
 
 DataManagerInteraction = discord.Interaction[DiscordClientWithDataManager]
 
@@ -46,7 +46,9 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         congratulate_channel: discord.TextChannel | None = None,
         congratulate_role: discord.Role | None = None,
     ):
-        server_config_provider = await interaction.client.data_manager.server_config_provider
+        server_config_provider = (
+            await interaction.client.data_manager.server_config_provider
+        )
         user, guild_id = _assert_guild_membered(interaction)
         if not user or not guild_id:
             return
@@ -58,9 +60,10 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
             return
 
         pre_existing_config = None
+        server_config = server_config_provider.get_config(guild_id)
 
         if not congratulate_channel and not (
-            pre_existing_config := await server_config_provider.get_birthday_config(guild_id)
+            pre_existing_config := await server_config.birthday_config
         ):
             _ = await interaction.response.send_message(
                 "Birthday ayarları ayarlanmadı, lütfen bir channel ve bir role belirtin",
@@ -280,7 +283,9 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         self,
         interaction: DataManagerInteraction,
     ):
-        server_config_provider = await interaction.client.data_manager.server_config_provider
+        server_config_provider = (
+            await interaction.client.data_manager.server_config_provider
+        )
         user, guild_id = _assert_guild_membered(interaction)
         if not user or not guild_id:
             return

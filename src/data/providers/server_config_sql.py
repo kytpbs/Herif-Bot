@@ -1,17 +1,16 @@
 import os
-from typing_extensions import override
 
 from psycopg import sql
+from typing_extensions import override
 
 from src.data.server_config import (
     BirthdayConfig,
     CustomizationConfig,
-    ServerConfigProvider,
-    ServerConfigDoesNotExist,
     DBNotConnected,
     GuildID,
+    ServerConfigDoesNotExist,
+    ServerConfigProvider,
 )
-
 from src.sql.database import LOGGER, DatabaseClient
 
 _LOGGER = LOGGER.getChild("ServerConfigSQL")
@@ -62,12 +61,16 @@ class ServerConfigSQL(ServerConfigProvider):
         );
         """).format(
             birthday_config_table_name=sql.Identifier(self._birthday_config_table_name),
-            customization_config_table_name=sql.Identifier(self._customization_config_table_name),
+            customization_config_table_name=sql.Identifier(
+                self._customization_config_table_name
+            ),
         )
         # Use db_client instead of _client to avoid getting an error
         _ = await self._db_client.post(query)
         self._table_exists = True
-        _LOGGER.info(f"Table {self._birthday_config_table_name} created or already exists")
+        _LOGGER.info(
+            f"Table {self._birthday_config_table_name} created or already exists"
+        )
 
     @override
     async def set_birthday_config(
@@ -135,7 +138,11 @@ class ServerConfigSQL(ServerConfigProvider):
             query,
             (guild_id, config.is_enabled, config.is_enabled),
         )
-        _LOGGER.debug("Set customization config for guild %s to enabled=%s", guild_id, config.is_enabled)
+        _LOGGER.debug(
+            "Set customization config for guild %s to enabled=%s",
+            guild_id,
+            config.is_enabled,
+        )
 
     @override
     async def get_customization_config(self, guild_id: GuildID) -> CustomizationConfig:
@@ -156,6 +163,8 @@ class ServerConfigSQL(ServerConfigProvider):
 
         rows_affected = await self._client.post(query, (guild_id,))
         if rows_affected < 1:
-            _LOGGER.debug("No customization config found for guild %s to remove", guild_id)
+            _LOGGER.debug(
+                "No customization config found for guild %s to remove", guild_id
+            )
             raise ServerConfigDoesNotExist()
         _LOGGER.debug("Removed customization config for guild %s", guild_id)

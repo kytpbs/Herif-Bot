@@ -1,10 +1,10 @@
 import logging
 from typing import Final
 
-from src.sql.database import DatabaseClient
-from src.data.server_config import ServerConfigProvider
 from src.data.providers.server_config_json import ServerConfigJson
 from src.data.providers.server_config_sql import ServerConfigSQL
+from src.data.server_config import ServerConfigProvider
+from src.sql.database import DatabaseClient
 from src.sql.errors import NotConnectedError
 
 _LOGGER = logging.getLogger("ServerConfig")

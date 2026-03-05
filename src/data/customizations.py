@@ -31,6 +31,7 @@ class CustomizationDoesNotExist(CustomizationError):
 class CustomizationUnknownError(CustomizationError, SQLFailedMiserably):
     pass
 
+
 class MalformedCustomizationDataReceived(MalformedSQLDataReceived, CustomizationError):
     pass
 
@@ -39,6 +40,7 @@ UserID: TypeAlias = int
 GuildID: TypeAlias = int
 Command: TypeAlias = str
 Response: TypeAlias = str
+
 
 @dataclass
 class CustomCommand:
@@ -69,15 +71,21 @@ class CustomizationProvider(ABC):
         pass
 
     @abstractmethod
-    async def get_response(self, guild_id: GuildID, command_input: Command) -> CustomCommand | None:
+    async def get_response(
+        self, guild_id: GuildID, command_input: Command
+    ) -> CustomCommand | None:
         pass
 
     @abstractmethod
-    async def get_all_custom_commands(self, guild_id: GuildID, limit: int | None = None) -> Mapping[Command, CustomCommand]:
+    async def get_all_custom_commands(
+        self, guild_id: GuildID, limit: int | None = None
+    ) -> Mapping[Command, CustomCommand]:
         pass
 
     @abstractmethod
-    async def get_creator(self, guild_id: GuildID, command_input: Command) -> UserID | None:
+    async def get_creator(
+        self, guild_id: GuildID, command_input: Command
+    ) -> UserID | None:
         """
         Get the user ID of the user who added the custom command, if available.
         All providers may not support this.

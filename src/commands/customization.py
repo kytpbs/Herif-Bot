@@ -5,9 +5,9 @@ import discord
 from discord import app_commands
 
 from Constants import CYAN
-from src.data.data_manager import DiscordClientWithDataManager
 from src.commands.command_group import CommandGroup, CommandList
 from src.data.customizations import CustomizationError
+from src.data.data_manager import DiscordClientWithDataManager
 
 _LOGGER = logging.getLogger("Commands.Customization")
 
@@ -67,7 +67,9 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
     @app_commands.command(
         name="cevaplar", description="Bütün özel eklenmiş cevapları gösterir"
     )
-    async def answers(self, interaction: discord.Interaction[DiscordClientWithDataManager]):
+    async def answers(
+        self, interaction: discord.Interaction[DiscordClientWithDataManager]
+    ):
         if not interaction.guild_id:
             _ = await interaction.response.send_message(
                 "Bu komut sadece sunucularda kullanılabilir", ephemeral=True
@@ -105,7 +107,8 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
         responses = await customs_provider.get_all_custom_commands(interaction.guild_id)
         choices = [
             app_commands.Choice(
-                name=f"{cmd}: {response}"[:97] + ("..." if len(cmd + str(response)) > 97 else ""),
+                name=f"{cmd}: {response}"[:97]
+                + ("..." if len(cmd + str(response)) > 97 else ""),
                 value=cmd,
             )
             for cmd, response in responses.items()
@@ -122,7 +125,9 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
     @app_commands.autocomplete(trigger=_delete_autocomplete)
     @app_commands.command(name="sil", description="Özel eklenmiş bir cevabı siler")
     async def delete_command(
-        self, interaction: discord.Interaction[DiscordClientWithDataManager], trigger: str
+        self,
+        interaction: discord.Interaction[DiscordClientWithDataManager],
+        trigger: str,
     ):
         if not interaction.guild_id or not isinstance(interaction.user, discord.Member):
             _ = await interaction.response.send_message(

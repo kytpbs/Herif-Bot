@@ -35,9 +35,7 @@ class CustomizationJson(CustomizationProvider):
         response: Response,
         added_by_user_id: UserID | None = None,
     ) -> None:
-        commands = self._guild_customizations.setdefault(
-            self._guild_key(guild_id), {}
-        )
+        commands = self._guild_customizations.setdefault(self._guild_key(guild_id), {})
         if command_input in commands:
             raise CustomizationAlreadyExists()
         commands[command_input] = CustomCommand(
@@ -51,9 +49,7 @@ class CustomizationJson(CustomizationProvider):
     async def delete_custom_command(
         self, guild_id: GuildID, command_input: Command
     ) -> None:
-        commands = self._guild_customizations.setdefault(
-            self._guild_key(guild_id), {}
-        )
+        commands = self._guild_customizations.setdefault(self._guild_key(guild_id), {})
         if command_input not in commands:
             raise CustomizationDoesNotExist()
         del commands[command_input]
@@ -62,9 +58,7 @@ class CustomizationJson(CustomizationProvider):
     async def get_response(
         self, guild_id: GuildID, command_input: Command
     ) -> CustomCommand | None:
-        commands = self._guild_customizations.setdefault(
-            self._guild_key(guild_id), {}
-        )
+        commands = self._guild_customizations.setdefault(self._guild_key(guild_id), {})
         if command_input not in commands:
             return None
         record = commands[command_input]
@@ -74,9 +68,7 @@ class CustomizationJson(CustomizationProvider):
     async def get_all_custom_commands(
         self, guild_id: GuildID, limit: int | None = None
     ) -> Mapping[Command, CustomCommand]:
-        commands = self._guild_customizations.setdefault(
-            self._guild_key(guild_id), {}
-        )
+        commands = self._guild_customizations.setdefault(self._guild_key(guild_id), {})
         normalized_commands: dict[Command, CustomCommand] = {}
 
         for index, (cmd, data) in enumerate(commands.items()):
