@@ -90,6 +90,7 @@ limit-inference-results=100
 # List of plugins (as comma separated values of python module names) to load,
 # usually to register additional checkers.
 load-plugins=
+      pylint_per_file_ignores,
 
 # Pickle collected data for later comparisons.
 persistent=yes
@@ -202,6 +203,8 @@ good-names=i,
            k,
            ex,
            Run,
+           UserID,
+           GuildID,
            _
 
 # Good variable names regexes, separated by a comma. If names match any regex,
@@ -448,6 +451,9 @@ disable=raw-checker-failed,
         missing-class-docstring,
         line-too-long,
         logging-fstring-interpolation
+
+per-file-ignores =
+      Tests/*: redefined-outer-name
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

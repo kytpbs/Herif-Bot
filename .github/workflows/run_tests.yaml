@@ -13,6 +13,21 @@ jobs:
   test:
     name: test with ${{ matrix.py }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: herif_bot_test
+        # Set health checks to ensure Postgres is ready before tests start
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     strategy:
       fail-fast: false
       matrix:
@@ -41,4 +56,6 @@ jobs:
       # Prepare Pytest environment
         run: uv sync
       - name: Run test suite
+        env:
+          SQL_CONNECTION_STRING: postgresql://postgres:password@localhost:5432/herif_bot_test
         run: uv run pytest .
