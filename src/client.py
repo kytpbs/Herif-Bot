@@ -3,39 +3,48 @@ from datetime import datetime
 
 import discord
 
-from Constants import CYAN, DELETED_MESSAGES_CHANNEL_ID, GENERAL_CHAT_ID, BOSS_BOT_CHANNEL_ID
-from src.llm_system.llm_errors import LLMError, NoTokenError, RanOutOfMoneyError
-from src.llm_system import gpt
-from src import file_handeler
-from src.message_handeler import call_command
-import src.Messages # pylint: disable=unused-import # to register the message commands
-from src.Helpers import helper_functions
+import src.Messages  # pylint: disable=unused-import # to register the message commands
+from Constants import (
+    BOSS_BOT_CHANNEL_ID,
+    CYAN,
+    DELETED_MESSAGES_CHANNEL_ID,
+    GENERAL_CHAT_ID,
+)
+from src import command_controller, file_handeler
 from src import member_update_handlers as member_handlers
-from src.Helpers.helper_functions import DiskDict, get_general_channel
-from src.Tasks import start_tasks
-
-custom_responses = DiskDict('responses.json')
-birthdays = DiskDict("birthdays.json")
+from src.data.data_manager import DataManager
+from src.Helpers import helper_functions
+from src.Helpers.helper_functions import get_general_channel
+from src.llm_system import gpt
+from src.llm_system.llm_errors import LLMError, NoTokenError, RanOutOfMoneyError
+from src.message_handeler import call_command
+from src.Tasks import Tasks
 
 
 # noinspection PyMethodMayBeStatic
 class MyClient(discord.Client):
-
     def __init__(self):
         super().__init__(intents=discord.Intents.all())
         self.deleted = False
         self.synced = False
         self.old_channel = None
+        self._data_manager = DataManager()
+        self._tasks = Tasks(self)
+
+    @property
+    def data_manager(self) -> DataManager:
+        return self._data_manager
 
     async def on_ready(self):
         await self.wait_until_ready()
-        if not self.synced:
-            import src.commands as commands  # pylint: disable=import-outside-toplevel # to avoid circular imports
-            tree = commands.get_tree_instance()
-            await tree.sync()
-            start_tasks()
-            self.synced = True
         logging.info("Logged on as %s", self.user)
+        if self.synced:
+            return
+        tree = command_controller.create_tree(self)
+        command_controller.setup_commands(tree)
+        await tree.sync()
+        self._tasks.start()
+        self.synced = True
 
     async def on_member_join(self, member: discord.Member):
         logging.debug("%s, joined %s",member.name, member.guild.name)
@@ -51,7 +60,7 @@ class MyClient(discord.Client):
             await channel.send("Zeki bir insan valrlığı olan " + "**" + str(member) +
                                "**" + " Bu saçmalık serverdan ayrıldı")
 
-    async def on_guild_channel_create(self, channel):
+    async def on_guild_channel_create(self, channel: discord.abc.GuildChannel):
         logging.debug("At %s, %s was created.",channel.guild.name, channel)
 
         deleted_messages_channel = self.get_channel(DELETED_MESSAGES_CHANNEL_ID)
@@ -113,7 +122,7 @@ class MyClient(discord.Client):
         if isinstance(channel, discord.TextChannel):
             await channel.send(embed=embed)
 
-    async def on_message_edit(self, before, message):
+    async def on_message_edit(self, before: discord.Message, message: discord.Message):
         if message.author == self.user:
             return
         if before.content == message.content:
@@ -170,6 +179,8 @@ class MyClient(discord.Client):
         # do not delete the attachment, because it breaks the upload
 
     async def on_message(self, message: discord.Message):
+        customs_provider = await self.data_manager.customization_provider
+        server_config_provider = await self.data_manager.server_config_provider
         user = message.author
         channel = message.channel
         guild = message.guild
@@ -191,8 +202,12 @@ class MyClient(discord.Client):
                 await self.on_dm(message)
             return
 
-        if custom_responses.get(message.content) is not None:
-            await message.reply(custom_responses[message.content])
+        # Check if customizations are enabled for this guild (defaults to enabled if not configured)
+        server_config = server_config_provider.get_config(message.guild.id)
+        customization_config = await server_config.customization_config
+
+        if customization_config.is_enabled and (response := await customs_provider.get_response(message.guild.id, message.content)):
+            await message.reply(response.response)
 
         if time == "06:11:":  # 9:11 for +3 timezone
             await channel.send("🛫🛬💥🏢🏢")
@@ -219,17 +234,8 @@ class MyClient(discord.Client):
             raise e # re-raise the error to log it
         await message.reply(str(answer)) # not using an embed because it's easier to parse history this way.
 
-
 client = MyClient()
 
 
 def get_client_instance():
     return client
-
-
-def get_custom_responses():
-    return custom_responses
-
-
-def get_birthdays():
-    return birthdays
