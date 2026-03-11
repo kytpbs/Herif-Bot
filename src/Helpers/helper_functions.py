@@ -1,3 +1,4 @@
+import atexit
 from datetime import UTC, datetime, timedelta
 import logging
 from typing import Any
@@ -30,6 +31,7 @@ class DiskDict(dict):
         super().__init__(*args, **kwargs)
         self.filename = filename
         self.load()
+        atexit.register(self.save)
 
     def save(self):
         Read.write_json(self.filename, self)
@@ -48,9 +50,6 @@ class DiskDict(dict):
         if load:
             self.load()
         return super().__getitem__(__key)
-
-    def __del__(self):
-        self.save()
 
     def __enter__(self):
         self.load() # load the file before returning self, as why would they use it using "with" if they didn't want to load it?
