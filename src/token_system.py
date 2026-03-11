@@ -4,7 +4,7 @@ import sys
 
 from dotenv import load_dotenv
 
-from src.Helpers.logging_system import is_server
+from src.logging_system import is_server
 
 loaded = load_dotenv()
 token = os.getenv("TOKEN")
