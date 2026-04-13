@@ -195,10 +195,10 @@ async def test_config_accessor_caching(server_config: ServerConfigSQL, monkeypat
     original_method = server_config.get_birthday_config
     call_count = 0
 
-    async def tracked_get_birthday_config(gid):
+    async def tracked_get_birthday_config(guild_id: int) -> BirthdayConfig | None:
         nonlocal call_count
         call_count += 1
-        return await original_method(gid)
+        return await original_method(guild_id)
 
     monkeypatch.setattr(server_config, 'get_birthday_config', tracked_get_birthday_config)
 
