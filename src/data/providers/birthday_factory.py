@@ -21,11 +21,6 @@ class BirthdayFactory:
         self._db_client: Final = client
 
     async def create_birthday_provider(self) -> BirthdayProvider:
-        if self._birthday_provider is None:
-            self._birthday_provider = await self._create_birthday_provider()
-        return self._birthday_provider
-
-    async def _create_birthday_provider(self) -> BirthdayProvider:
         _LOGGER.debug("Creating Birthday Provider")
         try:
             return await self._get_sql_provider()

@@ -21,11 +21,6 @@ class ServerConfigFactory:
         self._db_client: Final = client
 
     async def create_server_config_provider(self) -> ServerConfigProvider:
-        if self._server_config_provider is None:
-            self._server_config_provider = await self._create_server_config_provider()
-        return self._server_config_provider
-
-    async def _create_server_config_provider(self) -> ServerConfigProvider:
         _LOGGER.debug("Creating Server Config Provider")
         try:
             return await self._get_sql_provider()

@@ -19,13 +19,7 @@ class CustomizationFactory:
         """
         self._customization_provider: CustomizationProvider | None = None
         self._db_client: Final = client
-
     async def create_customization_provider(self) -> CustomizationProvider:
-        if self._customization_provider is None:
-            self._customization_provider = await self._create_customization_provider()
-        return self._customization_provider
-
-    async def _create_customization_provider(self) -> CustomizationProvider:
         _LOGGER.debug("Creating Customization Provider")
         try:
             return await self._get_sql_provider()

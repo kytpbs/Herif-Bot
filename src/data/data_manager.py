@@ -34,17 +34,27 @@ class DataManager:
         self._customization_factory: Final = CustomizationFactory(self._db_client)
         self._server_config_factory: Final = ServerConfigFactory(self._db_client)
 
+        self._birthday_provider: BirthdayProvider | None = None
+        self._customization_provider: CustomizationProvider | None = None
+        self._server_config_provider: ServerConfigProvider | None = None
+
     @property
     async def birthday_provider(self) -> BirthdayProvider:
-        return await self._birthday_factory.create_birthday_provider()
+        if self._birthday_provider is None:
+            self._birthday_provider = await self._birthday_factory.create_birthday_provider()
+        return self._birthday_provider
 
     @property
     async def customization_provider(self) -> CustomizationProvider:
-        return await self._customization_factory.create_customization_provider()
+        if self._customization_provider is None:
+            self._customization_provider = await self._customization_factory.create_customization_provider()
+        return self._customization_provider
 
     @property
     async def server_config_provider(self) -> ServerConfigProvider:
-        return await self._server_config_factory.create_server_config_provider()
+        if self._server_config_provider is None:
+            self._server_config_provider = await self._server_config_factory.create_server_config_provider()
+        return self._server_config_provider
 
 
 # Special typing for discord.Client with DataManager
