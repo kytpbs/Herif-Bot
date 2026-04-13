@@ -5,6 +5,7 @@ import discord
 from discord import app_commands
 
 from Constants import CYAN
+from src.Helpers.helper_functions import assert_guild_membered
 from src.commands.command_group import CommandGroup, CommandList
 from src.data.customizations import CustomizationError
 from src.data.data_manager import InteractionWithDataManager
@@ -34,14 +35,12 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
         text: str,
         answer: str,
     ):
-        if not interaction.guild_id:
-            _ = await interaction.response.send_message(
-                "Bu komut sadece sunucularda kullanılabilir", ephemeral=True
-            )
+        user, guild_id = assert_guild_membered(interaction)
+        if not user or not guild_id:
             return
 
         customs_provider = await interaction.client.data_manager.customization_provider
-        response = await customs_provider.get_response(interaction.guild_id, text)
+        response = await customs_provider.get_response(guild_id, text)
 
         if response:
             _ = await interaction.response.send_message(
@@ -54,7 +53,7 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
             return
 
         await customs_provider.create_custom_command(
-            interaction.guild_id, text, answer, interaction.user.id
+            guild_id, text, answer, user.id
         )
         embed = discord.Embed(
             title="Cevap Oluşturuldu",
@@ -68,14 +67,12 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
         name="cevaplar", description="Bütün özel eklenmiş cevapları gösterir"
     )
     async def answers(self, interaction: InteractionWithDataManager):
-        if not interaction.guild_id:
-            _ = await interaction.response.send_message(
-                "Bu komut sadece sunucularda kullanılabilir", ephemeral=True
-            )
+        user, guild_id = assert_guild_membered(interaction)
+        if not user or not guild_id:
             return
         customs_provider = await interaction.client.data_manager.customization_provider
         responses = await customs_provider.get_all_custom_commands(
-            interaction.guild_id, limit=26
+            guild_id, limit=26
         )  # limit to 26 to check if there are more than 25
         if not responses:
             _ = await interaction.response.send_message(
@@ -127,14 +124,12 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
         interaction: InteractionWithDataManager,
         trigger: str,
     ):
-        if not interaction.guild_id or not isinstance(interaction.user, discord.Member):
-            _ = await interaction.response.send_message(
-                "Bu komut sadece sunucularda kullanılabilir", ephemeral=True
-            )
+        user, guild_id = assert_guild_membered(interaction)
+        if not user or not guild_id:
             return
         customs_provider = await interaction.client.data_manager.customization_provider
 
-        response = await customs_provider.get_response(interaction.guild_id, trigger)
+        response = await customs_provider.get_response(guild_id, trigger)
 
         if response is None:
             _ = await interaction.response.send_message(
@@ -143,8 +138,8 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
             return
 
         if (
-            not interaction.user.guild_permissions.administrator
-            and response.added_by_user_id != interaction.user.id
+            not user.guild_permissions.administrator
+            and response.added_by_user_id != user.id
         ):
             _ = await interaction.response.send_message(
                 f"{trigger} mesajına olan cevabı silme yetkiniz yok", ephemeral=True
@@ -152,7 +147,7 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
             return
 
         try:
-            await customs_provider.delete_custom_command(interaction.guild_id, trigger)
+            await customs_provider.delete_custom_command(guild_id, trigger)
         except CustomizationError as e:
             _LOGGER.error(f"Özel cevap silinirken hata oluştu: {e}")
             _ = await interaction.response.send_message(

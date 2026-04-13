@@ -6,21 +6,12 @@ import discord
 from discord import app_commands
 
 from Constants import CYAN
+from src.Helpers.helper_functions import assert_guild_membered
 from src.commands.command_group import CommandGroup, CommandList
 from src.data.birthdays import BirthdayDoesNotExist
 from src.data.data_manager import InteractionWithDataManager
 from src.data.server_config import BirthdayConfig, ServerConfigDoesNotExist
 
-
-def _assert_guild_membered(
-    interaction: InteractionWithDataManager,
-) -> tuple[discord.Member, int] | tuple[None, None]:
-    if not isinstance(interaction.user, discord.Member) or not interaction.guild_id:
-        _ = interaction.response.send_message(
-            "Bu komut sadece sunucularda kullanılabilir", ephemeral=True
-        )
-        return None, None
-    return (interaction.user, interaction.guild_id)
 
 
 @app_commands.allowed_installs(guilds=True, users=False)
@@ -47,7 +38,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         server_config_provider = (
             await interaction.client.data_manager.server_config_provider
         )
-        user, guild_id = _assert_guild_membered(interaction)
+        user, guild_id = assert_guild_membered(interaction)
         if not user or not guild_id:
             return
 
@@ -152,7 +143,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
             user (discord.Member | None, optional): _The user whose birthday is being added. Defaults to adding it for the interaction user.
         """
         birthday_provider = await interaction.client.data_manager.birthday_provider
-        interaction_user, interaction_guild_id = _assert_guild_membered(interaction)
+        interaction_user, interaction_guild_id = assert_guild_membered(interaction)
         if not interaction_user or not interaction_guild_id:
             return
 
@@ -194,7 +185,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         user: discord.Member | None = None,
     ):
         birthday_provider = await interaction.client.data_manager.birthday_provider
-        interaction_user, interaction_guild_id = _assert_guild_membered(interaction)
+        interaction_user, interaction_guild_id = assert_guild_membered(interaction)
         if not interaction_user or not interaction_guild_id:
             return
         user = user or interaction_user
@@ -217,7 +208,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         interaction: InteractionWithDataManager,
         user: discord.Member | None = None,
     ):
-        interaction_user, interaction_guild_id = _assert_guild_membered(interaction)
+        interaction_user, interaction_guild_id = assert_guild_membered(interaction)
         if not interaction_user or not interaction_guild_id:
             return
         user = user or interaction_user
@@ -249,7 +240,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
     )
     @app_commands.checks.has_permissions(administrator=True)
     async def list_birthday(self, interaction: InteractionWithDataManager):
-        interaction_user, interaction_guild_id = _assert_guild_membered(interaction)
+        interaction_user, interaction_guild_id = assert_guild_membered(interaction)
         if not interaction_user or not interaction_guild_id:
             return
         birthday_provider = await interaction.client.data_manager.birthday_provider
@@ -282,7 +273,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         server_config_provider = (
             await interaction.client.data_manager.server_config_provider
         )
-        user, guild_id = _assert_guild_membered(interaction)
+        user, guild_id = assert_guild_membered(interaction)
         if not user or not guild_id:
             return
 
