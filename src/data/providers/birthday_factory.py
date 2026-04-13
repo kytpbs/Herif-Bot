@@ -20,7 +20,6 @@ class BirthdayFactory:
         self._birthday_provider: BirthdayProvider | None = None
         self._db_client: Final = client
 
-    @property
     async def create_birthday_provider(self) -> BirthdayProvider:
         if self._birthday_provider is None:
             self._birthday_provider = await self._create_birthday_provider()

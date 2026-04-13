@@ -20,7 +20,6 @@ class ServerConfigFactory:
         self._server_config_provider: ServerConfigProvider | None = None
         self._db_client: Final = client
 
-    @property
     async def create_server_config_provider(self) -> ServerConfigProvider:
         if self._server_config_provider is None:
             self._server_config_provider = await self._create_server_config_provider()

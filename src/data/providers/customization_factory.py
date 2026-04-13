@@ -20,7 +20,6 @@ class CustomizationFactory:
         self._customization_provider: CustomizationProvider | None = None
         self._db_client: Final = client
 
-    @property
     async def create_customization_provider(self) -> CustomizationProvider:
         if self._customization_provider is None:
             self._customization_provider = await self._create_customization_provider()

@@ -36,15 +36,15 @@ class DataManager:
 
     @property
     async def birthday_provider(self) -> BirthdayProvider:
-        return await self._birthday_factory.create_birthday_provider
+        return await self._birthday_factory.create_birthday_provider()
 
     @property
     async def customization_provider(self) -> CustomizationProvider:
-        return await self._customization_factory.create_customization_provider
+        return await self._customization_factory.create_customization_provider()
 
     @property
     async def server_config_provider(self) -> ServerConfigProvider:
-        return await self._server_config_factory.create_server_config_provider
+        return await self._server_config_factory.create_server_config_provider()
 
 
 # Special typing for discord.Client with DataManager
