@@ -23,7 +23,7 @@ services:
   python-container:
     build: .
     environment:
-      - postgresql://postgres:password@postgres:5432/herif_bot_test=value
+      - SQL_CONNECTION_STRING=postgresql://postgres:password@postgres:5432/herif_bot_test
     env_file:
       - .env
     command: ["uv", "run", "main.py", "dev"]
