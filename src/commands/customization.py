@@ -7,7 +7,7 @@ from discord import app_commands
 from Constants import CYAN
 from src.commands.command_group import CommandGroup, CommandList
 from src.data.customizations import CustomizationError
-from src.data.data_manager import DiscordClientWithDataManager
+from src.data.data_manager import InteractionWithDataManager
 
 _LOGGER = logging.getLogger("Commands.Customization")
 
@@ -30,7 +30,7 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
     )
     async def create_command(
         self,
-        interaction: discord.Interaction[DiscordClientWithDataManager],
+        interaction: InteractionWithDataManager,
         text: str,
         answer: str,
     ):
@@ -67,9 +67,7 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
     @app_commands.command(
         name="cevaplar", description="Bütün özel eklenmiş cevapları gösterir"
     )
-    async def answers(
-        self, interaction: discord.Interaction[DiscordClientWithDataManager]
-    ):
+    async def answers(self, interaction: InteractionWithDataManager):
         if not interaction.guild_id:
             _ = await interaction.response.send_message(
                 "Bu komut sadece sunucularda kullanılabilir", ephemeral=True
@@ -98,7 +96,7 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
 
     async def _delete_autocomplete(
         self,
-        interaction: discord.Interaction[DiscordClientWithDataManager],
+        interaction: InteractionWithDataManager,
         current: str,
     ) -> list[app_commands.Choice[str]]:
         if not interaction.guild_id or not isinstance(interaction.user, discord.Member):
@@ -126,7 +124,7 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
     @app_commands.command(name="sil", description="Özel eklenmiş bir cevabı siler")
     async def delete_command(
         self,
-        interaction: discord.Interaction[DiscordClientWithDataManager],
+        interaction: InteractionWithDataManager,
         trigger: str,
     ):
         if not interaction.guild_id or not isinstance(interaction.user, discord.Member):

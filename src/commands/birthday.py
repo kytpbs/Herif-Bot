@@ -8,14 +8,12 @@ from discord import app_commands
 from Constants import CYAN
 from src.commands.command_group import CommandGroup, CommandList
 from src.data.birthdays import BirthdayDoesNotExist
-from src.data.data_manager import DiscordClientWithDataManager
+from src.data.data_manager import InteractionWithDataManager
 from src.data.server_config import BirthdayConfig, ServerConfigDoesNotExist
-
-DataManagerInteraction = discord.Interaction[DiscordClientWithDataManager]
 
 
 def _assert_guild_membered(
-    interaction: DataManagerInteraction,
+    interaction: InteractionWithDataManager,
 ) -> tuple[discord.Member, int] | tuple[None, None]:
     if not isinstance(interaction.user, discord.Member) or not interaction.guild_id:
         _ = interaction.response.send_message(
@@ -42,7 +40,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
     @app_commands.checks.has_permissions(administrator=True)
     async def birthday_config(
         self,
-        interaction: DataManagerInteraction,
+        interaction: InteractionWithDataManager,
         congratulate_channel: discord.TextChannel | None = None,
         congratulate_role: discord.Role | None = None,
     ):
@@ -86,14 +84,14 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
 
     async def _birthday_autocomplete(
         self,
-        interaction: DataManagerInteraction,
+        interaction: InteractionWithDataManager,
         current: str,
     ) -> list[app_commands.Choice[int]]:
         return await self._birthday_atr_autocomplete(interaction, current)
 
     async def _birthday_atr_autocomplete(
         self,
-        interaction: DataManagerInteraction,
+        interaction: InteractionWithDataManager,
         current: str,
         attr: Literal["day", "month", "year"] = "day",
     ) -> list[app_commands.Choice[int]]:
@@ -138,7 +136,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
     )
     async def add_birthday(
         self,
-        interaction: DataManagerInteraction,
+        interaction: InteractionWithDataManager,
         day: app_commands.Range[int, 1, 31],
         month: app_commands.Range[int, 1, 12],
         year: app_commands.Range[int, 1900, date.today().year],
@@ -192,7 +190,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
     )
     async def show_birthday(
         self,
-        interaction: DataManagerInteraction,
+        interaction: InteractionWithDataManager,
         user: discord.Member | None = None,
     ):
         birthday_provider = await interaction.client.data_manager.birthday_provider
@@ -216,7 +214,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
     )
     async def delete_birthday(
         self,
-        interaction: DataManagerInteraction,
+        interaction: InteractionWithDataManager,
         user: discord.Member | None = None,
     ):
         interaction_user, interaction_guild_id = _assert_guild_membered(interaction)
@@ -250,7 +248,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         description="Doğumgünlerini listeler, sadece modlar kullanabilir",
     )
     @app_commands.checks.has_permissions(administrator=True)
-    async def list_birthday(self, interaction: DataManagerInteraction):
+    async def list_birthday(self, interaction: InteractionWithDataManager):
         interaction_user, interaction_guild_id = _assert_guild_membered(interaction)
         if not interaction_user or not interaction_guild_id:
             return
@@ -279,7 +277,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
     @app_commands.checks.has_permissions(administrator=True)  #! Admin only
     async def remove_config(
         self,
-        interaction: DataManagerInteraction,
+        interaction: InteractionWithDataManager,
     ):
         server_config_provider = (
             await interaction.client.data_manager.server_config_provider

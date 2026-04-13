@@ -1,6 +1,6 @@
 from abc import ABC
 import logging
-from typing import Final, Protocol
+from typing import Final, Protocol, TypeAlias
 
 import discord
 
@@ -67,3 +67,6 @@ class DiscordClientWithDataManager(ABC, discord.Client):
 class DataManagerProvider(Protocol):
     @property
     def data_manager(self) -> DataManager: ...
+
+
+InteractionWithDataManager: TypeAlias = discord.Interaction[DiscordClientWithDataManager]
