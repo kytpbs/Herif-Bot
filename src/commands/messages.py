@@ -45,5 +45,3 @@ async def pin_message(interaction: discord.Interaction, message: discord.Message
     await message.pin(reason=f"{interaction.user.name} Adlı kişi tarafından sabitlendi")
     _ = await interaction.response.send_message(
         f"{message.author.mention} adlı kişinin; **{message.content}** mesajı sabitlendi", ephemeral=True)
-
-

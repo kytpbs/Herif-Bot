@@ -1,3 +1,4 @@
+from abc import ABC
 import logging
 from typing import Final, Protocol
 
@@ -47,7 +48,7 @@ class DataManager:
 
 
 # Special typing for discord.Client with DataManager
-class DiscordClientWithDataManager(discord.Client):
+class DiscordClientWithDataManager(ABC, discord.Client):
     @property
     def data_manager(self) -> DataManager: ...
 
