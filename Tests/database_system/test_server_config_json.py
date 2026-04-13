@@ -107,19 +107,27 @@ async def test_customization_config_toggle(server_configs: ServerConfigJson):
     guild_id = 123456
 
     # Enable
-    await server_configs.set_customization_config(guild_id, CustomizationConfig(is_enabled=True))
+    await server_configs.set_customization_config(
+        guild_id, CustomizationConfig(is_enabled=True)
+    )
     assert (await server_configs.get_customization_config(guild_id)).is_enabled is True
 
     # Disable
-    await server_configs.set_customization_config(guild_id, CustomizationConfig(is_enabled=False))
+    await server_configs.set_customization_config(
+        guild_id, CustomizationConfig(is_enabled=False)
+    )
     assert (await server_configs.get_customization_config(guild_id)).is_enabled is False
 
     # Re-enable
-    await server_configs.set_customization_config(guild_id, CustomizationConfig(is_enabled=True))
+    await server_configs.set_customization_config(
+        guild_id, CustomizationConfig(is_enabled=True)
+    )
     assert (await server_configs.get_customization_config(guild_id)).is_enabled is True
 
 
-async def test_remove_nonexistent_customization_config(server_configs: ServerConfigJson):
+async def test_remove_nonexistent_customization_config(
+    server_configs: ServerConfigJson,
+):
     with pytest.raises(ServerConfigDoesNotExist):
         await server_configs.remove_customization_config(999999)
 
@@ -146,7 +154,9 @@ async def test_config_accessor_lazy_loading(server_configs: ServerConfigJson):
     assert fetched_customization.is_enabled is False
 
 
-async def test_config_accessor_caching(server_configs: ServerConfigJson, monkeypatch: pytest.MonkeyPatch):
+async def test_config_accessor_caching(
+    server_configs: ServerConfigJson, monkeypatch: pytest.MonkeyPatch
+):
     """Test that the accessor caches results using monkey-patching"""
     guild_id = 123456
     birthday_cfg = BirthdayConfig(channel_id=111, role_id=222)
@@ -165,7 +175,9 @@ async def test_config_accessor_caching(server_configs: ServerConfigJson, monkeyp
         call_count += 1
         return await original_method(guild_id)
 
-    monkeypatch.setattr(server_configs, 'get_birthday_config', tracked_get_birthday_config)
+    monkeypatch.setattr(
+        server_configs, "get_birthday_config", tracked_get_birthday_config
+    )
 
     # First access - should call the method
     result1 = await accessor.birthday_config

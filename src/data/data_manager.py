@@ -41,19 +41,25 @@ class DataManager:
     @property
     async def birthday_provider(self) -> BirthdayProvider:
         if self._birthday_provider is None:
-            self._birthday_provider = await self._birthday_factory.create_birthday_provider()
+            self._birthday_provider = (
+                await self._birthday_factory.create_birthday_provider()
+            )
         return self._birthday_provider
 
     @property
     async def customization_provider(self) -> CustomizationProvider:
         if self._customization_provider is None:
-            self._customization_provider = await self._customization_factory.create_customization_provider()
+            self._customization_provider = (
+                await self._customization_factory.create_customization_provider()
+            )
         return self._customization_provider
 
     @property
     async def server_config_provider(self) -> ServerConfigProvider:
         if self._server_config_provider is None:
-            self._server_config_provider = await self._server_config_factory.create_server_config_provider()
+            self._server_config_provider = (
+                await self._server_config_factory.create_server_config_provider()
+            )
         return self._server_config_provider
 
 
@@ -69,4 +75,6 @@ class DataManagerProvider(Protocol):
     def data_manager(self) -> DataManager: ...
 
 
-InteractionWithDataManager: TypeAlias = discord.Interaction[DiscordClientWithDataManager]
+InteractionWithDataManager: TypeAlias = discord.Interaction[
+    DiscordClientWithDataManager
+]

@@ -39,7 +39,9 @@ async def customizations(
     client.clear_cache()
 
 
-async def test_custom_command_crud(client: PostgresDBClient, customizations: CustomizationSQL):
+async def test_custom_command_crud(
+    client: PostgresDBClient, customizations: CustomizationSQL
+):
     guild_id = 0
     command_input = "pytest_custom_command"
     response = "pytest response"

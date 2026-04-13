@@ -1,4 +1,4 @@
-#TODO: Find a better name for this file
+# TODO: Find a better name for this file
 import discord
 from discord import app_commands
 
@@ -18,10 +18,14 @@ class MessagesCommands(CommandGroup):
 @app_commands.allowed_installs(guilds=True, users=True)
 @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
 @app_commands.command(name="sahte_mesaj")
-async def fake_message(interaction: discord.Interaction, user: discord.Member, message: str):
+async def fake_message(
+    interaction: discord.Interaction, user: discord.Member, message: str
+):
     channel = interaction.channel
     if not isinstance(channel, discord.TextChannel):
-        _ = await interaction.response.send_message("Cannot use in non-text channels", ephemeral=True)
+        _ = await interaction.response.send_message(
+            "Cannot use in non-text channels", ephemeral=True
+        )
         return
 
     webhooks = await channel.webhooks()
@@ -30,12 +34,15 @@ async def fake_message(interaction: discord.Interaction, user: discord.Member, m
             message_webhook = webhook
             break
     else:
-        message_webhook: discord.Webhook = await channel.create_webhook(name=BOT_NAME + "_fake_message_webhook")
+        message_webhook: discord.Webhook = await channel.create_webhook(
+            name=BOT_NAME + "_fake_message_webhook"
+        )
 
     avatar_url = user.avatar.url if user.avatar else discord.utils.MISSING
-    await message_webhook.send(content=message, username=user.display_name, avatar_url=avatar_url)
+    await message_webhook.send(
+        content=message, username=user.display_name, avatar_url=avatar_url
+    )
     await interaction.response.send_message("Gizli Mesaj Gönderildi", ephemeral=True)
-
 
 
 @app_commands.allowed_installs(guilds=True, users=False)
@@ -44,4 +51,6 @@ async def fake_message(interaction: discord.Interaction, user: discord.Member, m
 async def pin_message(interaction: discord.Interaction, message: discord.Message):
     await message.pin(reason=f"{interaction.user.name} Adlı kişi tarafından sabitlendi")
     _ = await interaction.response.send_message(
-        f"{message.author.mention} adlı kişinin; **{message.content}** mesajı sabitlendi", ephemeral=True)
+        f"{message.author.mention} adlı kişinin; **{message.content}** mesajı sabitlendi",
+        ephemeral=True,
+    )

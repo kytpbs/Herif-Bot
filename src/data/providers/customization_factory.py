@@ -19,6 +19,7 @@ class CustomizationFactory:
         """
         self._customization_provider: CustomizationProvider | None = None
         self._db_client: Final = client
+
     async def create_customization_provider(self) -> CustomizationProvider:
         _LOGGER.debug("Creating Customization Provider")
         try:

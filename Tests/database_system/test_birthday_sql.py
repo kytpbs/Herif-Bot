@@ -21,6 +21,7 @@ def event_loop_policy(request: pytest.FixtureRequest):
         return asyncio.WindowsSelectorEventLoopPolicy()
     return asyncio.DefaultEventLoopPolicy()
 
+
 @pytest.fixture(scope="function")
 async def birthdays(
     client: PostgresDBClient,

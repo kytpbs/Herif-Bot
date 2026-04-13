@@ -1,4 +1,3 @@
-
 from typing import AsyncGenerator
 import psycopg_pool
 import pytest
@@ -23,7 +22,6 @@ async def client() -> AsyncGenerator[PostgresDBClient, None]:
 
         db_client = PostgresDBClient(dbname="herif_bot_test")
         await db_client.setup()
-
 
     yield db_client
     await db_client.close()

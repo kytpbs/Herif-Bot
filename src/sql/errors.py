@@ -1,8 +1,10 @@
 class SQLError(Exception):
     pass
 
+
 class MalformedSQLDataReceived(SQLError):
     pass
+
 
 class NotConnectedError(SQLError):
     pass

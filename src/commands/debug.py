@@ -17,4 +17,3 @@ class DebugCommands(CommandGroup):
         return [
             ping,
         ]
-

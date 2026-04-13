@@ -34,14 +34,20 @@ async def server_config(
     # Cleanup tables
     await client.post(
         sql.SQL("DROP TABLE IF EXISTS {birthday_table}, {customization_table}").format(
-            birthday_table=sql.Identifier(server_config_client._birthday_config_table_name),  # pyright: ignore[reportPrivateUsage] # pylint: disable=protected-access
-            customization_table=sql.Identifier(server_config_client._customization_config_table_name),  # pyright: ignore[reportPrivateUsage] # pylint: disable=protected-access
+            birthday_table=sql.Identifier(
+                server_config_client._birthday_config_table_name
+            ),  # pyright: ignore[reportPrivateUsage] # pylint: disable=protected-access
+            customization_table=sql.Identifier(
+                server_config_client._customization_config_table_name
+            ),  # pyright: ignore[reportPrivateUsage] # pylint: disable=protected-access
         )
     )
     client.clear_cache()
 
 
-async def test_birthday_config_crud(client: PostgresDBClient, server_config: ServerConfigSQL):
+async def test_birthday_config_crud(
+    client: PostgresDBClient, server_config: ServerConfigSQL
+):
     guild_id = 123456
     config = BirthdayConfig(channel_id=999, role_id=888)
 
@@ -76,7 +82,9 @@ async def test_birthday_config_overwrite(server_config: ServerConfigSQL):
     assert fetched.role_id == 444
 
 
-async def test_birthday_config_partial_update_preserves_role(server_config: ServerConfigSQL):
+async def test_birthday_config_partial_update_preserves_role(
+    server_config: ServerConfigSQL,
+):
     """Test that setting config with None role_id preserves existing role_id"""
     guild_id = 123456
     config1 = BirthdayConfig(channel_id=111, role_id=222)
@@ -108,7 +116,9 @@ async def test_remove_nonexistent_birthday_config(server_config: ServerConfigSQL
         await server_config.remove_birthday_config(999999)
 
 
-async def test_customization_config_crud(client: PostgresDBClient, server_config: ServerConfigSQL):
+async def test_customization_config_crud(
+    client: PostgresDBClient, server_config: ServerConfigSQL
+):
     guild_id = 123456
     config = CustomizationConfig(is_enabled=False)
 
@@ -135,21 +145,29 @@ async def test_customization_config_default_values(server_config: ServerConfigSQ
     assert fetched.is_enabled is True
 
 
-async def test_customization_config_toggle(client: PostgresDBClient, server_config: ServerConfigSQL):
+async def test_customization_config_toggle(
+    client: PostgresDBClient, server_config: ServerConfigSQL
+):
     guild_id = 123456
 
     # Enable
-    await server_config.set_customization_config(guild_id, CustomizationConfig(is_enabled=True))
+    await server_config.set_customization_config(
+        guild_id, CustomizationConfig(is_enabled=True)
+    )
     client.clear_cache()
     assert (await server_config.get_customization_config(guild_id)).is_enabled is True
 
     # Disable
-    await server_config.set_customization_config(guild_id, CustomizationConfig(is_enabled=False))
+    await server_config.set_customization_config(
+        guild_id, CustomizationConfig(is_enabled=False)
+    )
     client.clear_cache()
     assert (await server_config.get_customization_config(guild_id)).is_enabled is False
 
     # Re-enable
-    await server_config.set_customization_config(guild_id, CustomizationConfig(is_enabled=True))
+    await server_config.set_customization_config(
+        guild_id, CustomizationConfig(is_enabled=True)
+    )
     client.clear_cache()
     assert (await server_config.get_customization_config(guild_id)).is_enabled is True
 
@@ -181,7 +199,9 @@ async def test_config_accessor_lazy_loading(server_config: ServerConfigSQL):
     assert fetched_customization.is_enabled is False
 
 
-async def test_config_accessor_caching(server_config: ServerConfigSQL, monkeypatch: pytest.MonkeyPatch):
+async def test_config_accessor_caching(
+    server_config: ServerConfigSQL, monkeypatch: pytest.MonkeyPatch
+):
     """Test that the accessor caches results using monkey-patching"""
     guild_id = 123456
     birthday_cfg = BirthdayConfig(channel_id=111, role_id=222)
@@ -200,7 +220,9 @@ async def test_config_accessor_caching(server_config: ServerConfigSQL, monkeypat
         call_count += 1
         return await original_method(guild_id)
 
-    monkeypatch.setattr(server_config, 'get_birthday_config', tracked_get_birthday_config)
+    monkeypatch.setattr(
+        server_config, "get_birthday_config", tracked_get_birthday_config
+    )
 
     # First access - should call the method
     result1 = await accessor.birthday_config
@@ -248,4 +270,6 @@ async def test_db_not_connected_error(client: PostgresDBClient):
         await server_config_client.get_birthday_config(123)
 
     with pytest.raises(DBNotConnected):
-        await server_config_client.set_birthday_config(123, BirthdayConfig(channel_id=999))
+        await server_config_client.set_birthday_config(
+            123, BirthdayConfig(channel_id=999)
+        )

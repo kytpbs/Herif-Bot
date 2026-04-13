@@ -52,9 +52,7 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
             )
             return
 
-        await customs_provider.create_custom_command(
-            guild_id, text, answer, user.id
-        )
+        await customs_provider.create_custom_command(guild_id, text, answer, user.id)
         embed = discord.Embed(
             title="Cevap Oluşturuldu",
             description=f"'_{text}_': '_{answer}_' adlı cevap oluşturuldu",

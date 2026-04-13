@@ -13,7 +13,6 @@ from src.data.data_manager import InteractionWithDataManager
 from src.data.server_config import BirthdayConfig, ServerConfigDoesNotExist
 
 
-
 @app_commands.allowed_installs(guilds=True, users=False)
 @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
 class BirthdayCommands(app_commands.Group, CommandGroup):
