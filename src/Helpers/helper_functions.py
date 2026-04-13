@@ -7,6 +7,19 @@ import discord
 from src import Read
 
 
+
+
+def assert_guild_membered(
+    interaction: discord.Interaction,
+) -> tuple[discord.Member, int] | tuple[None, None]:
+    if not isinstance(interaction.user, discord.Member) or not interaction.guild_id:
+        _ = interaction.response.send_message(
+            "Bu komut sadece sunucularda kullanılabilir", ephemeral=True
+        )
+        return None, None
+    return (interaction.user, interaction.guild_id)
+
+
 def get_general_channel(guild: discord.Guild):
     for channel in guild.text_channels:
         name = channel.name.lower()

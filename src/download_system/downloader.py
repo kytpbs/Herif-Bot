@@ -7,6 +7,7 @@ from typing import Any, Optional
 import aiohttp
 import requests
 import yt_dlp
+import yt_dlp.utils
 
 _NONE_STRING = "Doesn't exist"
 
@@ -14,7 +15,7 @@ class DownloaderError(Exception):
     """Base exception for any errors created in downloading."""
     msg = None
 
-    def __init__(self, msg=None):
+    def __init__(self, msg: str | None = None):
         if msg is not None:
             self.msg = msg
         elif self.msg is None:
@@ -140,7 +141,7 @@ class VideoDownloader(ABC):
                     with open(download_to, "wb") as file:
                         file.write(data)
         except aiohttp.ClientError as e:
-            logging.error("Error while downloading instagram post: %s", str(e))
+            logging.error("Error while downloading link %s: %s", url, str(e))
             return None
         return download_to
 
@@ -159,7 +160,7 @@ class VideoDownloader(ABC):
             list[str]: the list of paths to the downloaded files
             will not put the path in the list if the download failed
         """
-        downloaded_paths = []
+        downloaded_paths: list[str] = []
         for index, link in enumerate(links, start=1):
             download_to = os.path.join(path, f"{video_id}_{index}.mp4")
             downloaded_link = await cls._download_link(link, download_to)
@@ -171,14 +172,14 @@ class VideoDownloader(ABC):
 
 class AlternateVideoDownloader(VideoDownloader):
     @classmethod
-    async def _get_list_from_ydt(cls, url: str, ydl_opts: dict[str, Any], path: str, title_key: str = "title", cookies: dict | None = None) -> VIDEO_RETURN_TYPE:
+    async def _get_list_from_ydt(cls, url: str, ydl_opts: dict[str, Any], path: str, title_key: str = "title", cookies: dict[str, Any] | None = None) -> VIDEO_RETURN_TYPE:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             if cookies:
                 requests.utils.cookiejar_from_dict(cookies, ydl.cookiejar)
             try:
                 ydt = await asyncio.to_thread(ydl.extract_info, url, download=True)
                 ydt = ydl.sanitize_info(ydt)
-            except yt_dlp.DownloadError as e:
+            except yt_dlp.utils.DownloadError as e:
                 if "No video" in str(e): # This is a workaround for yt_dlp not raising a NoVideoFoundError
                     # If there becomes a specific error for this, we can change this to a `isInstance` check
                     logging.error("No video found on url: %s", url)
