@@ -62,7 +62,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         pre_existing_config = None
         server_config = server_config_provider.get_config(guild_id)
 
-        if not congratulate_channel and not (
+        if not congratulate_channel or not (
             pre_existing_config := await server_config.birthday_config
         ):
             _ = await interaction.response.send_message(
@@ -74,9 +74,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         channel_id = (
             congratulate_channel.id
             if congratulate_channel
-            # LSP is confused about the possibility of pre_existing_config being None
-            # It is not possible for it to be None when congratulate_channel is None
-            else pre_existing_config.channel_id  # pyright: ignore[reportOptionalMemberAccess]
+            else pre_existing_config.channel_id
         )
 
         role_id = congratulate_role.id if congratulate_role else None
