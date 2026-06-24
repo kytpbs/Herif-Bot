@@ -29,11 +29,9 @@ def is_server(only_true_if_cloud: bool = True) -> bool:
     dev = os.getenv("DEV") or "false"
 
     is_cloud = any(
-        (
-            _is_true(is_prod_str)
-            for is_prod_str in map(os.getenv, ["CLOUD", "PROD", "IS_CLOUD", "IS_PROD"])
-            if is_prod_str is not None
-        )
+        _is_true(is_prod_str)
+        for is_prod_str in map(os.getenv, ["CLOUD", "PROD", "IS_CLOUD", "IS_PROD"])
+        if is_prod_str is not None
     )
 
     if only_true_if_cloud:
