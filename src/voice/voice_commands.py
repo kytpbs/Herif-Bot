@@ -438,9 +438,9 @@ def _clean_up(
     queue.clear()  # clear the queue, as we are done with it
 
     async def go_back(interaction: discord.Interaction) -> InteractionResponse:
-        assert guild_id is not None, "JUST WTF HAPPENED HERE, We're cooked"
+        assert interaction.guild_id is not None, "JUST WTF HAPPENED HERE, We're cooked"
         # we need to go back to the old queue, so we can play the music again
-        MUSIC_QUEUES[guild_id] = old_queue
+        MUSIC_QUEUES[interaction.guild_id] = old_queue
         await join(interaction, voice.channel if voice else MISSING)
         return _get_to_next_state(interaction, old_queue)
 
@@ -460,7 +460,7 @@ async def _run_next_state(interaction: discord.Interaction, queue: MusicQueue) -
     interaction_response = _get_to_next_state(interaction, queue)
 
     if not interaction_response.ephemeral:
-        await clear_messages_to_be_deleted(guild_id or 0)
+        await clear_messages_to_be_deleted(interaction.guild_id or 0)
 
     message = await interaction.followup.send(
         content=interaction_response.message,
@@ -469,7 +469,7 @@ async def _run_next_state(interaction: discord.Interaction, queue: MusicQueue) -
         wait=True,
     )
     logging.debug("Message sent: %s", message.id)
-    add_message_to_be_deleted(guild_id, message)
+    add_message_to_be_deleted(interaction.guild_id or 0, message)
 
 
 def _get_to_next_state_interface(
