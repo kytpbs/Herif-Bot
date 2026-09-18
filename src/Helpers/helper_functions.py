@@ -1,7 +1,7 @@
 import atexit
 from datetime import UTC, datetime, timedelta
 import logging
-from typing import Any
+from typing import Any, TypeVar
 import discord
 
 from src.Helpers.global_errors import NoGuildContextInGuildCommandError
@@ -38,9 +38,10 @@ async def get_deleting_person(message: discord.Message) -> discord.Member | disc
 
     # if we can't find who deleted the message, it was probably the author
     return message.author
-
-class DiskDict(dict):
-    def __init__(self, filename, *args, **kwargs):
+K = TypeVar("K")
+V = TypeVar("V")
+class DiskDict(dict[K, V]):
+    def __init__(self, filename: str, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.filename = filename
         self.load()
@@ -52,14 +53,14 @@ class DiskDict(dict):
     def load(self):
         self.update(Read.json_read(self.filename))
 
-    def __delitem__(self, __key: Any) -> None:
+    def __delitem__(self, __key: K) -> None:
         super().__delitem__(__key)
 
-    def __setitem__(self, __key: Any, __value: Any) -> None:
+    def __setitem__(self, __key: K, __value: V) -> None:
         super().__setitem__(__key, __value)
         self.save()
 
-    def __getitem__(self, __key: Any, load=False) -> Any:
+    def __getitem__(self, __key: K, load: bool = False) -> V:
         if load:
             self.load()
         return super().__getitem__(__key)
@@ -68,5 +69,6 @@ class DiskDict(dict):
         self.load() # load the file before returning self, as why would they use it using "with" if they didn't want to load it?
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
+        del exc_type, exc_val, exc_tb
         self.save() # save the file before exiting the "with" block
