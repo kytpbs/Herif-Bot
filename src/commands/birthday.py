@@ -47,10 +47,10 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
             )
             return
 
-        pre_existing_config = None
         server_config = server_config_provider.get_config(guild_id)
 
-        if not congratulate_channel or not (
+        pre_existing_config = None  # make type-checker happy
+        if not congratulate_channel and not (
             pre_existing_config := await server_config.birthday_config
         ):
             _ = await interaction.response.send_message(
@@ -66,11 +66,27 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         )
 
         role_id = congratulate_role.id if congratulate_role else None
+        old_role_id = pre_existing_config.role_id if pre_existing_config else None
+
+        # None if both is None, else use the new role_id if provided, else use the old role_id
+        role_id = role_id or old_role_id
 
         await server_config_provider.set_birthday_config(
             guild_id, BirthdayConfig(channel_id, role_id)
         )
-        _ = await interaction.response.send_message("Doğumgünü ayarları güncellendi")
+        server_config.invalidate_birthday_config_cache()
+        title = (
+            "Doğum Günü Ayarları Güncellendi"
+            if congratulate_channel or congratulate_role
+            else "Doğum Günü Ayarları"
+        )
+        embed = discord.Embed(
+            title=title,
+            description=f"Doğum Günü kutlamaları <#{channel_id}> kanalında yapılacak"
+            + (f" ve <@&{role_id}> rolü kullanılacak" if role_id else ""),
+            color=CYAN,
+        )
+        _ = await interaction.response.send_message(embed=embed)
 
     async def _birthday_autocomplete(
         self,
