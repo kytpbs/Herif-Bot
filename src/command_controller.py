@@ -20,6 +20,8 @@ def create_tree(client: discord.Client):
 
 
 def get_error_message(error: Exception) -> str:
+    if isinstance(error, app_commands.CommandInvokeError):
+        error = error.original
     match error:
         case NoGuildContextInGuildCommandError():
             return "Bu komutu kullanmak için bir sunucuda olman gerek."
@@ -27,7 +29,7 @@ def get_error_message(error: Exception) -> str:
             return "Bilinmeyen bir hata, lütfen tekrar deneyin veya biraz bekleyin."
 
 
-async def _on_tree_error(interaction: discord.Interaction, error: Exception):
+async def _on_tree_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     logging.error("An error occurred while processing an interaction", exc_info=error)
 
     message_to_report = get_error_message(error)
