@@ -1,4 +1,5 @@
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
+
 import discord
 
 from src.llm_system.llm_data import Message, MessageHistory, User
