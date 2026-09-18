@@ -1,9 +1,12 @@
+import asyncio
 import logging
 import shutil
 from asyncio import Lock
 from pathlib import Path
 
-import requests
+import aiohttp
+import aiohttp.web
+import anyio
 from discord import Attachment, File, Message
 
 from Constants import ATTACHMENT_DOWNLOAD_PATH
@@ -16,7 +19,7 @@ def get_deleted_messages_lock():
     return deleted_messages_lock
 
 
-def _get_file_path_of_attachment(attachment: Attachment) -> Path:
+def _get_file_path_for_attachment(attachment: Attachment) -> Path:
     """Returns the path to the file of the attachment.
 
     WARNING: This function does not check if the file exists. and returns the expected path.
@@ -28,37 +31,38 @@ def _get_file_path_of_attachment(attachment: Attachment) -> Path:
 
 async def download_all_attachments(message: Message):
     async with deleted_messages_lock:
-        for attachment in message.attachments:
-            file_path = _get_file_path_of_attachment(attachment)
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-            _download_file(attachment.url, file_path)
+        await asyncio.gather(
+            *[
+                _download_file(attachment.url, _get_file_path_for_attachment(attachment))
+                for attachment in message.attachments
+            ]
+        )
 
 
-def _download_file(url: str, file_path: Path):
+async def _download_file(url: str, file_path: Path):
     try:
         logger.debug("Downloading file %s", url)
-        response = requests.get(url, timeout=30)  # download the file
+        async with aiohttp.ClientSession() as session, session.get(url) as response:
+            if response.status != aiohttp.web.HTTPOk.status_code:
+                logger.error(
+                    "Got status code %d while trying to download %s",
+                    response.status,
+                    url,
+                )
+                return
+            content = await response.read()
 
-        content = response.content
-        if not file_path.parent.exists():
-            file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        if response.status_code != 200:
-            logger.error(
-                "Got status code %d while trying to download %s",
-                response.status_code,
-                url,
-            )
-            return
+        async with await anyio.open_file(file_path, "wb") as file:
+            await file.write(content)
 
-        with file_path.open("wb") as file:
-            file.write(content)
-    except requests.RequestException as e:
+    except aiohttp.ClientError as e:
         logger.exception("Couldn't download file %s got error: %s", url, e)
 
 
 def get_deleted_attachment(attachment: Attachment) -> File | None:
-    file_path = _get_file_path_of_attachment(attachment)
+    file_path = _get_file_path_for_attachment(attachment)
     if file_path.exists():
         return File(
             file_path,
