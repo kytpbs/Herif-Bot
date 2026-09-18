@@ -18,7 +18,6 @@ from src.voice.old_message_holder import (
 
 # The music queues for each server, as the bot can be in multiple servers at once
 MUSIC_QUEUES: dict[int, MusicQueue] = {}
-_NOT_SERVER_ERROR_MESSAGE = "Bu komutu kullanmak için sunucuda olman gerek"
 _NOT_PLAYING_MESSAGE = "Şu anda bir şey çalmıyorum"
 
 
@@ -26,7 +25,7 @@ async def join(
     interaction: discord.Interaction,
     channel: discord.VoiceChannel | discord.StageChannel = MISSING,
 ) -> InteractionResponse:
-    user, guild_id = assert_guild_membered(interaction)
+    user, _ = assert_guild_membered(interaction)
 
     state, voice = get_voice(user)
 
@@ -379,7 +378,7 @@ def _get_to_next_state(
                 ),
             )
 
-        case VoiceStateType.ALREADY_IN_VOICE, VoiceStateType.IN_DIFFERENT_VOICE:
+        case VoiceStateType.ALREADY_IN_VOICE | VoiceStateType.IN_DIFFERENT_VOICE:
             ...  # time to switch to the next music
 
     try:
