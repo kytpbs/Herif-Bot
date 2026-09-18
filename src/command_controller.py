@@ -22,7 +22,7 @@ def create_tree(client: discord.Client):
 def get_error_message(error: Exception) -> str:
     match error:
         case NoGuildContextInGuildCommandError():
-            return "Bu komut sadece sunucularda kullanılabilir"
+            return "Bu komutu kullanmak için bir sunucuda olman gerek."
         case _:
             return "Bilinmeyen bir hata, lütfen tekrar deneyin veya biraz bekleyin."
 
