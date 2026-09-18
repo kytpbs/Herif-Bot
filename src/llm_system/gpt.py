@@ -1,7 +1,6 @@
 from enum import Enum
 import logging
 import os
-from typing import Optional
 
 import discord
 from dotenv import load_dotenv
@@ -44,7 +43,7 @@ load_dotenv()
 
 API_KEY = os.getenv("OPEN_AI_KEY")
 LOGGER = logging.getLogger("GPT")
-client: Optional[OpenAI] = OpenAI(api_key=API_KEY) if API_KEY else None
+client: OpenAI | None = OpenAI(api_key=API_KEY) if API_KEY else None
 
 if API_KEY is None:
     logging.critical("OPEN_AI_KEY is not set in .env file, GPT will not work")
