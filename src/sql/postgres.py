@@ -109,8 +109,7 @@ class PostgresDBClient(DatabaseClient):
     async def post(
         self, query: Query | sql.SQL, params: Params[Any] | None = None
     ) -> int:
-        """
-        Executes a query and returns the number of rows affected by the query.
+        """ Executes a query and returns the number of rows affected by the query.
         This should be used for INSERT, UPDATE, and DELETE queries.
 
         If you want to get the result of a query, use :meth:`get()`.
@@ -146,17 +145,17 @@ class PostgresDBClient(DatabaseClient):
                 query_str = query
         return await self._get_cached(query_str, new_params)
 
+    # Cache the `get` method to avoid unnecessary database queries.
+    # But do with TTL (Time To Live) to avoid caching forever.
+    # Cache for 500 milliseconds
+    # Should be more than enough for sudden bursts from func calls
+    # The rest we don't need to cache for now anyways
     @alru_cache(maxsize=32, typed=True, ttl=0.5)
     async def _get_cached(
         self, query: Query, params: Params[Any] | None = None
     ) -> list[TupleRow] | None:
         return await self._get(query, params)
 
-    # Cache the `get` method to avoid unnecessary database queries.
-    # But do with TTL (Time To Live) to avoid caching forever.
-    # Cache for 500 milliseconds
-    # Should be more than enough for sudden bursts from func calls
-    # The rest we don't need to cache for now anyways
     async def _get(
         self, query: Query, params: Params[Any] | None = None
     ) -> list[TupleRow] | None:
@@ -178,8 +177,8 @@ class PostgresDBClient(DatabaseClient):
                 _ = await cursor.execute(query, params)
                 _LOGGER.debug("Query ran successfully")
                 return await cursor.fetchall()
-            except psycopg.ProgrammingError:
-                _LOGGER.debug("Query returned no results")
+            except psycopg.ProgrammingError as e:
+                _LOGGER.debug("Query returned no results or error: %s", e)
                 return None
             except psycopg.Error as e:
                 _LOGGER.error(
