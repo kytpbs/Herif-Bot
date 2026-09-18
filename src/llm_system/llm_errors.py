@@ -1,6 +1,3 @@
-from typing import Optional
-
-
 class LLMError(Exception):
     """Base exception for any errors created in downloading."""
 
@@ -15,7 +12,7 @@ class LLMError(Exception):
 
 
 class NoTokenError(LLMError):
-    def __init__(self, message: Optional[str] = None) -> None:
+    def __init__(self, message: str | None = None) -> None:
         super().__init__(message or "No API Key Found")
 
 
@@ -28,5 +25,5 @@ class TooFastError(APICallFailedError):
 
 
 class RanOutOfMoneyError(APICallFailedError):
-    def __init__(self, message: Optional[str] = None) -> None:
+    def __init__(self, message: str | None = None) -> None:
         super().__init__(message or "Ran out of money")
