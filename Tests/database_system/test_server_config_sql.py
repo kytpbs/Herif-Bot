@@ -1,18 +1,18 @@
 # pylint: disable=redefined-outer-name
 import asyncio
+from collections.abc import AsyncGenerator
 from sys import platform
-from typing import AsyncGenerator
 
 import pytest
 from psycopg import sql
 
-from src.sql.postgres import PostgresDBClient
+from src.data.providers.server_config_sql import ServerConfigSQL
 from src.data.server_config import (
     BirthdayConfig,
     CustomizationConfig,
     ServerConfigDoesNotExist,
 )
-from src.data.providers.server_config_sql import ServerConfigSQL
+from src.sql.postgres import PostgresDBClient
 
 
 @pytest.fixture(scope="session")
