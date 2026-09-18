@@ -1,10 +1,15 @@
 # pylint: disable=invalid-name  # it is normal to have the constants in a file named "Constants.py"
+from pathlib import Path
+
+
 BOT_NAME = "O K B A"
 SERVER_NAME = "AIKO # उच्च शिक्षा परीक्षा"
 
 JSON_FOLDER = "jsons/"
 
 YOUTUBE_PLAY_FOLDER = "youtube/"
+ATTACHMENT_DOWNLOAD_PATH = Path("downloads") / "attachments"
+
 
 DELETED_MESSAGES_CHANNEL_ID = 991442142679552131
 BOSS_BOT_CHANNEL_ID = 847070819766108181
