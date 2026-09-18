@@ -3,6 +3,7 @@ import logging
 import discord
 from discord import app_commands
 
+from src.Helpers.global_errors import NoGuildContextInGuildCommandError
 from src.commands.ai import AiCommands
 from src.commands.birthday import BirthdayCommands
 from src.commands.customization import CustomizationCommands
@@ -18,16 +19,22 @@ def create_tree(client: discord.Client):
     return tree
 
 
+def get_error_message(error: Exception) -> str:
+    match error:
+        case NoGuildContextInGuildCommandError():
+            return "Bu komut sadece sunucularda kullanılabilir"
+        case _:
+            return "Bilinmeyen bir hata, lütfen tekrar deneyin veya biraz bekleyin."
+
+
 async def _on_tree_error(interaction: discord.Interaction, error: Exception):
     logging.error("An error occurred while processing an interaction", exc_info=error)
+
+    message_to_report = get_error_message(error)
     if interaction.response.is_done():
-        await interaction.followup.send(
-            "Bilinmeyen bir hata, lütfen tekrar deneyin", ephemeral=True
-        )
+        await interaction.followup.send(message_to_report, ephemeral=True)
     else:
-        _ = await interaction.response.send_message(
-            "Bilinmeyen bir hata, lütfen tekrar deneyin", ephemeral=True
-        )
+        _ = await interaction.response.send_message(message_to_report, ephemeral=True)
 
 
 def setup_error_handler(tree: app_commands.CommandTree):

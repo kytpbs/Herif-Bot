@@ -4,6 +4,7 @@ import logging
 from typing import Any
 import discord
 
+from src.Helpers.global_errors import NoGuildContextInGuildCommandError
 from src import Read
 
 
@@ -11,12 +12,11 @@ from src import Read
 
 def assert_guild_membered(
     interaction: discord.Interaction,
-) -> tuple[discord.Member, int] | tuple[None, None]:
+) -> tuple[discord.Member, int]:
     if not isinstance(interaction.user, discord.Member) or not interaction.guild_id:
-        _ = interaction.response.send_message(
-            "Bu komut sadece sunucularda kullanılabilir", ephemeral=True
-        )
-        return None, None
+        raise NoGuildContextInGuildCommandError(
+            "This command can only be used in a guild context")
+        # Raise a new error type and catch in client
     return (interaction.user, interaction.guild_id)
 
 

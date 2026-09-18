@@ -36,8 +36,6 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
         answer: str,
     ):
         user, guild_id = assert_guild_membered(interaction)
-        if not user or not guild_id:
-            return
 
         customs_provider = await interaction.client.data_manager.customization_provider
         response = await customs_provider.get_response(guild_id, text)
@@ -65,9 +63,8 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
         name="cevaplar", description="Bütün özel eklenmiş cevapları gösterir"
     )
     async def answers(self, interaction: InteractionWithDataManager):
-        user, guild_id = assert_guild_membered(interaction)
-        if not user or not guild_id:
-            return
+        _, guild_id = assert_guild_membered(interaction)
+
         customs_provider = await interaction.client.data_manager.customization_provider
         responses = await customs_provider.get_all_custom_commands(
             guild_id, limit=26
@@ -123,8 +120,7 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
         trigger: str,
     ):
         user, guild_id = assert_guild_membered(interaction)
-        if not user or not guild_id:
-            return
+
         customs_provider = await interaction.client.data_manager.customization_provider
 
         response = await customs_provider.get_response(guild_id, trigger)
