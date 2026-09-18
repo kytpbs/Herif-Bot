@@ -95,7 +95,8 @@ class MusicQueue:
     def get_queue_str(self, highlighted_index: int | None = None) -> str:
         """Returns the queue as a new line separated string.
         
-        give -1 to highlight nothing
+        if given an index, highlights that index with a --> and bolds it, otherwise highlights the current index
+        to not highlight anything give -1
         """
         queue_str = ""
         highlighted_index = highlighted_index or self.currently_at
