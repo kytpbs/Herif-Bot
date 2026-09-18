@@ -1,10 +1,9 @@
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
 class User:
-    name: Optional[str] = None
+    name: str | None = None
     is_bot: bool = name is None
 
 
@@ -17,7 +16,7 @@ class Message:
 
     user: User
     content: str
-    server_name: Optional[str] = None
+    server_name: str | None = None
 
 
 class MessageHistory(list[Message]):
