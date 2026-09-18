@@ -66,29 +66,49 @@ class ServerConfigAccessor:
     def __init__(self, guild_id: GuildID, provider: "ServerConfigProvider"):
         self._guild_id: Final = guild_id
         self._provider: Final = provider
+
+        # alru cache handles all the ttl stuff and cache invalidation so this is now useless.
         self._cache: Final[dict[str, BirthdayConfig | CustomizationConfig | None]] = {}
 
     @property
-    @alru_cache(ttl=60 * 5)  # Cache results for 5 minutes
     async def birthday_config(self) -> BirthdayConfig | None:
-        """
-        Lazily fetches and caches the birthday configuration for this guild.
+        return await self._birthday_config()
+
+    @alru_cache(ttl=60 * 5)  # Cache results for 5 minutes
+    async def _birthday_config(self) -> BirthdayConfig | None:
+        """Lazily fetches and caches the birthday configuration for this guild.
 
         Returns:
             BirthdayConfig | None: The birthday configuration, or None if not configured
         """
         return await self._provider.get_birthday_config(self._guild_id)
 
-    @property
-    @alru_cache(ttl=60 * 5)  # Cache results for 5 minutes
-    async def customization_config(self) -> CustomizationConfig:
+    def invalidate_birthday_config_cache(self) -> None:
+        """Invalidates the cached birthday configuration for this guild.
+
+        Should be called after any update to the birthday configuration.
         """
-        Lazily fetches and caches the customization configuration for this guild.
+        self._birthday_config.cache_clear()
+
+    @property
+    async def customization_config(self) -> CustomizationConfig:
+        return await self._customization_config()
+
+    @alru_cache(ttl=60 * 5)  # Cache results for 5 minutes
+    async def _customization_config(self) -> CustomizationConfig:
+        """Lazily fetches and caches the customization configuration for this guild.
 
         Returns:
             CustomizationConfig: The customization configuration, with default values if not configured
         """
         return await self._provider.get_customization_config(self._guild_id)
+
+    def invalidate_customization_config_cache(self) -> None:
+        """Invalidates the cached customization configuration for this guild.
+
+        Should be called after any update to the customization configuration.
+        """
+        self._customization_config.cache_clear()
 
 
 class ServerConfigProvider(ABC):
@@ -141,8 +161,9 @@ class ServerConfigProvider(ABC):
     async def set_customization_config(
         self, guild_id: GuildID, config: CustomizationConfig
     ) -> None:
-        """Sets the customization configuration for a specific guild, overwriting any existing configuration
-        except if role_id is not given and channel_id is given, in which case role_id will be set to previous value.
+        """Sets the customization configuration for a specific guild, overwriting any existing configuration.
+
+        Except if role_id is not given and channel_id is given, in which case role_id will be set to previous value.
 
         Args:
             guild_id (GuildID(int)): The ID of the guild for which the configuration is to be set
