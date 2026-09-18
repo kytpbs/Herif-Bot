@@ -193,8 +193,7 @@ class ServerConfigProvider(ABC):
         """
 
     def get_config(self, guild_id: GuildID) -> ServerConfigAccessor:
-        """
-        Returns a convenient object all server configurations for the specified guild.
+        """Returns a convenient object all server configurations for the specified guild.
 
         All configurations are lazily loaded when accessed. And will be heavily cached for subsequent accesses.
 
