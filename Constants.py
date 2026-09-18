@@ -21,6 +21,8 @@ BOT_OWNER_ID = 474944711358939170
 
 KYTPBS_TAG = "<@474944711358939170>"
 
+DISCORD_EMBED_FIELD_LIMIT = 25 # Limit set by discord not us.
+
 CYAN = 0x00FFFF  # The Main Color Used in the Bot
 GREEN = 0x00FF00
 
