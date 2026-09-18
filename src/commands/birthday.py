@@ -38,8 +38,6 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
             await interaction.client.data_manager.server_config_provider
         )
         user, guild_id = assert_guild_membered(interaction)
-        if not user or not guild_id:
-            return
 
         if not user.guild_permissions.administrator:
             _ = await interaction.response.send_message(
@@ -47,10 +45,10 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
             )
             return
 
-        pre_existing_config = None
         server_config = server_config_provider.get_config(guild_id)
 
-        if not congratulate_channel or not (
+        pre_existing_config = None  # make type-checker happy
+        if not congratulate_channel and not (
             pre_existing_config := await server_config.birthday_config
         ):
             _ = await interaction.response.send_message(
@@ -66,11 +64,27 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         )
 
         role_id = congratulate_role.id if congratulate_role else None
+        old_role_id = pre_existing_config.role_id if pre_existing_config else None
+
+        # None if both is None, else use the new role_id if provided, else use the old role_id
+        role_id = role_id or old_role_id
 
         await server_config_provider.set_birthday_config(
             guild_id, BirthdayConfig(channel_id, role_id)
         )
-        _ = await interaction.response.send_message("Doğumgünü ayarları güncellendi")
+        server_config.invalidate_birthday_config_cache()
+        title = (
+            "Doğum Günü Ayarları Güncellendi"
+            if congratulate_channel or congratulate_role
+            else "Doğum Günü Ayarları"
+        )
+        embed = discord.Embed(
+            title=title,
+            description=f"Doğum Günü kutlamaları <#{channel_id}> kanalında yapılacak"
+            + (f" ve <@&{role_id}> rolü kullanılacak" if role_id else ""),
+            color=CYAN,
+        )
+        _ = await interaction.response.send_message(embed=embed)
 
     async def _birthday_autocomplete(
         self,
@@ -143,8 +157,6 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         """
         birthday_provider = await interaction.client.data_manager.birthday_provider
         interaction_user, interaction_guild_id = assert_guild_membered(interaction)
-        if not interaction_user or not interaction_guild_id:
-            return
 
         if user is None:
             user = interaction_user
@@ -185,8 +197,6 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
     ):
         birthday_provider = await interaction.client.data_manager.birthday_provider
         interaction_user, interaction_guild_id = assert_guild_membered(interaction)
-        if not interaction_user or not interaction_guild_id:
-            return
         user = user or interaction_user
 
         birthday = await birthday_provider.get_birthday(user.id, interaction_guild_id)
@@ -208,8 +218,6 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         user: discord.Member | None = None,
     ):
         interaction_user, interaction_guild_id = assert_guild_membered(interaction)
-        if not interaction_user or not interaction_guild_id:
-            return
         user = user or interaction_user
         if (
             interaction_user != user
@@ -240,8 +248,6 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
     @app_commands.checks.has_permissions(administrator=True)
     async def list_birthday(self, interaction: InteractionWithDataManager):
         interaction_user, interaction_guild_id = assert_guild_membered(interaction)
-        if not interaction_user or not interaction_guild_id:
-            return
         birthday_provider = await interaction.client.data_manager.birthday_provider
 
         if interaction_user.guild_permissions.administrator is False:
@@ -272,9 +278,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         server_config_provider = (
             await interaction.client.data_manager.server_config_provider
         )
-        user, guild_id = assert_guild_membered(interaction)
-        if not user or not guild_id:
-            return
+        _, guild_id = assert_guild_membered(interaction)
 
         try:
             await server_config_provider.remove_birthday_config(guild_id)

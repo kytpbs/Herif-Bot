@@ -1,10 +1,11 @@
 import asyncio
 import functools
 import logging
-from typing import Callable
+from collections.abc import Callable
 import discord
 from discord.utils import MISSING
 
+from src.Helpers.helper_functions import assert_guild_membered
 from src.voice.voice_base import InteractionResponse, VoiceStateType, get_voice
 from src.voice.music_queue import MusicQueue, NoMoreMusic
 from src.voice import download_manager
@@ -25,20 +26,16 @@ async def join(
     interaction: discord.Interaction,
     channel: discord.VoiceChannel | discord.StageChannel = MISSING,
 ) -> InteractionResponse:
-    if not interaction.guild or not isinstance(interaction.user, discord.Member):
-        return InteractionResponse(
-            _NOT_SERVER_ERROR_MESSAGE,
-            ephemeral=True,
-        )
+    user, guild_id = assert_guild_membered(interaction)
 
-    state, voice = get_voice(interaction.user)
+    state, voice = get_voice(user)
 
     match state:
         case VoiceStateType.NOT_IN_VOICE:
             ...
 
         case VoiceStateType.IN_DIFFERENT_VOICE:
-            await voice.move_to(interaction.user.voice.channel)  # type: ignore # it just works...
+            await voice.move_to(user.voice.channel)  # type: ignore # it just works...
 
         case VoiceStateType.USER_NOT_IN_VOICE:
             if not channel:
@@ -48,20 +45,16 @@ async def join(
             return state.get_default_interaction_response()
 
     if not channel:
-        channel = interaction.user.voice.channel
+        channel = user.voice.channel
 
     await channel.connect()
     return InteractionResponse(f"{channel.mention} kanalına katıldım")
 
 
 async def leave(interaction: discord.Interaction) -> InteractionResponse:
-    if not interaction.guild or not isinstance(interaction.user, discord.Member):
-        return InteractionResponse(
-            _NOT_SERVER_ERROR_MESSAGE,
-            ephemeral=True,
-        )
+    user, guild_id = assert_guild_membered(interaction)
 
-    state, voice = get_voice(interaction.user)
+    state, voice = get_voice(user)
 
     match state:
         case VoiceStateType.USER_NOT_IN_VOICE:
@@ -69,7 +62,7 @@ async def leave(interaction: discord.Interaction) -> InteractionResponse:
                 return InteractionResponse("Zaten Bir kanalda değilim")
 
         case VoiceStateType.BUSY_PLAYING:
-            if voice.channel != interaction.user.voice.channel:  # type: ignore
+            if voice.channel != user.voice.channel:  # type: ignore
                 return InteractionResponse(
                     "Başka bir sesli kanalda olduğum için çıkamam", ephemeral=True
                 )
@@ -85,7 +78,7 @@ async def leave(interaction: discord.Interaction) -> InteractionResponse:
         case _:
             return state.get_default_interaction_response()
 
-    queue = MUSIC_QUEUES.get(interaction.guild.id)
+    queue = MUSIC_QUEUES.get(guild_id)
 
     await voice.disconnect()
     if not queue:
@@ -98,18 +91,14 @@ async def leave(interaction: discord.Interaction) -> InteractionResponse:
 
 
 async def pause(interaction: discord.Interaction) -> InteractionResponse:
-    if not interaction.guild or not isinstance(interaction.user, discord.Member):
-        return InteractionResponse(
-            _NOT_SERVER_ERROR_MESSAGE,
-            ephemeral=True,
-        )
+    user, guild_id = assert_guild_membered(interaction)
 
-    state, voice = get_voice(interaction.user)
+    state, voice = get_voice(user)
 
     match state:
         case VoiceStateType.BUSY_PLAYING:
             voice.pause()
-            return _get_to_next_state(interaction, MUSIC_QUEUES[interaction.guild.id])
+            return _get_to_next_state(interaction, MUSIC_QUEUES[guild_id])
 
         case VoiceStateType.ALREADY_IN_VOICE | VoiceStateType.IN_DIFFERENT_VOICE:
             return InteractionResponse(_NOT_PLAYING_MESSAGE, ephemeral=True)
@@ -119,18 +108,14 @@ async def pause(interaction: discord.Interaction) -> InteractionResponse:
 
 
 async def resume(interaction: discord.Interaction) -> InteractionResponse:
-    if not interaction.guild or not isinstance(interaction.user, discord.Member):
-        return InteractionResponse(
-            _NOT_SERVER_ERROR_MESSAGE,
-            ephemeral=True,
-        )
+    user, guild_id = assert_guild_membered(interaction)
 
-    state, voice = get_voice(interaction.user)
+    state, voice = get_voice(user)
 
     match state:
         case VoiceStateType.PAUSED:
             voice.resume()
-            return _get_to_next_state(interaction, MUSIC_QUEUES[interaction.guild.id])
+            return _get_to_next_state(interaction, MUSIC_QUEUES[guild_id])
 
         case VoiceStateType.ALREADY_IN_VOICE | VoiceStateType.IN_DIFFERENT_VOICE:
             return InteractionResponse(_NOT_PLAYING_MESSAGE, ephemeral=True)
@@ -140,14 +125,10 @@ async def resume(interaction: discord.Interaction) -> InteractionResponse:
 
 
 async def play(interaction: discord.Interaction, search: str) -> InteractionResponse:
-    if not interaction.guild or not isinstance(interaction.user, discord.Member):
-        return InteractionResponse(
-            _NOT_SERVER_ERROR_MESSAGE,
-            ephemeral=True,
-        )
+    user, guild_id = assert_guild_membered(interaction)
 
-    state, voice = get_voice(interaction.user)
-    queue = MUSIC_QUEUES.setdefault(interaction.guild.id, MusicQueue())
+    state, voice = get_voice(user)
+    queue = MUSIC_QUEUES.setdefault(guild_id, MusicQueue())
 
     match state:
         case VoiceStateType.USER_NOT_IN_VOICE:
@@ -165,7 +146,7 @@ async def play(interaction: discord.Interaction, search: str) -> InteractionResp
             )  # recursion, but the state should be different now, so it should work
 
         case VoiceStateType.BUSY_PLAYING:
-            queue = MUSIC_QUEUES.get(interaction.guild.id)
+            queue = MUSIC_QUEUES.get(guild_id)
             if not queue:
                 raise ValueError(
                     "Bot is playing music, but there is no queue for the server"
@@ -214,13 +195,9 @@ async def play(interaction: discord.Interaction, search: str) -> InteractionResp
 
 
 async def skip(interaction: discord.Interaction) -> InteractionResponse:
-    if not interaction.guild or not isinstance(interaction.user, discord.Member):
-        return InteractionResponse(
-            _NOT_SERVER_ERROR_MESSAGE,
-            ephemeral=True,
-        )
+    user, _ = assert_guild_membered(interaction)
 
-    state, voice = get_voice(interaction.user)
+    state, voice = get_voice(user)
 
     match state:
         case VoiceStateType.BUSY_PLAYING | VoiceStateType.PAUSED:
@@ -237,17 +214,13 @@ async def skip(interaction: discord.Interaction) -> InteractionResponse:
 
 
 async def back(interaction: discord.Interaction) -> InteractionResponse:
-    if not interaction.guild or not isinstance(interaction.user, discord.Member):
-        return InteractionResponse(
-            _NOT_SERVER_ERROR_MESSAGE,
-            ephemeral=True,
-        )
+    user, guild_id = assert_guild_membered(interaction)
 
-    state, voice = get_voice(interaction.user)
+    state, voice = get_voice(user)
 
     match state:
         case VoiceStateType.BUSY_PLAYING | VoiceStateType.PAUSED:
-            queue = MUSIC_QUEUES.get(interaction.guild.id)
+            queue = MUSIC_QUEUES.get(guild_id)
             if not queue:
                 raise ValueError(
                     "Bot is playing music, but there is no queue for the server"
@@ -305,13 +278,9 @@ async def toggle_loop(interaction: discord.Interaction) -> InteractionResponse:
 def get_currently_playing_music_message(
     interaction: discord.Interaction,
 ) -> InteractionResponse:
-    if not interaction.guild or not isinstance(interaction.user, discord.Member):
-        return InteractionResponse(
-            _NOT_SERVER_ERROR_MESSAGE,
-            ephemeral=True,
-        )
+    _, guild_id = assert_guild_membered(interaction)
 
-    queue = MUSIC_QUEUES.get(interaction.guild.id, MusicQueue())
+    queue = MUSIC_QUEUES.get(guild_id, MusicQueue())
     if not queue.queue:
         return InteractionResponse(_NOT_PLAYING_MESSAGE, ephemeral=True)
 
@@ -355,14 +324,9 @@ def _get_to_next_state(
     Gets the next music and returns the interaction response
     """
     logging.debug("Getting to next state")
+    user, _ = assert_guild_membered(interaction)
 
-    # this should never happen, but type hinting doesn't know that
-    if interaction.guild is None or not isinstance(interaction.user, discord.Member):
-        raise ValueError(
-            "Interaction is not in a guild, Should never happen in _get_to_next_state"
-        )
-
-    state, voice = get_voice(interaction.user)
+    state, voice = get_voice(user)
     logging.debug("State: %s, Voice: %s", state, voice.channel if voice else None)
 
     match state:
@@ -505,7 +469,7 @@ async def _run_next_state(interaction: discord.Interaction, queue: MusicQueue) -
         wait=True,
     )
     logging.debug("Message sent: %s", message.id)
-    add_message_to_be_deleted(interaction.guild_id, message)
+    add_message_to_be_deleted(interaction.guild_id or 0, message)
 
 
 def _get_to_next_state_interface(
