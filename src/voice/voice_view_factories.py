@@ -1,12 +1,13 @@
-from typing import Callable, Coroutine
+from collections.abc import Callable, Coroutine
+
 import discord
 
-from src.voice.voice_base import InteractionResponse
 from src.voice.music_queue import MusicQueue
 from src.voice.old_message_holder import (
     add_message_to_be_deleted,
     clear_messages_to_be_deleted,
 )
+from src.voice.voice_base import InteractionResponse
 
 
 def _voice_button(

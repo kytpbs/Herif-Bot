@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Mapping
 from datetime import date, datetime, time, timezone
-from typing import Final, Mapping, Protocol
+from typing import Final, Protocol
 
 import discord
 from discord.ext import tasks
