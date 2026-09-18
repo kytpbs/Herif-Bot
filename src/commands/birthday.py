@@ -38,8 +38,6 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
             await interaction.client.data_manager.server_config_provider
         )
         user, guild_id = assert_guild_membered(interaction)
-        if not user or not guild_id:
-            return
 
         if not user.guild_permissions.administrator:
             _ = await interaction.response.send_message(
@@ -159,8 +157,6 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         """
         birthday_provider = await interaction.client.data_manager.birthday_provider
         interaction_user, interaction_guild_id = assert_guild_membered(interaction)
-        if not interaction_user or not interaction_guild_id:
-            return
 
         if user is None:
             user = interaction_user
@@ -201,8 +197,6 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
     ):
         birthday_provider = await interaction.client.data_manager.birthday_provider
         interaction_user, interaction_guild_id = assert_guild_membered(interaction)
-        if not interaction_user or not interaction_guild_id:
-            return
         user = user or interaction_user
 
         birthday = await birthday_provider.get_birthday(user.id, interaction_guild_id)
@@ -224,8 +218,6 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         user: discord.Member | None = None,
     ):
         interaction_user, interaction_guild_id = assert_guild_membered(interaction)
-        if not interaction_user or not interaction_guild_id:
-            return
         user = user or interaction_user
         if (
             interaction_user != user
@@ -256,8 +248,6 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
     @app_commands.checks.has_permissions(administrator=True)
     async def list_birthday(self, interaction: InteractionWithDataManager):
         interaction_user, interaction_guild_id = assert_guild_membered(interaction)
-        if not interaction_user or not interaction_guild_id:
-            return
         birthday_provider = await interaction.client.data_manager.birthday_provider
 
         if interaction_user.guild_permissions.administrator is False:
@@ -288,9 +278,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         server_config_provider = (
             await interaction.client.data_manager.server_config_provider
         )
-        user, guild_id = assert_guild_membered(interaction)
-        if not user or not guild_id:
-            return
+        _, guild_id = assert_guild_membered(interaction)
 
         try:
             await server_config_provider.remove_birthday_config(guild_id)
