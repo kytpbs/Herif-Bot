@@ -163,7 +163,7 @@ class MyClient(discord.Client):
 
         files: list[discord.File] = []
         for attachment in message.attachments:
-            file = file_handeler.get_deleted_attachment(attachment)
+            file = await file_handeler.get_deleted_attachment(attachment)
 
             if file is None:
                 logging.info("Attachment not found: %s", attachment.filename)
