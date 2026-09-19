@@ -25,6 +25,7 @@ async def join(
     interaction: discord.Interaction,
     channel: discord.VoiceChannel | discord.StageChannel = MISSING,
 ) -> InteractionResponse:
+    """Connect to a requested channel or the invoking member's voice channel."""
     user, _ = assert_guild_membered(interaction)
 
     state, voice = get_voice(user)
@@ -319,8 +320,10 @@ def _get_currently_playing_message(
 def _get_to_next_state(
     interaction: discord.Interaction, queue: MusicQueue
 ) -> InteractionResponse:
-    """
-    Gets the next music and returns the interaction response
+    """Return the response for the current voice state, advancing when idle.
+
+    This may start the next available track, clear an exhausted queue, or clean
+    up playback after the bot leaves its voice channel.
     """
     logging.debug("Getting to next state")
     user, _ = assert_guild_membered(interaction)

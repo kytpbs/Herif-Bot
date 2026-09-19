@@ -143,6 +143,7 @@ class MyClient(discord.Client):
             await channel.send(embed=embed)
 
     async def on_message_delete(self, message: discord.Message):
+        """Report a deleted user message with any cached attachments."""
         if message.author == self.user:
             return
 

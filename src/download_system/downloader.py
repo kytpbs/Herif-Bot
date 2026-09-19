@@ -64,6 +64,11 @@ class VideoFile:
 
 class VideoFiles(list[VideoFile]):
     def __init__(self, videos: list[VideoFile], caption: str | None = None) -> None:
+        """Create a nonempty video collection with an optional caption.
+
+        Raises:
+            NoVideoFoundError: If ``videos`` is empty.
+        """
         if not videos:
             raise NoVideoFoundError("VideoFiles must have at least one video")
         super().__init__(videos)

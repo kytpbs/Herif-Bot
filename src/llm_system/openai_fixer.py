@@ -67,6 +67,7 @@ class GPTMessages(list[GPTMessage]):
         system_message: str | None = None,
         main_message: Message | None = None,
     ) -> "GPTMessages":
+        """Convert history, optionally prepending a system message and appending a main message."""
         messages = cls._convert_to_gpt_messages(message_history)
         if system_message:
             messages.insert(0, GPTMessage.system(system_message))
