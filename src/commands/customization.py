@@ -4,7 +4,7 @@ from itertools import islice
 import discord
 from discord import app_commands
 
-from Constants import CYAN
+from Constants import CYAN, DISCORD_EMBED_FIELD_LIMIT
 from src.Helpers.helper_functions import assert_guild_membered
 from src.commands.command_group import CommandGroup, CommandList
 from src.data.customizations import CustomizationError
@@ -67,8 +67,8 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
 
         customs_provider = await interaction.client.data_manager.customization_provider
         responses = await customs_provider.get_all_custom_commands(
-            guild_id, limit=26
-        )  # limit to 26 to check if there are more than 25
+            guild_id, limit=DISCORD_EMBED_FIELD_LIMIT + 1
+        )  # limit to +1 to check if there are more than the limit
         if not responses:
             _ = await interaction.response.send_message(
                 "Bu sunucuda özel eklenmiş cevap yok", ephemeral=True
@@ -78,11 +78,11 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
         embed = discord.Embed(title="Özel Cevaplar", color=CYAN)
         embed.description = (
             "Özel eklenmiş cevaplar"
-            if len(responses) <= 24
-            else "Özel eklenmiş cevapların bir kısmı (gösterilen 24 cevap) \n\n"
+            if len(responses) <= DISCORD_EMBED_FIELD_LIMIT
+            else f"Özel eklenmiş cevapların bir kısmı (gösterilen {DISCORD_EMBED_FIELD_LIMIT} cevap) \n\n"
         )
 
-        for trigger, response in islice(responses.items(), 24):
+        for trigger, response in islice(responses.items(), DISCORD_EMBED_FIELD_LIMIT):
             _ = embed.add_field(name=trigger, value=response, inline=False)
         _ = await interaction.response.send_message(embed=embed)
 

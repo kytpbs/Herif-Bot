@@ -57,10 +57,14 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
             )
             return
 
+        assert pre_existing_config is not None or congratulate_channel, (
+            "Logically impossible, the original `pre_existing_config=None` gets rewritten when congratulate_channel is None"
+        )
+
         channel_id = (
             congratulate_channel.id
             if congratulate_channel
-            else pre_existing_config.channel_id
+            else pre_existing_config.channel_id # pyright: ignore[reportOptionalMemberAccess]
         )
 
         role_id = congratulate_role.id if congratulate_role else None

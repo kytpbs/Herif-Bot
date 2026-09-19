@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Callable, Coroutine
+from collections.abc import Callable, Coroutine
 
 import discord
 from discord.utils import MISSING

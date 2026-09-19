@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import Final
 
 import discord
 
@@ -25,11 +26,11 @@ from src.Tasks import Tasks
 class MyClient(discord.Client):
     def __init__(self):
         super().__init__(intents=discord.Intents.all())
-        self.deleted = False
-        self.synced = False
-        self.old_channel = None
-        self._data_manager = DataManager()
-        self._tasks = Tasks(self)
+        self.deleted: bool = False
+        self.synced: bool = False
+        self.old_channel: discord.abc.GuildChannel | None = None
+        self._data_manager: Final = DataManager()
+        self._tasks: Final = Tasks(self)
 
     @property
     def data_manager(self) -> DataManager:
@@ -69,6 +70,8 @@ class MyClient(discord.Client):
                 f"**{channel}** adlı kanal oluşturuldu")
 
     async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
+        # switch this to use discord.ui instead of reactions so it handles the state.
+        # because currently it only holds the last channel that was deleted.
         logging.debug("At %s, %s was deleted.", channel.guild.name, channel)
         deleted_messages_channel = self.get_channel(DELETED_MESSAGES_CHANNEL_ID)
         if isinstance(deleted_messages_channel, discord.TextChannel):
@@ -156,24 +159,21 @@ class MyClient(discord.Client):
 
         embed.add_field(name="Silinen kanal:", value=message.channel, inline=False)
         embed.add_field(name="Gönderen kişi:", value=message.author, inline=False)
-
-        if who_deleted is not None:
-            embed.add_field(name="Silen kişi:", value=who_deleted, inline=False)
+        embed.add_field(name="Silen kişi:", value=who_deleted, inline=False)
 
         files: list[discord.File] = []
-        if message.attachments is not None:
-            for attachment in message.attachments:
-                file = file_handeler.get_deleted_attachment(attachment)
+        for attachment in message.attachments:
+            file = await file_handeler.get_deleted_attachment(attachment)
 
-                if file is None:
-                    logging.info("Attachment not found: %s", attachment.filename)
-                    continue
-                files.append(file)
+            if file is None:
+                logging.info("Attachment not found: %s", attachment.filename)
+                continue
+            files.append(file)
 
-                if len(message.attachments) == 1:
-                    embed.set_image(url="attachment://" + str(attachment.id) + "." + attachment.filename.split(".")[-1])
-                else:
-                    pass # don't set the image, because it's will still be displayed correctly
+            if len(message.attachments) == 1:
+                _ = embed.set_image(url="attachment://" + str(attachment.id) + "." + attachment.filename.split(".")[-1])
+            else:
+                pass # don't set the image, because it's will still be displayed correctly
 
         await send_channel.send(embeds=[embed] + message.embeds, files=files)
         # do not delete the attachment, because it breaks the upload

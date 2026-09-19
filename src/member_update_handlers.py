@@ -91,8 +91,8 @@ async def handle_activity_change(before: discord.Member, after: discord.Member, 
 
 
 async def handle_display_name_change(before: discord.Member, after: discord.Member, embed: discord.Embed):
-    before_name = before.display_name if before.display_name is None else before.name
-    after_name = after.display_name if after.display_name is None else after.name
+    before_name = before.display_name
+    after_name = after.display_name
     logging.debug(f"{before.name}'s name changed from {before.name} to {after.name}")
     embed.add_field(name="Eski İsim:", value=before_name, inline=False)
     embed.add_field(name="Yeni İsim:", value=after_name, inline=False)
