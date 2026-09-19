@@ -30,10 +30,12 @@ def _get_file_path_for_attachment(attachment: Attachment) -> Path:
 
 
 async def download_all_attachments(message: Message):
-    async with deleted_messages_lock:
-        await asyncio.gather(
+    async with get_deleted_messages_lock():
+        _ = await asyncio.gather(
             *[
-                _download_file(attachment.url, _get_file_path_for_attachment(attachment))
+                _download_file(
+                    attachment.url, _get_file_path_for_attachment(attachment)
+                )
                 for attachment in message.attachments
             ]
         )
@@ -42,7 +44,10 @@ async def download_all_attachments(message: Message):
 async def _download_file(url: str, file_path: Path):
     try:
         logger.debug("Downloading file %s", url)
-        async with aiohttp.ClientSession() as session, session.get(url) as response:
+        async with (
+            aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(15)) as session,
+            session.get(url) as response,
+        ):
             if response.status != aiohttp.web.HTTPOk.status_code:
                 logger.error(
                     "Got status code %d while trying to download %s",
@@ -55,21 +60,22 @@ async def _download_file(url: str, file_path: Path):
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
         async with await anyio.open_file(file_path, "wb") as file:
-            await file.write(content)
+            _ = await file.write(content)
 
-    except aiohttp.ClientError as e:
+    except (aiohttp.ClientError, TimeoutError) as e:
         logger.exception("Couldn't download file %s got error: %s", url, e)
 
 
-def get_deleted_attachment(attachment: Attachment) -> File | None:
-    file_path = _get_file_path_for_attachment(attachment)
-    if file_path.exists():
-        return File(
-            file_path,
-            filename=attachment.filename,
-            spoiler=attachment.is_spoiler(),
-        )
-    return None
+async def get_deleted_attachment(attachment: Attachment) -> File | None:
+    async with get_deleted_messages_lock():
+        file_path = _get_file_path_for_attachment(attachment)
+        if file_path.exists():
+            return File(
+                file_path,
+                filename=attachment.filename,
+                spoiler=attachment.is_spoiler(),
+            )
+        return None
 
 
 async def delete_saved_attachments():
