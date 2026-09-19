@@ -93,10 +93,11 @@ class MusicQueue:
         self.currently_at = -1
 
     def get_queue_str(self, highlighted_index: int | None = None) -> str:
-        """Returns the queue as a new line separated string.
-        
-        if given an index, highlights that index with a --> and bolds it, otherwise highlights the current index
-        to not highlight anything give -1
+        """Return the queue as newline-separated Discord Markdown.
+
+        The current position is highlighted when ``highlighted_index`` is
+        ``None`` or ``0``; pass ``-1`` to disable highlighting. Entries that
+        have not downloaded are struck through.
         """
         queue_str = ""
         highlighted_index = highlighted_index or self.currently_at

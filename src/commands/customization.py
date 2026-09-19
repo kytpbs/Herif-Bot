@@ -63,6 +63,7 @@ class CustomizationCommands(app_commands.Group, CommandGroup):
         name="cevaplar", description="Bütün özel eklenmiş cevapları gösterir"
     )
     async def answers(self, interaction: InteractionWithDataManager):
+        """Send the guild's custom responses up to Discord's embed field limit."""
         _, guild_id = assert_guild_membered(interaction)
 
         customs_provider = await interaction.client.data_manager.customization_provider

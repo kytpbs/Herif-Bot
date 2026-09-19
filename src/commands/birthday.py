@@ -34,6 +34,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
         congratulate_channel: discord.TextChannel | None = None,
         congratulate_role: discord.Role | None = None,
     ):
+        """Show or update the guild's birthday channel and optional role."""
         server_config_provider = (
             await interaction.client.data_manager.server_config_provider
         )

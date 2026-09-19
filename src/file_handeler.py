@@ -20,9 +20,10 @@ def get_deleted_messages_lock():
 
 
 def _get_file_path_for_attachment(attachment: Attachment) -> Path:
-    """Returns the path to the file of the attachment.
+    """Return the expected cache path for an attachment.
 
-    WARNING: This function does not check if the file exists. and returns the expected path.
+    The path is derived from the attachment ID and filename extension; its
+    existence is not checked.
     """
     return ATTACHMENT_DOWNLOAD_PATH / (
         str(attachment.id) + "." + attachment.filename.split(".")[-1]
@@ -30,6 +31,7 @@ def _get_file_path_for_attachment(attachment: Attachment) -> Path:
 
 
 async def download_all_attachments(message: Message):
+    """Cache all of a message's attachments concurrently under the shared lock."""
     async with deleted_messages_lock:
         await asyncio.gather(
             *[
@@ -40,6 +42,11 @@ async def download_all_attachments(message: Message):
 
 
 async def _download_file(url: str, file_path: Path):
+    """Download a URL to a file, creating parent directories as needed.
+
+    The destination is written only for a successful HTTP response. HTTP status
+    and client errors are logged without being raised.
+    """
     try:
         logger.debug("Downloading file %s", url)
         async with aiohttp.ClientSession() as session, session.get(url) as response:
@@ -62,6 +69,7 @@ async def _download_file(url: str, file_path: Path):
 
 
 def get_deleted_attachment(attachment: Attachment) -> File | None:
+    """Return a Discord file for a cached attachment, or ``None`` if absent."""
     file_path = _get_file_path_for_attachment(attachment)
     if file_path.exists():
         return File(
@@ -73,6 +81,7 @@ def get_deleted_attachment(attachment: Attachment) -> File | None:
 
 
 async def delete_saved_attachments():
+    """Remove the attachment cache while holding the shared attachment lock."""
     async with deleted_messages_lock:
         logger.info("Deleting saved attachments!")
         shutil.rmtree(

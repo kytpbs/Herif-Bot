@@ -42,6 +42,7 @@ K = TypeVar("K")
 V = TypeVar("V")
 class DiskDict(dict[K, V]):
     def __init__(self, filename: str, *args: Any, **kwargs: Any):
+        """Load a JSON-backed mapping and arrange to save it at process exit."""
         super().__init__(*args, **kwargs)
         self.filename = filename
         self.load()
@@ -54,13 +55,16 @@ class DiskDict(dict[K, V]):
         self.update(Read.json_read(self.filename))
 
     def __delitem__(self, __key: K) -> None:
+        """Delete a key without immediately persisting the change."""
         super().__delitem__(__key)
 
     def __setitem__(self, __key: K, __value: V) -> None:
+        """Set a value and immediately persist the mapping."""
         super().__setitem__(__key, __value)
         self.save()
 
     def __getitem__(self, __key: K, load: bool = False) -> V:
+        """Return a value, optionally reloading the mapping from disk first."""
         if load:
             self.load()
         return super().__getitem__(__key)
@@ -70,5 +74,6 @@ class DiskDict(dict[K, V]):
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
+        """Persist the mapping when its context manager exits."""
         del exc_type, exc_val, exc_tb
         self.save() # save the file before exiting the "with" block

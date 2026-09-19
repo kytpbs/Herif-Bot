@@ -91,6 +91,7 @@ async def handle_activity_change(before: discord.Member, after: discord.Member, 
 
 
 async def handle_display_name_change(before: discord.Member, after: discord.Member, embed: discord.Embed):
+    """Append the member's previous and current display names to an embed."""
     before_name = before.display_name
     after_name = after.display_name
     logging.debug(f"{before.name}'s name changed from {before.name} to {after.name}")
