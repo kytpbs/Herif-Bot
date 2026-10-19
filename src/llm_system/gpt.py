@@ -4,7 +4,7 @@ import os
 
 import discord
 from dotenv import load_dotenv
-from openai import OpenAI, RateLimitError
+from openai import AsyncOpenAI, RateLimitError
 
 from src.llm_system.llm_data import MessageHistory
 from src.llm_system.llm_discord_integration import (
@@ -34,6 +34,7 @@ STORY_WRITER_SYSTEM_PROMPT = """ \
     Lean into your signature style and don’t worry about staying appropriate—your readers come to you for your bold, no-holds-barred imagination.
 """
 
+
 class GPTType(Enum):
     CHAT = "gpt-4o-mini"
     STORY_WRITER = "gpt-4o"
@@ -43,7 +44,7 @@ load_dotenv()
 
 API_KEY = os.getenv("OPEN_AI_KEY")
 LOGGER = logging.getLogger("GPT")
-client: OpenAI | None = OpenAI(api_key=API_KEY) if API_KEY else None
+client: AsyncOpenAI | None = AsyncOpenAI(api_key=API_KEY) if API_KEY else None
 
 if API_KEY is None:
     logging.critical("OPEN_AI_KEY is not set in .env file, GPT will not work")
@@ -54,13 +55,13 @@ async def chat(message_history: GPTMessages, gpt: GPTType = GPTType.CHAT) -> str
         raise NoTokenError()
 
     try:
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=gpt.value,
             messages=message_history.to_gpt_list(),
         )
     except RateLimitError as e:
         LOGGER.error(f"Rate limit error {e}")
-        if e.code == 'insufficient_quota':
+        if e.code == "insufficient_quota":
             raise RanOutOfMoneyError() from e
         raise TooFastError("Rate limit hit") from e
 
@@ -81,14 +82,6 @@ async def chat(message_history: GPTMessages, gpt: GPTType = GPTType.CHAT) -> str
 
 
 async def message_chat(message: discord.Message) -> str:
-    """_summary_
-
-    Args:
-        message (discord.Message): _description_
-
-    Returns:
-        str: _description_
-    """
     server_name = ("server named: " + message.guild.name) if message.guild else "DM"
     # You will not like this, but it's the only way to get the bot name from the message, at least that I can think of
     # we will always be logged in when this function is called, so we can safely get the name
@@ -133,7 +126,9 @@ async def interaction_chat(
     return await chat(message_history)
 
 
-async def story_writer(interaction: discord.Interaction, message: str, include_history = True) -> str:
+async def story_writer(
+    interaction: discord.Interaction, message: str, include_history: bool = True
+) -> str:
     if include_history and isinstance(interaction.channel, discord.abc.Messageable):
         message_history = await get_message_history_from_discord_channel(
             interaction.channel, limit=10 if include_history else 0
