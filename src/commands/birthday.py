@@ -52,7 +52,7 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
             pre_existing_config := await server_config.birthday_config
         ):
             _ = await interaction.response.send_message(
-                "Birthday ayarları ayarlanmadı, lütfen bir channel ve bir role belirtin",
+                "Doğum Günü ayarları ayarlanmadı, lütfen bir kanal belirtin",
                 ephemeral=True,
             )
             return
