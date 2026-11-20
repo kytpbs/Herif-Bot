@@ -72,15 +72,15 @@ class ServerConfigAccessor:
 
     @property
     async def birthday_config(self) -> BirthdayConfig | None:
-        return await self._birthday_config()
-
-    @alru_cache(ttl=60 * 5)  # Cache results for 5 minutes
-    async def _birthday_config(self) -> BirthdayConfig | None:
         """Lazily fetches and caches the birthday configuration for this guild.
 
         Returns:
             BirthdayConfig | None: The birthday configuration, or None if not configured
         """
+        return await self._birthday_config()
+
+    @alru_cache(ttl=60 * 5)  # Cache results for 5 minutes
+    async def _birthday_config(self) -> BirthdayConfig | None:
         return await self._provider.get_birthday_config(self._guild_id)
 
     def invalidate_birthday_config_cache(self) -> None:
@@ -92,15 +92,15 @@ class ServerConfigAccessor:
 
     @property
     async def customization_config(self) -> CustomizationConfig:
-        return await self._customization_config()
-
-    @alru_cache(ttl=60 * 5)  # Cache results for 5 minutes
-    async def _customization_config(self) -> CustomizationConfig:
         """Lazily fetches and caches the customization configuration for this guild.
 
         Returns:
             CustomizationConfig: The customization configuration, with default values if not configured
         """
+        return await self._customization_config()
+
+    @alru_cache(ttl=60 * 5)  # Cache results for 5 minutes
+    async def _customization_config(self) -> CustomizationConfig:
         return await self._provider.get_customization_config(self._guild_id)
 
     def invalidate_customization_config_cache(self) -> None:
