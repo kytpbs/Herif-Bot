@@ -1,9 +1,9 @@
 import logging
 import os
 import re
+import aiohttp
 import bs4
 from dotenv import load_dotenv
-import requests
 
 from src.download_system.downloader import (
     AlternateVideoDownloader,
@@ -25,10 +25,9 @@ def _get_tweet_id(url: str) -> str | None:
     return match.group(1) if match else None
 
 
-def _get_highest_quality_url_list(response: requests.Response) -> list[str]:
+def _get_highest_quality_url_list(html: str, url: str) -> list[str]:
     highest_quality_url_list: list[str] = []
-    data = bs4.BeautifulSoup(response.text, "html.parser")
-    url = response.url
+    data = bs4.BeautifulSoup(html, "html.parser")
 
     download_buttons = data.find_all("div", class_="origin-top-right")
 
@@ -64,12 +63,12 @@ def _get_highest_quality_url_list(response: requests.Response) -> list[str]:
     return highest_quality_url_list
 
 
-def _get_title(response: requests.Response) -> str:
-    data = bs4.BeautifulSoup(response.text, "html.parser")
+def _get_title(html: str, url: str) -> str:
+    data = bs4.BeautifulSoup(html, "html.parser")
     title = data.find("p", class_="m-2")
 
     if not isinstance(title, bs4.element.Tag):
-        logging.warning("No title found in URL: %s", response.url)
+        logging.warning("No title found in URL: %s", url)
         return "No title found"
 
     return title.text
@@ -102,15 +101,20 @@ class TwitterDownloader(VideoDownloader):
     async def download_video_from_link(
         cls, url: str, path: str | None = None
     ) -> VIDEO_RETURN_TYPE:
-        attachment_list: list[VideoFile] = []
         tweet_id = _get_tweet_id(url)
         if path is None:
             path = os.path.join("downloads", "twitter")
 
         try:
-            response = requests.get(API_URL_START + url, timeout=30)
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
+            async with (
+                aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=30)
+                ) as session,
+                session.get(API_URL_START + url) as response,
+            ):
+                response.raise_for_status()
+                html = await response.text()
+        except aiohttp.ClientError as e:
             logging.warning(
                 "Downloading from 3'rd party failed due to error: %s, trying with alternative downloader",
                 e,
@@ -124,8 +128,8 @@ class TwitterDownloader(VideoDownloader):
             logging.error("No tweet id found in URL: %s", url)
             raise DownloadFailedError(f"No tweet id found in URL: {url}")
 
-        download_urls = _get_highest_quality_url_list(response)
-        title = _get_title(response)
+        download_urls = _get_highest_quality_url_list(html, url)
+        title = _get_title(html, url)
         downloaded_file_paths = await cls._download_links(download_urls, path, tweet_id)
 
         attachment_list = [VideoFile(path) for path in downloaded_file_paths]
