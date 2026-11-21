@@ -47,6 +47,9 @@ class ServerConfigSQL(ServerConfigProvider):
         _LOGGER.debug("Setting DB time to UTC")
 
         query = sql.SQL("""
+        SELECT (CASE WHEN to_regclass({birthday_name}) IS NULL THEN 1 ELSE 0 END)
+            | (CASE WHEN to_regclass({customization_name}) IS NULL THEN 2 ELSE 0 END);
+
         SET TIME ZONE 'UTC';
 
         CREATE TABLE IF NOT EXISTS {birthday_config_table_name}(
@@ -60,17 +63,30 @@ class ServerConfigSQL(ServerConfigProvider):
             is_enabled BOOLEAN NOT NULL DEFAULT TRUE
         );
         """).format(
+            # to_regclass() takes the table name as a string, not an identifier
+            birthday_name=sql.Literal(self._birthday_config_table_name),
+            customization_name=sql.Literal(self._customization_config_table_name),
             birthday_config_table_name=sql.Identifier(self._birthday_config_table_name),
             customization_config_table_name=sql.Identifier(
                 self._customization_config_table_name
             ),
         )
         # Use db_client instead of _client to avoid getting an error
-        _ = await self._db_client.post(query)
+        result = await self._db_client.get(query)
         self._table_exists = True
-        _LOGGER.info(
-            f"Table {self._birthday_config_table_name} created or already exists"
-        )
+
+        if not result or not result[0] or not isinstance(result[0][0], int):
+            _LOGGER.error(
+                "Failed to determine if tables exist, unexpected query result: %s",
+                result,
+            )
+            return
+        bitmap_result = result[0][0]
+
+        if bitmap_result & 0b01:
+            _LOGGER.info("Birthday config table created")
+        if bitmap_result & 0b10:
+            _LOGGER.info("Customization config table created")
 
     @override
     async def set_birthday_config(

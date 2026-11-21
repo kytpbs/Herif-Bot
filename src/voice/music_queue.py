@@ -66,8 +66,8 @@ class MusicQueue:
         return self.get_current_music()
 
     def switch_to_next_music(self) -> Music:
-        """
-        Moves onto the next music
+        """Moves onto the next music.
+
         Will raise an error if no more can be found
 
         Raises:
@@ -92,9 +92,9 @@ class MusicQueue:
         self.queue.clear()
         self.currently_at = -1
 
-    def get_queue_str(self, highlighted_index = None) -> str:
-        """
-        returns the queue as a new line separated string
+    def get_queue_str(self, highlighted_index: int | None = None) -> str:
+        """Returns the queue as a new line separated string.
+        
         give -1 to highlight nothing
         """
         queue_str = ""
