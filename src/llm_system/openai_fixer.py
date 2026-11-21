@@ -1,5 +1,5 @@
 import string
-from typing import Literal, NamedTuple, Optional
+from typing import Literal, NamedTuple
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 
 from src.llm_system.llm_data import Message, MessageHistory
@@ -8,7 +8,7 @@ from src.llm_system.llm_data import Message, MessageHistory
 class GPTMessage(NamedTuple):
     role: Literal["system", "assistant", "user"]
     content: str
-    name: Optional[str] = None
+    name: str | None = None
 
     @classmethod
     def system(cls, content: str) -> "GPTMessage":
@@ -64,8 +64,8 @@ class GPTMessages(list[GPTMessage]):
     def from_message_history(
         cls,
         message_history: MessageHistory,
-        system_message: Optional[str] = None,
-        main_message: Optional[Message] = None,
+        system_message: str | None = None,
+        main_message: Message | None = None,
     ) -> "GPTMessages":
         messages = cls._convert_to_gpt_messages(message_history)
         if system_message:

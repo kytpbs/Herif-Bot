@@ -47,22 +47,19 @@ class BirthdayCommands(app_commands.Group, CommandGroup):
 
         server_config = server_config_provider.get_config(guild_id)
 
-        pre_existing_config = None  # make type-checker happy
-        if not congratulate_channel and not (
-            pre_existing_config := await server_config.birthday_config
-        ):
+        pre_existing_config = None # Make type checker happy
+        if congratulate_channel:
+            channel_id = congratulate_channel.id
+        elif pre_existing_config := await server_config.birthday_config:
+            channel_id = pre_existing_config.channel_id
+        else:
             _ = await interaction.response.send_message(
-                "Birthday ayarları ayarlanmadı, lütfen bir channel ve bir role belirtin",
+                "Doğum Günü ayarları ayarlanmadı, lütfen bir kanal belirtin",
                 ephemeral=True,
             )
             return
 
-        channel_id = (
-            congratulate_channel.id
-            if congratulate_channel
-            else pre_existing_config.channel_id
-        )
-
+        # if only python had the TS `object?.Property` operator...
         role_id = congratulate_role.id if congratulate_role else None
         old_role_id = pre_existing_config.role_id if pre_existing_config else None
 

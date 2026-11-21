@@ -2,7 +2,7 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 import os
-from typing import Any, Optional
+from typing import Any
 
 import aiohttp
 import requests
@@ -63,7 +63,7 @@ class VideoFile:
 
 
 class VideoFiles(list[VideoFile]):
-    def __init__(self, videos: list[VideoFile], caption: Optional[str] = None) -> None:
+    def __init__(self, videos: list[VideoFile], caption: str | None = None) -> None:
         if not videos:
             raise NoVideoFoundError("VideoFiles must have at least one video")
         super().__init__(videos)
